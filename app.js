@@ -5233,6 +5233,7 @@
         label: String(item.label || (item.type === "player" ? "Ta légende" : "Le monde")),
         headline: limitLogbookText(item.headline || item.text || "", 48),
         priority: Math.max(0, Math.min(5, Number(item.priority) || 0)),
+        subject: String(item.subject || item.loreCharacters?.[0] || item.type || "world"),
         sourceEventId: item.sourceEventId || null,
         lead: Boolean(item.lead),
       }))
@@ -5320,27 +5321,53 @@
       headline: limitLogbookText(headline, 48),
       priority,
       sourceEventId: event.eventId || event.id || null,
+      subject: "player",
       lead,
     };
+  }
+
+  function getWorldNewsSubject(item = {}) {
+    return String(item.subject || item.loreCharacters?.[0] || item.type || item.id || "world");
+  }
+
+  function getStableNewsOrder(seed) {
+    let hash = 2166136261;
+    String(seed || "").split("").forEach((character) => {
+      hash ^= character.charCodeAt(0);
+      hash = Math.imul(hash, 16777619);
+    });
+    return hash >>> 0;
   }
 
   function selectWorldNews(entry, game = state.game, count = 2) {
     const stage = Math.max(1, Math.min(6,
       Number(entry.period) || Number(game?.currentZoneIndex) + 1 || 1));
     const seen = new Set(game?.seenWorldNewsIds || []);
-    const eligible = WORLD_NEWS_CATALOG.filter((item) =>
-      item.stages.includes(stage) && !seen.has(item.id));
+    const recentSubjects = new Set((game?.journal || [])
+      .slice(-2)
+      .flatMap((period) => normalizeStoredBigNews(period.bigNews))
+      .filter((item) => item.type !== "player")
+      .map(getWorldNewsSubject));
+    const stableSeed = `${game?.id || game?.character?.id || "run"}-${entry.period || stage}`;
+    const eligible = WORLD_NEWS_CATALOG
+      .filter((item) => item.stages.includes(stage) && !seen.has(item.id))
+      .sort((a, b) =>
+        Number(recentSubjects.has(getWorldNewsSubject(a))) - Number(recentSubjects.has(getWorldNewsSubject(b))) ||
+        Number(b.type === "major") - Number(a.type === "major") ||
+        getStableNewsOrder(`${stableSeed}-${a.id}`) - getStableNewsOrder(`${stableSeed}-${b.id}`));
     const selected = [];
     while (eligible.length && selected.length < count) {
-      const index = Math.floor(Math.random() * eligible.length);
-      const item = eligible.splice(index, 1)[0];
+      const distinctIndex = eligible.findIndex((candidate) =>
+        !selected.some((chosen) => chosen.subject === getWorldNewsSubject(candidate)));
+      const item = eligible.splice(distinctIndex >= 0 ? distinctIndex : 0, 1)[0];
       selected.push({
         id: item.id,
         type: item.type,
         icon: item.icon,
         label: "Le monde",
         headline: item.text,
-        priority: 2,
+        priority: item.type === "major" ? 3 : 2,
+        subject: getWorldNewsSubject(item),
         sourceEventId: null,
         lead: false,
       });
@@ -5351,28 +5378,57 @@
 
   function buildBigNews(entry = {}, game = state.game, options = {}) {
     const events = getLogbookEvents(entry)
-      .map((event) => ({ ...event, newsPriority: getEventNewsPriority(event) }))
+      .map((event, index) => ({
+        ...event,
+        newsPriority: getEventNewsPriority(event),
+        newsRecency: index,
+      }))
       .filter((event) => event.newsPriority >= 3)
-      .sort((a, b) => b.newsPriority - a.newsPriority || getLogbookEventPriority(b) - getLogbookEventPriority(a));
-    const mandatory = events.filter((event) => event.eventType === "decisive" || event.newsPriority >= 4);
-    const selectedEvents = [...mandatory];
-    events.forEach((event) => {
-      if (selectedEvents.length < 3 && !selectedEvents.some((item) => (item.eventId || item.id) === (event.eventId || event.id))) {
-        selectedEvents.push(event);
-      }
-    });
-    const playerNews = selectedEvents.slice(0, 6).map((event) => createPlayerNewsItem(event, game));
+      .sort((a, b) =>
+        b.newsPriority - a.newsPriority ||
+        getLogbookEventPriority(b) - getLogbookEventPriority(a) ||
+        b.newsRecency - a.newsRecency);
+    const playerNews = events.length ? [createPlayerNewsItem(events[0], game)] : [];
     const desiredWorldCount = options.includeWorldNews === false
       ? 0
-      : Math.max(1, Math.min(3, 3 - Math.min(playerNews.length, 2)));
+      : playerNews.length ? 1 : 2;
     const worldNews = selectWorldNews(entry, game, desiredWorldCount);
-    const combined = [...playerNews, ...worldNews]
-      .filter((item, index, list) => list.findIndex((candidate) => candidate.id === item.id) === index)
-      .slice(0, 7);
+    const combined = selectBigNewsForDisplay([...playerNews, ...worldNews]);
     const leadIndex = combined.findIndex((item) => item.lead);
     combined.forEach((item, index) => { item.lead = index === leadIndex; });
     validateBigNews(entry, combined);
     return combined;
+  }
+
+  function selectBigNewsForDisplay(news = []) {
+    const normalized = normalizeStoredBigNews(news)
+      .map((item, index) => ({ ...item, editorialIndex: index }))
+      .filter((item, index, list) => list.findIndex((candidate) =>
+        candidate.id === item.id ||
+        (candidate.sourceEventId && candidate.sourceEventId === item.sourceEventId) ||
+        slugify(candidate.headline) === slugify(item.headline)) === index);
+    const byEditorialPriority = (a, b) =>
+      b.priority - a.priority || b.editorialIndex - a.editorialIndex;
+    const player = normalized.filter((item) => item.type === "player").sort(byEditorialPriority)[0] || null;
+    const worlds = normalized.filter((item) => item.type !== "player").sort(byEditorialPriority);
+    const selected = player ? [player] : [];
+    for (const item of worlds) {
+      if (selected.length >= 2) break;
+      if (selected.some((chosen) =>
+        chosen.id === item.id ||
+        (chosen.sourceEventId && chosen.sourceEventId === item.sourceEventId) ||
+        (chosen.type !== "player" && getWorldNewsSubject(chosen) === getWorldNewsSubject(item)))) continue;
+      selected.push(item);
+    }
+    const leadIndex = selected.findIndex((item) => item.type === "player" && item.lead);
+    return selected.map((item, index) => {
+      const { editorialIndex: _editorialIndex, ...newsItem } = item;
+      return {
+        ...newsItem,
+        label: item.type === "player" ? item.label || "Ta légende" : "Le monde",
+        lead: index === leadIndex,
+      };
+    });
   }
 
   function buildLegacyBigNews(entry = {}, game = state.game) {
@@ -5400,18 +5456,59 @@
       if (ids.has(item.id)) warnings.push(`doublon : ${item.id}`);
       ids.add(item.id);
     });
-    if (news.length > 7) warnings.push(`plus de sept actualités : période ${entry.period}`);
-    getLogbookEvents(entry).filter((event) => event.eventType === "decisive").forEach((event) => {
-      const id = event.eventId || event.id;
-      if (!news.some((item) => item.sourceEventId === id)) warnings.push(`événement décisif absent : ${id}`);
-    });
-    getLogbookEvents(entry).filter((event) =>
-      event.flagChanges?.bossFinalDreamCompleted || event.flagChanges?.dreamCompleted,
-    ).forEach((event) => {
-      const id = event.eventId || event.id;
-      if (!news.some((item) => item.sourceEventId === id)) warnings.push(`rêve accompli absent : ${id}`);
-    });
+    if (news.length > 2) warnings.push(`plus de deux actualités : période ${entry.period}`);
+    if (news.filter((item) => item.type === "player").length > 1) {
+      warnings.push("plus d’une actualité joueur");
+    }
+    if (news.length > 1 && !news.some((item) => item.type !== "player")) {
+      warnings.push("actualité mondiale absente");
+    }
     if (warnings.length) console.warn("[Blue Legacy] Validation Big News Morgans :", warnings);
+  }
+
+  function runBigNewsEditorialAudit() {
+    const player = (id, priority) => ({
+      id, type: "player", subject: "player", priority, headline: `Action ${id}`,
+    });
+    const world = (id, subject, priority = 2) => ({
+      id, type: "world", subject, priority, headline: `Nouvelle ${id}`,
+    });
+    const cases = [
+      {
+        name: "action majeure et monde",
+        result: selectBigNewsForDisplay([player("minor", 3), player("major", 5), world("marine", "marine")]),
+        expected: ["major", "marine"],
+      },
+      {
+        name: "aucune action majeure",
+        result: selectBigNewsForDisplay([world("law", "Trafalgar Law"), world("marine", "marine")]),
+        expected: ["marine", "law"],
+      },
+      {
+        name: "ancienne période de quatre nouvelles",
+        result: selectBigNewsForDisplay([
+          world("older", "piracy", 1), player("major", 5),
+          world("government", "government", 3), player("other", 4),
+        ]),
+        expected: ["major", "government"],
+      },
+      {
+        name: "déduplication des sujets",
+        result: selectBigNewsForDisplay([
+          world("marine-a", "marine", 3), world("marine-b", "marine", 2), world("revolution", "revolution", 2),
+        ]),
+        expected: ["marine-a", "revolution"],
+      },
+    ].map((test) => ({
+      ...test,
+      actual: test.result.map((item) => item.id),
+      pass: test.result.length <= 2 &&
+        test.result.filter((item) => item.type === "player").length <= 1 &&
+        test.expected.every((id, index) => test.result[index]?.id === id),
+    }));
+    const report = { cases, pass: cases.every((test) => test.pass) };
+    console.warn("[Blue Legacy] Audit éditorial Big News Morgans", report);
+    return report;
   }
 
   function createBigNewsHtml(news = []) {
@@ -7190,14 +7287,25 @@
     );
   }
 
+  const REWARD_REVEAL_RARITY_CLASSES = Object.freeze(
+    Object.keys(TITLE_RARITIES).map((rarity) => `reward-reveal--${rarity}`),
+  );
+
+  function applyRewardRevealRarityTheme(reveal, rarity) {
+    if (!dom.rewardRevealCard) return;
+    dom.rewardRevealCard.classList.remove(...REWARD_REVEAL_RARITY_CLASSES);
+    dom.rewardRevealCard.classList.add(`reward-reveal--${rarity}`);
+    dom.rewardRevealCard.dataset.rarity = rarity;
+    dom.rewardRevealCard.dataset.rewardType = reveal?.type || "reward";
+  }
+
   function updateRewardRevealScreen() {
     const reveal = state.game?.pendingRewardReveals?.[0];
     if (!reveal) return;
     const rarity = normalizeRarity(reveal.rarity);
 
     if (dom.rewardRevealCard) {
-      dom.rewardRevealCard.dataset.rarity = rarity;
-      dom.rewardRevealCard.dataset.rewardType = reveal.type || "reward";
+      applyRewardRevealRarityTheme(reveal, rarity);
       dom.rewardRevealCard.classList.remove("reward-reveal-animate");
       void dom.rewardRevealCard.offsetWidth;
       dom.rewardRevealCard.classList.add("reward-reveal-animate");
@@ -7212,6 +7320,8 @@
       dom.rewardRevealEyebrow.textContent =
         reveal.type === "devilFruit"
           ? "Fruit du Démon"
+          : reveal.type === "title"
+            ? "Titre obtenu"
           : "Récompense majeure";
     }
     if (dom.rewardRevealName) {
@@ -7754,9 +7864,9 @@
           character: entry,
         });
       const bigNews = normalizeStoredBigNews(log.bigNews);
-      const displayedNews = bigNews.length
+      const displayedNews = selectBigNewsForDisplay(bigNews.length
         ? bigNews
-        : buildLegacyBigNews({ ...log, narrative }, { character: entry });
+        : buildLegacyBigNews({ ...log, narrative }, { character: entry }));
       const highlights = log.highlights?.length
         ? log.highlights.slice(0, 3)
         : buildLogbookHighlights(log);
@@ -8207,9 +8317,9 @@
         : getLogbookVisitedLocations(entry.events, entry.zoneName)
     ).filter((location) => location && location !== entry.zoneName);
     const storedNews = normalizeStoredBigNews(entry.bigNews);
-    const bigNews = storedNews.length
+    const bigNews = selectBigNewsForDisplay(storedNews.length
       ? storedNews
-      : buildLegacyBigNews(entry, game);
+      : buildLegacyBigNews(entry, game));
     const highlights =
       entry.highlights?.length
         ? entry.highlights.slice(0, 3)
@@ -10641,6 +10751,7 @@
     runBlueLegacyEventAudit,
     runBlueLegacySelectionSimulations,
     runBalanceSimulation,
+    runBigNewsEditorialAudit,
     getRarityLabel,
     getRarityIcon,
     getRewardTypeIcon,

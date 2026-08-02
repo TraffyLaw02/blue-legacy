@@ -5112,6 +5112,60 @@ h4,
   margin-top: 22px;
 }
 
+/* Le thème suprême est limité aux révélations de Titres mythiques. Les
+   Succès et les autres récompenses mythiques conservent leur propre thème. */
+.reward-reveal-card[data-reward-type="title"][data-rarity="mythic"] {
+  --rarity-color: #7387BC;
+  --rarity-soft: #F8F3EE;
+  --rarity-dark: var(--dream-supreme-ink);
+  color: var(--dream-supreme-ink);
+  border-color: transparent;
+  background:
+    linear-gradient(rgba(255, 253, 248, 0.80), rgba(247, 242, 234, 0.84)) padding-box,
+    var(--dream-supreme-gradient) padding-box,
+    var(--dream-supreme-gradient) border-box;
+  box-shadow:
+    0 7px 0 rgba(80, 92, 137, 0.34),
+    0 20px 42px var(--dream-supreme-shadow);
+}
+
+.reward-reveal-card[data-reward-type="title"][data-rarity="mythic"]::before {
+  color: var(--dream-supreme-ink);
+}
+
+.reward-reveal-card[data-reward-type="title"][data-rarity="mythic"]
+  .reward-reveal-icon {
+  color: var(--dream-supreme-ink);
+  background:
+    linear-gradient(#FFFDF8, #F7F2EA) padding-box,
+    var(--dream-supreme-gradient) border-box;
+  border-color: transparent;
+  box-shadow:
+    0 0 0 8px rgba(115, 135, 188, 0.10),
+    0 5px 14px var(--dream-supreme-shadow);
+}
+
+.reward-reveal-card[data-reward-type="title"][data-rarity="mythic"]
+  .reward-reveal-rarity {
+  color: var(--dream-supreme-ink);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 249, 236, 0.92)) padding-box,
+    var(--dream-supreme-gradient) border-box;
+  border-color: transparent;
+  box-shadow: 0 3px 8px rgba(105, 126, 190, 0.16);
+}
+
+.reward-reveal-card[data-reward-type="title"][data-rarity="mythic"] h2,
+.reward-reveal-card[data-reward-type="title"][data-rarity="mythic"]
+  .reward-reveal-eyebrow {
+  color: var(--dream-supreme-ink);
+}
+
+.reward-reveal-card[data-reward-type="title"][data-rarity="mythic"]
+  .reward-reveal-description {
+  color: color-mix(in srgb, var(--dream-supreme-ink) 78%, var(--muted));
+}
+
 .reward-reveal-animate {
   animation: reward-reveal-in 560ms ease-out both;
 }
