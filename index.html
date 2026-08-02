@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Blue Legacy, une aventure narrative sur les mers." name="description"/>
+<title>Blue Legacy — V1.1</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body>
+<div id="app">
+<main class="app-shell">
+<!-- ACCUEIL PRINCIPAL -->
+<section aria-labelledby="home-title" class="screen active layout-narrow" id="home-screen">
+<header class="home-header">
+<div aria-label="Logo Blue Legacy" class="logo-container">
+<img id="game-logo" src="assets/logo.png" alt="Blue Legacy"/>
+</div>
+<h1 class="sr-only" id="home-title">Blue Legacy</h1>
+<p class="tagline" id="home-tagline">
+De simple mousse à légende des mers, vivez une aventure unique où chaque décision façonne votre destinée. Recrutez votre équipage, explorez les océans et écrivez votre propre histoire.
+          </p>
+</header>
+<p class="home-berry-balance" id="home-berry-balance" aria-live="polite">💰 0 berrys</p>
+<div class="home-actions">
+<button class="button button-primary" id="start-adventure-btn" type="button">
+            🏴‍☠️ Commencer mon aventure
+          </button>
+<button class="button" hidden="" id="resume-adventure-btn" type="button">
+            ⛵ Reprendre mon aventure
+          </button>
+<button class="button button-danger" hidden="" id="abandon-adventure-btn" type="button">
+            🗑️ Abandonner l’aventure
+          </button>
+</div>
+<nav aria-label="Menu principal" class="home-menu">
+<button class="menu-button home-secondary-button" data-screen-target="shop-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🛍️</span><span class="home-secondary-button__label">Boutique</span></button>
+<button class="menu-button home-secondary-button" data-screen-target="achievements-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🏆</span><span class="home-secondary-button__label">Succès</span></button>
+<button class="menu-button home-secondary-button" data-screen-target="titles-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🎖️</span><span class="home-secondary-button__label">Titres</span></button>
+<button class="menu-button home-secondary-button" data-screen-target="pantheon-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">👑</span><span class="home-secondary-button__label">Panthéon</span></button>
+</nav>
+</section>
+<!-- BOUTIQUE PERMANENTE -->
+<section aria-labelledby="shop-title" class="screen layout-wide shop-screen" hidden="" id="shop-screen">
+<header class="screen-header">
+<button class="back-button" data-screen-target="home-screen" type="button">⌂ Accueil</button>
+<div>
+<p class="eyebrow">Progression permanente</p>
+<h2 id="shop-title">🛍️ Boutique</h2>
+<p class="screen-subtitle">Achète des objets permanents et équipe-en jusqu’à deux pour tes prochaines aventures.</p>
+</div>
+</header>
+<div class="shop-overview">
+<strong id="shop-berry-balance" aria-live="polite">💰 0 berrys</strong>
+<span id="shop-equipped-count">Objets équipés : 0 / 2</span>
+</div>
+<p class="shop-current-run-note" id="shop-current-run-note" hidden>Une aventure est en cours : ces changements s’appliqueront à la prochaine aventure.</p>
+<section class="shop-equipped-summary" aria-labelledby="shop-equipped-title">
+<h3 id="shop-equipped-title">Objets actuellement équipés</h3>
+<div id="shop-equipped-items"></div>
+</section>
+<div class="shop-grid" id="shop-items"></div>
+</section>
+<!-- CRÉATION DU PERSONNAGE -->
+<section aria-labelledby="creation-title" class="screen layout-wide" hidden="" id="creation-screen">
+<header class="screen-header creation-screen-header">
+<nav aria-label="Navigation de la création" class="creation-header-navigation">
+<button class="back-button creation-nav-button" hidden="" id="creation-previous-btn" type="button">← Retour</button>
+<button class="back-button creation-nav-button" id="creation-home-btn" type="button">⌂ Accueil</button>
+</nav>
+<div class="creation-header-title">
+<p class="eyebrow">Création du personnage</p>
+<h2 id="creation-title">Qui prendra la mer ?</h2>
+</div>
+<div aria-label="Progression de la création" class="creation-progress">
+<span id="creation-step-current">1</span>
+<span aria-hidden="true">/</span>
+<span id="creation-step-total">6</span>
+</div>
+</header>
+<div class="slides-container">
+<!-- SLIDE 1 : SEXE -->
+<section aria-labelledby="sex-slide-title" class="creation-slide active" data-step="1" id="sex-slide">
+<header class="slide-header">
+<p class="slide-number">Étape 1</p>
+<h3 id="sex-slide-title">Choisis ton personnage</h3>
+<p>Ce choix influencera uniquement les noms proposés.</p>
+</header>
+<div aria-label="Sexe du personnage" class="choice-grid choice-grid-small" role="radiogroup">
+<button aria-checked="false" class="choice-card" data-choice-type="sex" data-choice-value="male" role="radio" type="button">
+<span aria-hidden="true" class="choice-emoji">👨</span>
+<span class="choice-title">Homme</span>
+</button>
+<button aria-checked="false" class="choice-card" data-choice-type="sex" data-choice-value="female" role="radio" type="button">
+<span aria-hidden="true" class="choice-emoji">👩</span>
+<span class="choice-title">Femme</span>
+</button>
+</div>
+</section>
+<!-- SLIDE 2 : VOIE -->
+<section aria-labelledby="faction-slide-title" class="creation-slide" data-step="2" hidden="" id="faction-slide">
+<header class="slide-header">
+<p class="slide-number">Étape 2</p>
+<h3 id="faction-slide-title">Choisis ta voie</h3>
+<p>Ce choix déterminera tes rêves accessibles et une grande partie de ton aventure.</p>
+</header>
+<div aria-label="Voie du personnage" class="choice-grid faction-grid" role="radiogroup">
+<button aria-checked="false" class="choice-card faction-card" data-choice-type="faction" data-choice-value="pirate" role="radio" type="button">
+<span aria-hidden="true" class="choice-emoji">🏴‍☠️</span>
+<span class="choice-title">Pirate</span>
+<span class="choice-description">Prends la mer librement, forme un équipage et défie l’ordre établi.</span>
+<span class="choice-effects" data-faction-effects="pirate">Bonus et conséquences à afficher ici.</span>
+<span class="choice-events" data-faction-events="pirate">Événements : équipage, trésors, rivalités et conquêtes.</span>
+</button>
+<button aria-checked="false" class="choice-card faction-card" data-choice-type="faction" data-choice-value="bounty-hunter" role="radio" type="button">
+<span aria-hidden="true" class="choice-emoji">🎯</span>
+<span class="choice-title">Chasseur de primes</span>
+<span class="choice-description">Traque les criminels, choisis tes contrats et bâtis ta renommée.</span>
+<span class="choice-effects" data-faction-effects="bounty-hunter">Bonus et conséquences à afficher ici.</span>
+<span class="choice-events" data-faction-events="bounty-hunter">Événements : contrats, traques, captures et dilemmes.</span>
+</button>
+<button aria-checked="false" class="choice-card faction-card" data-choice-type="faction" data-choice-value="revolutionary" role="radio" type="button">
+<span aria-hidden="true" class="choice-emoji">✊</span>
+<span class="choice-title">Révolutionnaire</span>
+<span class="choice-description">Lutte contre l’oppression et rallie les peuples à ta cause.</span>
+<span class="choice-effects" data-faction-effects="revolutionary">Bonus et conséquences à afficher ici.</span>
+<span class="choice-events" data-faction-events="revolutionary">Événements : libérations, infiltration, alliances et révoltes.</span>
+</button>
+<button aria-checked="false" class="choice-card faction-card" data-choice-type="faction" data-choice-value="marine" role="radio" type="button">
+<span aria-hidden="true" class="choice-emoji">⚓</span>
+<span class="choice-title">Marine</span>
+<span class="choice-description">Fais respecter la justice et gravis les rangs de la Marine.</span>
+<span class="choice-effects" data-faction-effects="marine">Bonus et conséquences à afficher ici.</span>
+<span class="choice-events" data-faction-events="marine">Événements : missions, promotions, enquêtes et opérations.</span>
+</button>
+</div>
+</section>
+<!-- SLIDE 3 : RÊVE -->
+<section aria-labelledby="dream-slide-title" class="creation-slide" data-step="3" hidden="" id="dream-slide">
+<header class="slide-header">
+<p class="slide-number">Étape 3</p>
+<h3 id="dream-slide-title">Quel est ton rêve ?</h3>
+<p>Ton rêve guidera les grandes décisions de toute ta vie.</p>
+</header>
+<div class="dream-group" data-faction-dreams="pirate" hidden="" id="pirate-dreams">
+<h4>Rêves de Pirate</h4>
+<div class="choice-grid dream-grid" data-dream-list="pirate"></div>
+</div>
+<div class="dream-group" data-faction-dreams="marine" hidden="" id="marine-dreams">
+<h4>Rêves de Marine</h4>
+<div class="choice-grid dream-grid" data-dream-list="marine"></div>
+</div>
+<div class="dream-group" data-faction-dreams="revolutionary" hidden="" id="revolutionary-dreams">
+<h4>Rêves de Révolutionnaire</h4>
+<div class="choice-grid dream-grid" data-dream-list="revolutionary"></div>
+</div>
+<div class="dream-group" data-faction-dreams="bounty-hunter" hidden="" id="bounty-hunter-dreams">
+<h4>Rêves de Chasseur de primes</h4>
+<div class="choice-grid dream-grid" data-dream-list="bounty-hunter"></div>
+</div>
+</section>
+<!-- SLIDE 4 : ORIGINE -->
+<section aria-labelledby="origin-slide-title" class="creation-slide" data-step="4" hidden="" id="origin-slide">
+<header class="slide-header">
+<p class="slide-number">Étape 4</p>
+<h3 id="origin-slide-title">D’où viens-tu ?</h3>
+<p>Ta première zone d’aventure correspondra toujours à cette origine.</p>
+</header>
+<div aria-label="Origine du personnage" class="choice-grid origin-grid" role="radiogroup">
+<button aria-checked="false" class="choice-card origin-card" data-choice-type="origin" data-choice-value="east-blue" role="radio" type="button">
+<span class="choice-title">East Blue</span>
+<span class="choice-description">Une mer paisible où naissent parfois les plus grandes légendes.</span>
+<span class="choice-effects" data-origin-hint="east-blue"></span>
+</button>
+<button aria-checked="false" class="choice-card origin-card" data-choice-type="origin" data-choice-value="north-blue" role="radio" type="button">
+<span class="choice-title">North Blue</span>
+<span class="choice-description">Une mer froide, politique et marquée par de puissantes familles.</span>
+<span class="choice-effects" data-origin-hint="north-blue"></span>
+</button>
+<button aria-checked="false" class="choice-card origin-card" data-choice-type="origin" data-choice-value="south-blue" role="radio" type="button">
+<span class="choice-title">South Blue</span>
+<span class="choice-description">Une mer vivante, sauvage et riche en cultures différentes.</span>
+<span class="choice-effects" data-origin-hint="south-blue"></span>
+</button>
+<button aria-checked="false" class="choice-card origin-card" data-choice-type="origin" data-choice-value="west-blue" role="radio" type="button">
+<span class="choice-title">West Blue</span>
+<span class="choice-description">Une mer dangereuse dominée par les réseaux et les ambitions.</span>
+<span class="choice-effects" data-origin-hint="west-blue"></span>
+</button>
+</div>
+</section>
+
+
+<!-- SLIDE 5 : NOM -->
+<section aria-labelledby="name-slide-title" class="creation-slide" data-step="5" hidden="" id="name-slide">
+<header class="slide-header">
+<p class="slide-number">Étape 5</p>
+<h3 id="name-slide-title">Quel nom portera ta légende ?</h3>
+<p>Les mers se souviendront peut-être de celui-ci.</p>
+</header>
+<div class="generated-name-panel">
+<span aria-hidden="true" class="name-card-emblem">✦</span>
+<div class="name-identity-frame">
+<p class="generated-name-label">Identité proposée</p>
+<p aria-atomic="true" aria-live="polite" class="generated-name" id="generated-name">Nom généré</p>
+</div>
+<div class="name-reroll-actions">
+<button aria-label="Générer un nouveau nom complet" class="icon-button name-reroll-button name-reroll-button-primary" id="reroll-full-name-btn" title="Nouveau nom complet" type="button"><span aria-hidden="true">🎲</span><span>Nouveau nom</span></button>
+<button aria-label="Générer un nouveau nom de famille" class="icon-button name-reroll-button" id="reroll-last-name-btn" title="Nouveau nom" type="button"><span aria-hidden="true">🎲</span><span>Nom</span></button>
+<button aria-label="Générer un nouveau prénom" class="icon-button name-reroll-button" id="reroll-first-name-btn" title="Nouveau prénom" type="button"><span aria-hidden="true">🎲</span><span>Prénom</span></button>
+</div>
+</div>
+<button class="button button-primary" id="confirm-name-btn" type="button">
+              Valider ce nom
+            </button>
+</section>
+<!-- SLIDE 6 : RÉSUMÉ -->
+<section aria-labelledby="summary-slide-title" class="creation-slide" data-step="6" hidden="" id="summary-slide">
+<header class="slide-header">
+<p class="slide-number">Étape 6</p>
+<h3 id="summary-slide-title">Ton personnage est prêt</h3>
+<p>Vérifie tes choix avant de prendre la mer.</p>
+</header>
+<article class="character-summary-card">
+<header class="summary-identity">
+<h4 id="summary-name">Nom du personnage</h4>
+<p id="summary-sex">Sexe</p>
+</header>
+<dl class="summary-details">
+<div>
+<dt>Voie</dt>
+<dd id="summary-faction">—</dd>
+</div>
+<div>
+<dt>Rêve</dt>
+<dd id="summary-dream">—</dd>
+</div>
+<div>
+<dt>Origine</dt>
+<dd id="summary-origin">—</dd>
+</div>
+
+</dl>
+<section aria-labelledby="summary-stats-title" class="summary-stats">
+<h5 id="summary-stats-title">Statistiques de départ</h5>
+<div class="stats-grid" id="summary-stats-list">
+<!-- Les statistiques seront injectées par app.js. -->
+</div>
+</section>
+</article>
+<button class="button button-primary" id="create-character-btn" type="button">
+              Créer mon personnage
+            </button>
+</section>
+</div>
+</section>
+<!-- RÉVÉLATION ÉVENTUELLE DU D. -->
+<section aria-labelledby="d-reveal-title" class="screen layout-narrow" hidden="" id="d-reveal-slide">
+<div class="reveal-panel">
+<div class="reveal-content" id="standard-departure-content">
+<p class="eyebrow">Le départ</p>
+<h2 id="d-reveal-title">Une nouvelle aventure commence</h2>
+<p id="standard-departure-text">Ton personnage prend la mer, prêt à écrire sa propre légende.</p>
+</div>
+<div class="reveal-content special-reveal" hidden="" id="will-of-d-content">
+<p class="eyebrow">Une volonté ancienne</p>
+<h2 id="d-reveal-name">Nom D. du personnage</h2>
+<p>Certains noms portent une volonté que le monde n’a jamais réussi à éteindre.</p>
+</div>
+<button class="button button-primary" id="begin-game-btn" type="button">
+            Commencer l’aventure
+          </button>
+</div>
+</section>
+<!-- ÉCRAN DE JEU -->
+<!-- TRANSITION ENTRE LES GRANDES ZONES -->
+<section aria-labelledby="zone-transition-title" class="screen zone-transition-screen layout-narrow" hidden="" id="zone-transition-screen">
+<div class="zone-transition-card">
+<div aria-hidden="true" class="zone-transition-icon" id="zone-transition-icon">🗺️</div>
+<p class="zone-transition-eyebrow" id="zone-transition-eyebrow">Nouvelle zone</p>
+<p class="zone-transition-progress" id="zone-transition-progress">Étape 1 sur 6</p>
+<h2 id="zone-transition-title">Nom de la zone</h2>
+<p class="zone-transition-description" id="zone-transition-description">Une nouvelle étape commence.</p>
+<button class="button zone-transition-button" id="continue-zone-transition-btn" type="button">
+            Continuer
+          </button>
+</div>
+</section>
+<section aria-labelledby="game-screen-title" class="screen layout-medium" hidden="" id="game-screen">
+<header class="game-header">
+<div>
+<p id="game-date">Mois 1</p>
+<h2 id="game-screen-title">Zone actuelle</h2>
+<p class="game-region" id="game-region">🗺️ Grande zone</p>
+</div>
+<button aria-label="Ouvrir le menu de jeu" class="icon-button" id="open-game-menu-btn" type="button">☰</button>
+</header>
+<aside aria-label="État du personnage" class="character-status" id="character-status">
+<div class="character-identity-row">
+<h3 id="game-character-name">Nom du personnage</h3>
+<button aria-controls="game-stats-panel" aria-expanded="false" class="game-stats-toggle" id="game-stats-toggle" type="button">
+<span>Statistiques</span>
+<span aria-hidden="true" class="game-stats-toggle-chevron">⌄</span>
+</button>
+</div>
+<div class="game-stats-panel" hidden="" id="game-stats-panel">
+<div class="stats-grid" id="game-stats-list"></div>
+</div>
+<div class="career-assets" id="game-career-assets" hidden="">
+<section class="career-asset-section" id="game-fruit-section" hidden="">
+<h4>🍈 Fruit du Démon</h4>
+<div id="game-devil-fruit"></div>
+</section>
+<section class="career-asset-section" id="game-crew-section" hidden="">
+<h4 id="game-crew-title">👥 Compagnons</h4>
+<div class="crew-badge-list" id="game-crew-members"></div>
+</section>
+</div>
+<section class="active-titles" aria-labelledby="active-titles-title">
+<h4 id="active-titles-title">🎖️ Titres actuels</h4>
+<div class="active-titles-list" id="game-active-titles"></div>
+</section>
+<section class="game-shop-items" id="game-shop-items-section" aria-labelledby="game-shop-items-title" hidden>
+<h4 id="game-shop-items-title">🎒 Objets équipés</h4>
+<div id="game-shop-items"></div>
+</section>
+</aside>
+<section aria-live="polite" class="event-container" id="event-container">
+<p class="eyebrow" id="event-eyebrow">Événement</p>
+<h3 id="event-title">Titre de l’événement</h3>
+<p id="event-description">Le contenu de l’événement apparaîtra ici.</p>
+<div class="event-choices" id="event-choices"></div>
+</section>
+</section>
+<!-- RÉSULTAT D’UN ÉVÉNEMENT -->
+<section aria-labelledby="result-screen-title" class="screen layout-narrow" hidden="" id="result-screen">
+<article class="result-card">
+<p class="eyebrow">Conséquence</p>
+<h2 id="result-screen-title">Résultat</h2>
+<p id="result-description"></p>
+<div class="stat-changes" id="result-stat-changes"></div>
+<div class="reward-list" id="result-rewards"></div>
+<button class="button button-primary" id="continue-after-result-btn" type="button">Continuer</button>
+</article>
+</section>
+<!-- RÉVÉLATION D’UNE RÉCOMPENSE MAJEURE -->
+<section aria-labelledby="reward-reveal-name" class="screen reward-reveal-screen layout-narrow" hidden="" id="reward-reveal-screen">
+<article class="reward-reveal-card" id="reward-reveal-card" tabindex="-1">
+<div aria-hidden="true" class="reward-reveal-icon" id="reward-reveal-icon">🎁</div>
+<p class="reward-reveal-eyebrow" id="reward-reveal-eyebrow">Récompense majeure</p>
+<h2 id="reward-reveal-name">Récompense obtenue</h2>
+<p class="reward-reveal-rarity" id="reward-reveal-rarity">Rare</p>
+<p class="reward-reveal-description" id="reward-reveal-description"></p>
+<button class="button button-primary" id="continue-reward-reveal-btn" type="button">Continuer</button>
+</article>
+</section>
+<!-- JOURNAL DE BORD -->
+<section aria-labelledby="logbook-screen-title" class="screen layout-wide" hidden="" id="logbook-screen">
+<header class="screen-header">
+<div>
+<h2 id="logbook-screen-title">📖 Journal de bord</h2>
+<p class="screen-subtitle">Ce qu’il s’est passé ces 4 derniers mois</p>
+</div>
+</header>
+<article class="logbook-entry">
+<div class="logbook-period">
+<strong id="logbook-period">Période 1 • Mois 1 à 4</strong>
+<span id="logbook-zone">Zone traversée</span>
+</div>
+<div class="logbook-layout">
+<div class="logbook-story-column">
+<section class="logbook-section logbook-news-section" aria-labelledby="logbook-news-title">
+<div class="logbook-news-heading">
+<h3 id="logbook-news-title"><span aria-hidden="true">📰</span> Big News Morgans</h3>
+<span class="logbook-news-edition">Édition spéciale</span>
+</div>
+<p class="logbook-news-subtitle">Les nouvelles qui ont fait trembler les mers.</p>
+<ul class="logbook-news-list" id="logbook-narrative"></ul>
+</section>
+<section class="logbook-section logbook-discoveries-section" id="logbook-discoveries-section" hidden="">
+<h3>✨ Rencontres et pouvoirs</h3>
+<div id="logbook-discoveries"></div>
+</section>
+<section class="logbook-section logbook-highlights-section">
+<h3>⭐ Faits marquants</h3>
+<ul class="logbook-highlights" id="logbook-highlights"></ul>
+</section>
+</div>
+<div class="logbook-summary-column">
+<section class="logbook-section logbook-stats-section">
+<h3>📊 Bilan chiffré</h3>
+<div class="logbook-stats-grid" id="logbook-stat-changes"></div>
+</section>
+<div class="logbook-footer-grid">
+<section class="logbook-section">
+<h3>🎁 Récompense</h3>
+<div class="reward-card" id="logbook-reward"></div>
+</section>
+<section class="logbook-section">
+<h3>🎖️ Titres</h3>
+<div class="title-list" id="logbook-titles"></div>
+</section>
+<section class="logbook-section logbook-destination-section">
+<h3>🧭 Destination</h3>
+<div class="destination-card" id="logbook-next-destination"></div>
+</section>
+</div>
+</div>
+</div>
+</article>
+<button class="button button-primary" id="continue-from-logbook-btn" type="button">
+          Poursuivre l’aventure
+        </button>
+</section>
+<!-- SUCCÈS -->
+<section aria-labelledby="achievements-title" class="screen layout-wide" hidden="" id="achievements-screen">
+<header class="screen-header">
+<button class="back-button" data-screen-target="home-screen" type="button">⌂ Accueil</button>
+<div>
+<p class="eyebrow">Collection</p>
+<h2 id="achievements-title">🏆 Succès</h2>
+</div>
+</header>
+<p class="achievements-collection-summary" id="achievements-collection-summary">0 succès débloqué sur 0</p>
+<div class="achievement-collection" id="achievements-list"></div>
+</section>
+<!-- TITRES -->
+<section aria-labelledby="titles-title" class="screen layout-wide" hidden="" id="titles-screen">
+<header class="screen-header">
+<button class="back-button" data-screen-target="home-screen" type="button">⌂ Accueil</button>
+<div>
+<p class="eyebrow">Collection</p>
+<h2 id="titles-title">🎖️ Titres</h2>
+</div>
+</header>
+<p class="titles-collection-summary" id="titles-collection-summary">Collection : 0 / 0</p>
+<div class="title-collection" id="titles-list"></div>
+</section>
+<!-- PANTHÉON -->
+<section aria-labelledby="pantheon-title" class="screen layout-wide pantheon-page" hidden="" id="pantheon-screen">
+<header class="screen-header">
+<button class="back-button" data-screen-target="home-screen" type="button">⌂ Accueil</button>
+<div>
+<p class="eyebrow">Anciennes aventures</p>
+<h2 id="pantheon-title">🏛️ Panthéon</h2>
+</div>
+</header>
+<div class="pantheon-heading-row">
+<p class="screen-introduction">Les anciennes vies qui ont marqué les mers.</p>
+<p class="pantheon-collection-summary" id="pantheon-collection-summary" aria-live="polite">0 légende enregistrée</p>
+</div>
+<div class="pantheon-overview" id="pantheon-overview" aria-label="Résumé du Panthéon"></div>
+<div class="collection-grid pantheon-grid" id="past-lives-list"></div>
+</section>
+<!-- FICHE D’UNE ANCIENNE VIE -->
+<section aria-labelledby="past-life-screen-title" class="screen layout-wide past-life-page" hidden="" id="past-life-screen">
+<header class="screen-header">
+<button class="back-button" data-screen-target="pantheon-screen" type="button">← Retour</button>
+<div>
+<p class="eyebrow">Ancienne vie</p>
+<h2 id="past-life-screen-title">Fiche de carrière</h2>
+</div>
+</header>
+<div id="past-life-export-area">
+<section class="past-life-hero" id="past-life-hero" aria-labelledby="past-life-title">
+<div class="past-life-hero-heading">
+<span aria-hidden="true" class="past-life-hero-faction" id="past-life-faction-icon">🌊</span>
+<h3 id="past-life-title">Nom du personnage</h3>
+</div>
+<div class="past-life-hero-title" id="past-life-final-title"></div>
+<div class="career-popularity-card" aria-live="polite">
+<strong><span aria-hidden="true">⭐</span> <span id="past-life-popularity">Popularité : 1 / 100</span></strong>
+<p id="past-life-popularity-text">Une carrière encore à raconter.</p>
+</div>
+</section>
+<div class="past-life-main-layout">
+<div class="past-life-career-layout">
+<div class="past-life-career-primary">
+<section class="past-life-panel" aria-labelledby="past-life-summary-title">
+<h3 id="past-life-summary-title">Résumé de carrière</h3>
+<dl class="summary-details past-life-summary-grid">
+<div class="past-life-summary-card past-life-summary-card--short"><dt><span aria-hidden="true">🧭</span> Voie</dt><dd id="past-life-faction">—</dd></div>
+<div class="past-life-summary-card past-life-summary-card--short"><dt><span aria-hidden="true">🌅</span> Origine</dt><dd id="past-life-origin">—</dd></div>
+<div class="past-life-summary-card past-life-summary-card--short"><dt><span aria-hidden="true">📅</span> Durée</dt><dd id="past-life-duration">—</dd></div>
+<div class="past-life-summary-card past-life-summary-card--long"><dt><span aria-hidden="true">💭</span> Rêve</dt><dd id="past-life-dream">—</dd></div>
+<div class="past-life-summary-card past-life-summary-card--long"><dt><span aria-hidden="true">🗺️</span> Zone finale</dt><dd id="past-life-final-zone">—</dd></div>
+<div class="past-life-summary-card past-life-summary-card--ending"><dt><span aria-hidden="true">🏁</span> Destin</dt><dd id="past-life-ending">—</dd></div>
+</dl>
+</section>
+</div>
+<div class="past-life-career-secondary">
+<section class="past-life-panel past-life-export-card no-career-export" aria-labelledby="past-life-export-title">
+<span class="past-life-export-icon" aria-hidden="true">📸</span>
+<div class="past-life-export-copy">
+<h3 id="past-life-export-title">Sauvegarder ma fiche de carrière</h3>
+<p>Crée une image de cette ancienne aventure pour la conserver ou la partager.</p>
+</div>
+<button class="button button-primary past-life-export-button" id="past-life-export-button" type="button" aria-describedby="past-life-export-status">Télécharger la fiche</button>
+<p class="past-life-export-status" id="past-life-export-status" role="status" aria-live="polite"></p>
+</section>
+<section class="past-life-panel past-life-title-showcase" aria-labelledby="past-life-titles-title">
+<h3 id="past-life-titles-title">Titres obtenus</h3>
+<div class="past-life-run-titles" id="past-life-run-titles"></div>
+</section>
+<section class="past-life-panel" aria-labelledby="past-life-stats-title">
+<h3 id="past-life-stats-title">Statistiques finales</h3>
+<div class="stats-grid" id="past-life-stats"></div>
+</section>
+</div>
+</div>
+<section class="past-life-panel past-life-assets-section" id="past-life-assets-section" aria-labelledby="past-life-assets-title" hidden="">
+<h3 id="past-life-assets-title">Pouvoirs et compagnons</h3>
+<div id="past-life-assets"></div>
+</section>
+<section class="past-life-panel past-life-logbook-section" aria-labelledby="past-life-logbook-title">
+<h3 id="past-life-logbook-title">Journal de bord historique</h3>
+<div class="logbook-history" id="past-life-logbook"></div>
+</section>
+</div>
+</div>
+</section>
+<!-- PARAMÈTRES -->
+<section aria-labelledby="settings-title" class="screen layout-medium" hidden="" id="settings-screen">
+<header class="screen-header">
+<button class="back-button" data-screen-target="home-screen" id="settings-back-btn" type="button">⌂ Accueil</button>
+<div>
+<p class="eyebrow">Configuration</p>
+<h2 id="settings-title">⚙️ Paramètres</h2>
+</div>
+</header>
+<div class="settings-content" id="settings-content"></div>
+</section>
+</main>
+<!-- CONFIRMATION D’ABANDON -->
+<dialog aria-labelledby="abandon-modal-title" class="modal" id="abandon-modal">
+<form class="modal-content" method="dialog">
+<h2 id="abandon-modal-title">Abandonner l’aventure ?</h2>
+<p>Ta sauvegarde actuelle sera supprimée et cette vie rejoindra éventuellement le Panthéon.</p>
+<div class="modal-actions">
+<button class="button" type="submit" value="cancel">Annuler</button>
+<button class="button button-danger" id="confirm-abandon-btn" type="submit" value="confirm">Abandonner</button>
+</div>
+</form>
+</dialog>
+<!-- CONFIRMATION D’ACHAT -->
+<dialog aria-labelledby="shop-purchase-modal-title" class="modal" id="shop-purchase-modal">
+<form class="modal-content" method="dialog">
+<h2 id="shop-purchase-modal-title">Confirmer l’achat</h2>
+<p id="shop-purchase-modal-text"></p>
+<div class="modal-actions">
+<button class="button" type="submit" value="cancel">Annuler</button>
+<button class="button button-primary" id="confirm-shop-purchase-btn" type="submit" value="confirm">Confirmer l’achat</button>
+</div>
+</form>
+</dialog>
+<!-- CONFIRMATION DE NOUVELLE PARTIE -->
+<dialog aria-labelledby="new-game-modal-title" class="modal" id="new-game-modal">
+<form class="modal-content" method="dialog">
+<h2 id="new-game-modal-title">Commencer une nouvelle aventure ?</h2>
+<p>Une sauvegarde existe déjà. Commencer une nouvelle partie remplacera l’aventure actuelle.</p>
+<div class="modal-actions">
+<button class="button" type="submit" value="cancel">Conserver ma partie</button>
+<button class="button button-danger" id="confirm-new-game-btn" type="submit" value="confirm">Nouvelle aventure</button>
+</div>
+</form>
+</dialog>
+</div>
+<script>
+window.__blueLegacyBootErrors = [];
+window.addEventListener("error", function (event) {
+  window.__blueLegacyBootErrors.push({ message: event.message, file: event.filename, line: event.lineno });
+  document.documentElement.dataset.bootErrors = JSON.stringify(window.__blueLegacyBootErrors);
+});
+</script>
+<script src="data.js"></script>
+<script src="events.js"></script>
+<script src="titles.js"></script>
+<script src="achievements.js"></script>
+<script src="shop.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
