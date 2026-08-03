@@ -15,6 +15,12 @@
     legacySaves: Object.freeze(["grandLineV1Save"]),
     legacyProfiles: Object.freeze(["grandLineV1Profile"]),
   });
+  const PLAYER_PROFILE_STORAGE_KEYS = Object.freeze([
+    STORAGE_KEYS.save,
+    STORAGE_KEYS.profile,
+    ...STORAGE_KEYS.legacySaves,
+    ...STORAGE_KEYS.legacyProfiles,
+  ]);
 
   const CONFIG = Object.freeze({
     version: "1.3.0",
@@ -34,6 +40,8 @@
     actionsPerMonth: 1,
     maxMajorRewards: 2,
   });
+
+  const RESOLUTION_DEBUG = false;
 
   const SCREEN = Object.freeze({
     HOME: "home",
@@ -110,7 +118,9 @@
   const STATS = Object.freeze({
     health: { label: "Santé", icon: "❤️", min: 1, max: 100 },
     combat: { label: "Combat", icon: "⚔️", min: 1, max: 100 },
-    haki: { label: "Haki", icon: "🛡️", min: 1, max: 100 },
+    // `haki` reste la clé historique unique des sauvegardes. Son sens
+    // mécanique est désormais la Défense ; les Hakis du lore sont des Titres.
+    haki: { label: "Défense", icon: "🛡️", min: 1, max: 100 },
     intelligence: { label: "Intelligence", icon: "🧠", min: 1, max: 100 },
     charisma: { label: "Charisme", icon: "✨", min: 1, max: 100 },
     bounty: { label: "Prime", icon: "☠️", min: 0, max: 20000000, money: true },
@@ -130,6 +140,7 @@
     ordinary: Object.freeze({ label: "Événement", icon: "🌊", themeClass: "is-ordinary-event", difficulty: 0 }),
     risk: Object.freeze({ label: "Événement à risque", icon: "⚠️", themeClass: "is-risk-event", difficulty: 10 }),
     decisive: Object.freeze({ label: "Événement décisif", icon: "⭐", themeClass: "is-decisive-event", difficulty: 7 }),
+    legendary: Object.freeze({ label: "Arc légendaire", icon: "◆", themeClass: "is-legendary-event", difficulty: 11 }),
     "surprise-fruit": Object.freeze({ label: "Surprise — Fruit du Démon", icon: "🍈", themeClass: "is-fruit-surprise", difficulty: 0 }),
     "surprise-recruit": Object.freeze({ label: "Surprise — Recrutement", icon: "🤝", themeClass: "is-recruit-surprise", difficulty: 0 }),
   });
@@ -142,7 +153,7 @@
   });
 
   const RESOLUTION_DEFAULT_WEIGHTS = Object.freeze({
-    action: Object.freeze({ health: 0.25, combat: 0.45, haki: 0.30 }),
+    action: Object.freeze({ health: 0.22, combat: 0.42, haki: 0.36 }),
     social: Object.freeze({ charisma: 0.40, intelligence: 0.40, renown: 0.20 }),
   });
 
@@ -189,6 +200,9 @@
     "intelligence",
     "charisma",
     "popularity",
+  ]);
+  const STARTING_STAT_VARIANCE_IDS = Object.freeze([
+    "health", "combat", "haki", "intelligence", "charisma",
   ]);
   const NON_NEGATIVE_STAT_IDS = Object.freeze(["bounty", "fortune", "crew"]);
   const LEGACY_SHIP_STAT_IDS = Object.freeze(["ship", "navire"]);
@@ -240,6 +254,8 @@
     sante: "health",
     combat: "combat",
     haki: "haki",
+    defense: "haki",
+    "défense": "haki",
     intelligence: "intelligence",
     intellect: "intelligence",
     charisma: "charisma",
@@ -319,6 +335,10 @@
     resumeScreen: SCREEN.GAME,
     gameStatsExpanded: false,
     pendingShopPurchaseId: null,
+    isResolvingEvent: false,
+    isContinuingResult: false,
+    isResettingProfile: false,
+    profileResetCompletedAt: 0,
   };
 
   const GAME_STATS_EXPANDED_SESSION_KEY = "blueLegacyGameStatsExpanded";
@@ -339,6 +359,8 @@
     dom.startAdventure = byId("start-adventure-btn");
     dom.resumeAdventure = byId("resume-adventure-btn");
     dom.abandonAdventure = byId("abandon-adventure-btn");
+    dom.resetProfile = byId("reset-profile-btn");
+    dom.resetProfileStatus = byId("reset-profile-status");
     dom.openGameMenu = byId("open-game-menu-btn");
     dom.homeBerryBalance = byId("home-berry-balance");
     dom.shopBerryBalance = byId("shop-berry-balance");
@@ -370,6 +392,8 @@
     dom.standardDepartureText = byId("standard-departure-text");
     dom.willOfD = byId("will-of-d-content");
     dom.dRevealName = byId("d-reveal-name");
+    dom.startingStatVariance = byId("starting-stat-variance");
+    dom.startingStatVarianceList = byId("starting-stat-variance-list");
     dom.beginGame = byId("begin-game-btn");
 
     dom.gameDate = byId("game-date");
@@ -450,6 +474,7 @@
     dom.pastLifeEnding = byId("past-life-ending");
     dom.pastLifeFinalZone = byId("past-life-final-zone");
     dom.pastLifeStats = byId("past-life-stats");
+    dom.pastLifeStartingVariance = byId("past-life-starting-variance");
     dom.pastLifeAssetsSection = byId("past-life-assets-section");
     dom.pastLifeAssets = byId("past-life-assets");
     dom.pastLifeLogbook = byId("past-life-logbook");
@@ -466,6 +491,12 @@
     dom.shopPurchaseModal = byId("shop-purchase-modal");
     dom.shopPurchaseModalText = byId("shop-purchase-modal-text");
     dom.confirmShopPurchase = byId("confirm-shop-purchase-btn");
+    dom.resetProfileFirstModal = byId("reset-profile-first-modal");
+    dom.cancelResetProfileFirst = byId("cancel-reset-profile-first-btn");
+    dom.continueResetProfile = byId("continue-reset-profile-btn");
+    dom.resetProfileFinalModal = byId("reset-profile-final-modal");
+    dom.cancelResetProfileFinal = byId("cancel-reset-profile-final-btn");
+    dom.confirmResetProfile = byId("confirm-reset-profile-btn");
   }
 
   /* ========================================================
@@ -596,6 +627,7 @@
             importantEvents: Array.isArray(entry.importantEvents)
               ? entry.importantEvents.map(normalizeHistoricalZoneRecord)
               : [],
+            legendaryArcs: normalizeLegendaryArcs(entry.legendaryArcs, { ...entry, isFinished: true }),
           };
           return migrateLegacyCareerFinalTitle(normalizedEntry, entry);
         })
@@ -689,6 +721,8 @@
   function saveProfile(profile) {
     const normalized = normalizeProfile(profile);
 
+    if (state.isResettingProfile) return normalized;
+
     try {
       localStorage.setItem(CONFIG.profileKey, JSON.stringify(normalized));
     } catch (error) {
@@ -758,7 +792,7 @@
   }
 
   function saveGame() {
-    if (!state.game) {
+    if (!state.game || state.isResettingProfile) {
       return false;
     }
 
@@ -801,8 +835,28 @@
       state.creation.faction,
     );
 
-    state.game = normalizeGame(payload.game);
-    state.result = payload.result || null;
+    const savedGame = { ...payload.game };
+    if (
+      !savedGame.pendingResult &&
+      payload.result &&
+      savedGame.currentEvent &&
+      (!payload.result.eventId || payload.result.eventId === savedGame.currentEvent.id)
+    ) {
+      // Anciennes sauvegardes : la slide est restaurée comme déjà appliquée,
+      // jamais recalculée.
+      savedGame.pendingResult = {
+        ...payload.result,
+        effectsApplied: true,
+        resultConsumed: false,
+      };
+    }
+    state.game = normalizeGame(savedGame);
+    // Le résultat persistant du jeu est la source de vérité. Un ancien
+    // `payload.result` divergent ne doit jamais afficher une conséquence
+    // appartenant à un autre événement.
+    state.result = state.game.pendingResult
+      ? cloneData(state.game.pendingResult)
+      : null;
     state.selectedPastLifeId = payload.selectedPastLifeId || null;
     state.returnScreen = payload.returnScreen || SCREEN.HOME;
     const savedScreen = Object.values(SCREEN).includes(payload.screen)
@@ -816,6 +870,10 @@
     state.screen = savedScreen === SCREEN.HOME
       ? state.resumeScreen
       : savedScreen;
+    if (state.screen === SCREEN.RESULT && !state.game.pendingResult) {
+      state.screen = inferPlayableScreen({ game: state.game, result: null });
+      state.resumeScreen = state.screen;
+    }
 
     openScreen(state.screen, { save: false });
 
@@ -834,6 +892,60 @@
 
   function clearSave() {
     deleteSave();
+  }
+
+  function getPreservedProfileSettings() {
+    const stored = safeParse(localStorage.getItem(CONFIG.profileKey));
+    return {
+      ...createDefaultProfile().settings,
+      ...(stored?.settings && typeof stored.settings === "object" ? stored.settings : {}),
+    };
+  }
+
+  function resetPlayerProfile() {
+    if (state.isResettingProfile || Date.now() - state.profileResetCompletedAt < 1000) return false;
+    state.isResettingProfile = true;
+    if (dom.confirmResetProfile) dom.confirmResetProfile.disabled = true;
+    const preservedSettings = getPreservedProfileSettings();
+
+    try {
+      PLAYER_PROFILE_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+      state.game = null;
+      state.result = null;
+      state.creation = createEmptyCreation();
+      state.creationStep = 0;
+      state.selectedPastLifeId = null;
+      state.returnScreen = SCREEN.HOME;
+      state.resumeScreen = SCREEN.GAME;
+      state.pendingShopPurchaseId = null;
+      state.isResolvingEvent = false;
+      state.isContinuingResult = false;
+      achievementNotificationQueue.length = 0;
+      achievementNotificationActive = false;
+      document.querySelectorAll(".achievement-toast").forEach((toast) => toast.remove());
+      const freshProfile = { ...createDefaultProfile(), settings: preservedSettings };
+      localStorage.setItem(CONFIG.profileKey, JSON.stringify(freshProfile));
+      closeDialog(dom.resetProfileFinalModal);
+      closeDialog(dom.resetProfileFirstModal);
+      openScreen(SCREEN.HOME, { save: false });
+      updateHomeScreen();
+      if (dom.resetProfileStatus) {
+        dom.resetProfileStatus.textContent = "Profil réinitialisé. Une nouvelle aventure peut commencer.";
+      }
+      state.profileResetCompletedAt = Date.now();
+      dom.startAdventure?.focus();
+      return true;
+    } finally {
+      state.isResettingProfile = false;
+      window.setTimeout(() => {
+        if (dom.confirmResetProfile) dom.confirmResetProfile.disabled = false;
+      }, 1000);
+    }
+  }
+
+  function cancelProfileReset(dialog) {
+    closeDialog(dialog);
+    dom.resetProfile?.focus();
   }
 
   function migrateLegacySave(legacy) {
@@ -938,8 +1050,8 @@
   function inferPlayableScreen(payload = {}) {
     if (payload.game?.pendingLogbookEntry) return SCREEN.LOGBOOK;
     if (payload.game?.pendingZoneTransition) return SCREEN.ZONE_TRANSITION;
-    if (payload.game?.pendingRewardReveals?.length) return SCREEN.REWARD_REVEAL;
     if (payload.result || payload.game?.pendingResult) return SCREEN.RESULT;
+    if (payload.game?.pendingRewardReveals?.length) return SCREEN.REWARD_REVEAL;
     if (payload.game?.currentEvent) return SCREEN.GAME;
     return payload.game?.month ? SCREEN.GAME : SCREEN.D_REVEAL;
   }
@@ -1559,7 +1671,9 @@
     return {
       health: 55,
       combat: 20,
-      haki: 3,
+      // Une garde générique existe dès le départ, contrairement à l'ancien
+      // Haki narratif qui justifiait une valeur presque nulle.
+      haki: 18,
       intelligence: 20,
       charisma: 20,
       bounty: 0,
@@ -1631,7 +1745,7 @@
         ? "charisma"
         : LEGACY_POPULARITY_STAT_IDS.includes(rawKey)
           ? "popularity"
-          : rawKey;
+          : normalizeStatKey(rawKey);
       if (!STATS[key] || !Number.isFinite(Number(rawValue))) return;
       // L'ancienne échelle 20–200 ne doit être convertie qu'au premier chargement.
       const scale = key === "popularity" && legacyPopularityScale ? 0.5 : 1;
@@ -1701,6 +1815,12 @@
       }
 
       const game = options.game || state.game;
+      if (key === "bounty" && value > 0 && target === game?.stats) {
+        // Échelle publique 0.9.3 : les gains narratifs deviennent perceptibles
+        // sans amplifier les pertes, la Fortune ou la monnaie permanente.
+        if (options.source === "decisive") value = Math.round(value * 1.5);
+        else if (options.source === "event") value = Math.round(value * 2.5);
+      }
       if (
         value > 0 &&
         CORE_STAT_IDS.includes(key) &&
@@ -1910,7 +2030,7 @@
   function calculateCollectionScore(source) {
     const rarityPoints = { common: 0.5, uncommon: 0.8, rare: 1.2, epic: 1.8, legendary: 2.4, mythic: 3 };
     const titles = Math.min(5, (source.runTitles || []).reduce((sum, title) =>
-      sum + (rarityPoints[normalizeRarity(title.rarity)] || 0.5), 0));
+      sum + (rarityPoints[normalizeRarity(title.careerScoreRarity || title.rarity)] || 0.5), 0));
     const fruit = source.character?.devilFruit || source.devilFruit ? 2 : 0;
     const encounters = Math.min(1, (source.crewMembers?.length || 0) * 0.25);
     return titles + fruit + encounters;
@@ -1937,6 +2057,10 @@
   }
 
   function calculateCareerPopularityV12(source) {
+    return calculateCareerPopularityBreakdown(source).score;
+  }
+
+  function calculateCareerPopularityBreakdown(source) {
     const subscores = {
       progression: calculateProgressionScore(source),
       careerStats: calculateCareerStatsScore(source),
@@ -1950,11 +2074,18 @@
     const rawCareerScore = Object.values(subscores).reduce((sum, value) => sum + value, 0);
     // Les plafonds empêchent le double comptage ; ce coefficient convertit leur
     // somme conservatrice sur l'échelle joueur 1–100 calibrée par simulations.
-    const calibratedScore = rawCareerScore * 1.60;
+    const calibratedScore = rawCareerScore * 1.33;
     const prestigeCompressed = calibratedScore <= 90
       ? calibratedScore
       : 90 + (calibratedScore - 90) * 0.20;
-    return clampCareerScore(prestigeCompressed);
+    return {
+      subscores,
+      rawCareerScore,
+      calibratedScore,
+      preCapScore: prestigeCompressed,
+      capLoss: Math.max(0, prestigeCompressed - POPULARITY_MAX),
+      score: clampCareerScore(prestigeCompressed),
+    };
   }
 
   /* Ancien calcul conservé uniquement comme documentation de migration. */
@@ -2044,8 +2175,11 @@
 
   function refreshPopularityScore(game = state.game) {
     if (!game?.stats) return POPULARITY_MIN;
-    game.stats.popularity = calculatePopularityScore(game);
+    const breakdown = calculateCareerPopularityBreakdown(game);
+    game.stats.popularity = breakdown.score;
     game.popularityScore = game.stats.popularity;
+    game.popularityBeforeCap = breakdown.preCapScore;
+    game.popularityBreakdown = breakdown.subscores;
     game.popularityText = getPopularityCareerText(game);
     return game.stats.popularity;
   }
@@ -2158,6 +2292,46 @@
     });
 
     return clampStats(stats);
+  }
+
+  function createNeutralStartingStatVariance() {
+    return Object.fromEntries(STARTING_STAT_VARIANCE_IDS.map((id) => [id, 0]));
+  }
+
+  function normalizeStartingStatVariance(value = {}) {
+    return Object.fromEntries(STARTING_STAT_VARIANCE_IDS.map((id) => {
+      const raw = id === "haki" ? (value?.haki ?? value?.defense) : value?.[id];
+      const number = Number(raw);
+      return [id, Number.isFinite(number) ? Math.max(-3, Math.min(3, Math.trunc(number))) : 0];
+    }));
+  }
+
+  function rollStartingStatVariance(random = Math.random) {
+    return Object.fromEntries(STARTING_STAT_VARIANCE_IDS.map((id) => {
+      const roll = Math.max(0, Math.min(6, Math.floor(Number(random()) * 7)));
+      return [id, roll - 3];
+    }));
+  }
+
+  function applyStartingStatVariance(game, variance) {
+    if (!game?.stats || game.startingStatVarianceRolled) return false;
+    const normalized = normalizeStartingStatVariance(variance);
+    STARTING_STAT_VARIANCE_IDS.forEach((id) => {
+      game.stats[id] = (Number(game.stats[id]) || 0) + normalized[id];
+    });
+    clampStats(game.stats);
+    game.startingStatVariance = normalized;
+    game.startingStatVarianceRolled = true;
+    return true;
+  }
+
+  function createStartingStatVarianceHtml(variance = {}) {
+    const normalized = normalizeStartingStatVariance(variance);
+    return STARTING_STAT_VARIANCE_IDS.map((id) => {
+      const value = normalized[id];
+      const tone = value > 0 ? "positive" : value < 0 ? "negative" : "neutral";
+      return `<span class="starting-variance-chip ${tone}"><span>${escapeHtml(getStatLabel(id))}</span><strong>${value > 0 ? "+" : ""}${value}</strong></span>`;
+    }).join("");
   }
 
   function createStatsHtml(stats = {}, source = state.game) {
@@ -2293,6 +2467,60 @@
      ÉTAT DE PARTIE
   ======================================================== */
 
+  const LEGENDARY_ARC_STATUS = Object.freeze([
+    "unassessed", "selected", "in-progress", "succeeded", "failed",
+    "completed-no-title", "not-selected",
+  ]);
+
+  function normalizeLegendaryArcState(value = {}, defaults = {}) {
+    return {
+      ...defaults,
+      ...(value && typeof value === "object" ? value : {}),
+      status: LEGENDARY_ARC_STATUS.includes(value?.status)
+        ? value.status : defaults.status || "unassessed",
+      step: Math.max(0, Math.min(3, Math.floor(Number(value?.step) || 0))),
+      roll: Number.isFinite(Number(value?.roll)) ? Number(value.roll) : null,
+      chance: Number.isFinite(Number(value?.chance)) ? Number(value.chance) : null,
+      titleId: value?.titleId || null,
+      conclusion: value?.conclusion && typeof value.conclusion === "object"
+        ? { ...value.conclusion }
+        : null,
+      conclusionPending: value?.conclusionPending === true,
+      conclusionShown: value?.conclusionShown === true,
+      routeResumed: value?.routeResumed === true,
+    };
+  }
+
+  function normalizeLegendaryArcs(value = {}, game = {}) {
+    const finished = Boolean(game.isFinished || game.ending);
+    const month = Number(game.month) || 1;
+    const marineford = normalizeLegendaryArcState(value?.marineford, {
+        status: finished ? "not-selected" : "unassessed",
+        emperorId: null,
+      });
+    const marinefordWasEvaluatedAfterParadise = value?.marineford?.evaluatedAfterParadise === true ||
+      Number(value?.marineford?.evaluatedAtMonth) >= 13;
+    if (!finished && marineford.status === "not-selected" && !marinefordWasEvaluatedAfterParadise) {
+      marineford.status = "unassessed";
+      marineford.roll = null;
+      marineford.chance = null;
+      marineford.quality = null;
+      marineford.qualityBand = null;
+    }
+    return {
+      talent: normalizeLegendaryArcState(value?.talent, {
+        status: finished || month >= 13 ? "not-selected" : "unassessed",
+        emperorId: null,
+      }),
+      marineford,
+      emperor: normalizeLegendaryArcState(value?.emperor, {
+        status: finished || game.bossProgress?.completedTiers?.includes?.(3)
+          ? "not-selected" : "unassessed",
+        emperorId: null,
+      }),
+    };
+  }
+
   function createDefaultGameState(character) {
     const activeShopItems = character
       ? cloneData(getProfile().equippedShopItems)
@@ -2308,6 +2536,8 @@
       character,
       activeShopItems,
       shopInitialBonusesApplied: Boolean(character),
+      startingStatVariance: createNeutralStartingStatVariance(),
+      startingStatVarianceRolled: false,
       shopEffects: {
         strawHatTriggered: false,
         strawHatConsumed: false,
@@ -2321,6 +2551,9 @@
       currentEventId: null,
       currentChoiceIndex: null,
       pendingResult: null,
+      resolutionSequence: 0,
+      appliedResolutionIds: [],
+      consumedResolutionIds: [],
       route: [],
       currentZoneIndex: 0,
       specialZoneId: null,
@@ -2362,6 +2595,11 @@
       pendingLogbookEntry: null,
       pendingZoneTransition: null,
       pendingRewardReveals: [],
+      legendaryArcs: {
+        talent: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
+        marineford: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
+        emperor: { status: "unassessed", step: 0, roll: null, chance: null, emperorId: null, titleId: null },
+      },
       bossProgress: {
         completedTiers: [],
         selectedBossIds: {},
@@ -2502,6 +2740,10 @@
             .filter((reward) => reward && typeof reward === "object")
             .map((reward) => ({ ...reward }))
         : [],
+      legendaryArcs: normalizeLegendaryArcs(game.legendaryArcs, game),
+      resolutionSequence: Math.max(0, Math.floor(Number(game.resolutionSequence) || 0)),
+      appliedResolutionIds: uniqueArray(game.appliedResolutionIds || []).slice(-100),
+      consumedResolutionIds: uniqueArray(game.consumedResolutionIds || []).slice(-100),
       bossProgress: normalizeBossProgress(
         game.bossProgress,
         getZoneIndexForMonth(game.month),
@@ -2513,6 +2755,8 @@
         ? uniqueArray(game.activeShopItems).filter((id) => Boolean(findShopItem(id))).slice(0, 2)
         : [],
       shopInitialBonusesApplied: game.shopInitialBonusesApplied !== false,
+      startingStatVariance: normalizeStartingStatVariance(game.startingStatVariance),
+      startingStatVarianceRolled: game.startingStatVarianceRolled === true,
       shopEffects: {
         strawHatTriggered: Boolean(game.shopEffects?.strawHatTriggered),
         strawHatConsumed: Boolean(game.shopEffects?.strawHatConsumed),
@@ -2542,6 +2786,30 @@
       Number(normalized.stats.crew) || 0,
       normalized.crewMembers.length,
     );
+    if (normalized.pendingResult && typeof normalized.pendingResult === "object") {
+      const legacyResolutionId = [
+        "legacy-resolution",
+        normalized.id || "adventure",
+        normalized.pendingResult.eventId || normalized.currentEventId || "event",
+        normalized.pendingResult.choiceId || normalized.currentChoiceIndex || "choice",
+        normalized.month || 1,
+        normalized.currentAction || 0,
+      ].join(":");
+      normalized.pendingResult = {
+        ...normalized.pendingResult,
+        resolutionId: normalized.pendingResult.resolutionId || legacyResolutionId,
+        effectsApplied: true,
+        resultConsumed: false,
+      };
+      if (!normalized.appliedResolutionIds.includes(normalized.pendingResult.resolutionId)) {
+        normalized.appliedResolutionIds.push(normalized.pendingResult.resolutionId);
+      }
+      normalized.pendingRewardReveals = normalized.pendingRewardReveals.map((reward) => ({
+        ...reward,
+        sourceResolutionId: reward.sourceResolutionId || normalized.pendingResult.resolutionId,
+        eventId: reward.eventId || normalized.pendingResult.eventId || null,
+      }));
+    }
     if (normalized.pendingZoneTransition?.reason === "boss-event") {
       normalized.pendingZoneTransition = null;
     }
@@ -2573,6 +2841,12 @@
         // actuelle : aucun choix générique autrefois injecté ne peut réapparaître.
         normalized.currentEvent = cloneData(catalogEvent);
         normalized.currentEventId = catalogEvent.id;
+      } else if (normalized.currentEvent.tags?.includes("legendary-arc")) {
+        const legendaryEvent = getLegendaryArcEvents().find((event) => event.id === normalized.currentEvent.id);
+        if (legendaryEvent) {
+          normalized.currentEvent = localizeLegendaryArcEvent(legendaryEvent, normalized);
+          normalized.currentEventId = legendaryEvent.id;
+        }
       }
     }
     normalized.journal = normalized.journal.map((entry) => {
@@ -2606,6 +2880,56 @@
     });
     normalized.periodEvents = normalized.periodEvents.map(normalizeHistoricalZoneRecord);
     normalized.importantEvents = normalized.importantEvents.map(normalizeHistoricalZoneRecord);
+    // Une ancienne run conserve ses étapes décisives sans devoir rejouer les
+    // nouvelles scènes de Haki. Aucun Titre de Haki n'est accordé rétroactivement.
+    if (normalized.bossProgress.completedTiers.includes(1)) {
+      normalized.flags.completedDecisiveStage1 = true;
+    }
+    if (normalized.bossProgress.completedTiers.includes(2)) {
+      normalized.flags.completedDecisiveStage2 = true;
+    }
+    // Migration prudente : l'origine du Haki des Rois n'est déduite que d'un
+    // enregistrement explicite du premier décisif. La simple présence du Titre
+    // est ambiguë, puisqu'il peut avoir été obtenu au deuxième décisif.
+    if (normalized.flags.firstDecisiveHakiType === undefined) {
+      const history = [...normalized.periodEvents, ...normalized.importantEvents];
+      const firstDecisiveRecord = history.find((record) =>
+        String(record?.eventId || record?.id || "").startsWith("haki-awakening-"));
+      const historicalTitleIds = (firstDecisiveRecord?.rewards || [])
+        .filter((reward) => reward?.type === "title")
+        .map((reward) => getDataId(reward.data || reward.title || reward));
+      const recordedType = firstDecisiveRecord?.flagChanges?.firstDecisiveHakiType;
+      if (["observation", "armament", "conquerors", "none"].includes(recordedType)) {
+        normalized.flags.firstDecisiveHakiType = recordedType;
+      } else if (historicalTitleIds.includes("haki-des-rois")) {
+        normalized.flags.firstDecisiveHakiType = "conquerors";
+      } else if (historicalTitleIds.includes("haki-observation")) {
+        normalized.flags.firstDecisiveHakiType = "observation";
+      } else if (historicalTitleIds.includes("haki-armement")) {
+        normalized.flags.firstDecisiveHakiType = "armament";
+      } else if (normalized.flags.completedDecisiveStage1) {
+        normalized.flags.firstDecisiveHakiType = "none";
+      }
+    }
+    // Le résultat historique explicite est l'unique autorité. Un ancien
+    // booléen incohérent ne peut plus transformer Armement/Observation en Rois.
+    normalized.flags.conquerorsHakiAwakenedAtFirstDecisive =
+      normalized.flags.firstDecisiveHakiType === "conquerors";
+    if (normalized.flags.completedDecisiveStage1 &&
+        !normalized.flags.completedDecisiveStage2) {
+      normalized.flags.secondDecisiveHakiBranch =
+        normalized.flags.firstDecisiveHakiType === "conquerors"
+          ? "mastery"
+          : "awakening";
+    }
+    // Le niveau supérieur remplace seulement l'affichage actif du niveau de
+    // base ; appliedTitleEffects garde les deux identifiants pour empêcher
+    // toute réapplication au chargement.
+    if (normalized.runTitles.some((title) => getDataId(title) === "maitrise-haki-des-rois-plus")) {
+      normalized.runTitles = normalized.runTitles.filter(
+        (title) => getDataId(title) !== "haki-des-rois",
+      );
+    }
     refreshPopularityScore(normalized);
 
     return normalized;
@@ -2656,6 +2980,7 @@
     character.name = buildNameWithD(character);
 
     state.game = createDefaultGameState(character);
+    applyStartingStatVariance(state.game, rollStartingStatVariance());
     state.game.flags.dRollCompleted = true;
     state.game.route = generateRoute(character);
     synchronizeRouteMetadata(state.game);
@@ -2695,6 +3020,12 @@
 
     if (dom.dRevealName) {
       dom.dRevealName.textContent = character.name;
+    }
+    if (dom.startingStatVariance && dom.startingStatVarianceList) {
+      dom.startingStatVariance.hidden = !state.game.startingStatVarianceRolled;
+      dom.startingStatVarianceList.innerHTML = createStartingStatVarianceHtml(
+        state.game.startingStatVariance,
+      );
     }
   }
 
@@ -3130,7 +3461,7 @@
       requestedIndex >= 1 &&
       requestedIndex <= 4
         ? requestedIndex
-        : 1 + Math.floor(Math.random() * 4);
+        : 4;
 
     baseRoute.splice(insertionIndex, 0, cloneData(specialZone));
     const route = decorateGeneratedRoute(baseRoute, insertionIndex);
@@ -3282,6 +3613,8 @@
     const routeLength = game.route.length || 6;
     const special = isSpecialZone(zone);
     const isBossTransition = pending.reason === "boss-event";
+    const isLegendaryTransition = pending.reason === "legendary-arc";
+    const isLegendaryConclusion = pending.reason === "legendary-conclusion";
     const boss = isBossTransition ? game.currentEvent : null;
     applyZoneTransitionTheme(zone);
     resetBossTransitionTheme();
@@ -3291,37 +3624,62 @@
         dom.zoneTransitionScreen?.classList.add("boss-danger-transition");
       }
     }
+    dom.zoneTransitionScreen?.classList.toggle("legendary-arc-transition", isLegendaryTransition || isLegendaryConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("legendary-arc-conclusion", isLegendaryConclusion);
+    dom.zoneTransitionScreen?.classList.toggle(
+      "talent-arc-transition",
+      isLegendaryTransition && game.currentEvent?.legendaryArc === "talent",
+    );
 
     if (dom.zoneTransitionIcon) {
-      dom.zoneTransitionIcon.textContent = isBossTransition
+      dom.zoneTransitionIcon.textContent = isLegendaryTransition || isLegendaryConclusion ? "◆" : isBossTransition
         ? (boss?.decisiveStage === 3 ? "👑" : "⭐")
         : zone.icon || "🗺️";
     }
     if (dom.zoneTransitionEyebrow) {
       dom.zoneTransitionEyebrow.textContent =
-        isBossTransition
+        isLegendaryTransition || isLegendaryConclusion ? "Arc légendaire" : isBossTransition
           ? "Événement décisif"
           : special ? "Étape inattendue • Zone spéciale" : "Nouvelle zone";
     }
     if (dom.zoneTransitionProgress) {
+      dom.zoneTransitionProgress.hidden = isLegendaryTransition || isLegendaryConclusion;
       dom.zoneTransitionProgress.textContent =
-        isBossTransition
+        isLegendaryTransition || isLegendaryConclusion
+          ? ""
+          : isBossTransition
           ? `${zone.name} • Événement décisif`
           : `Étape ${pending.routeIndex + 1} sur ${routeLength}`;
     }
     if (dom.zoneTransitionTitle) {
-      dom.zoneTransitionTitle.textContent = isBossTransition
+      dom.zoneTransitionTitle.textContent = isLegendaryTransition
+        ? (game.currentEvent?.legendaryArc === "talent" ? "UN TALENT PRODIGIEUX..."
+          : game.currentEvent?.legendaryArc === "marineford" ? "MARINEFORD" : "COMBAT CONTRE UN EMPEREUR !")
+        : isLegendaryConclusion
+        ? pending.title || "LA ROUTE CONTINUE"
+        : isBossTransition
         ? boss?.title || "Événement décisif"
         : zone.name || "Nouvelle zone";
     }
     if (dom.zoneTransitionDescription) {
       dom.zoneTransitionDescription.textContent =
-        isBossTransition
+        isLegendaryTransition
+          ? (game.currentEvent?.legendaryArc === "talent"
+              ? LEGENDARY_TALENT_INTROS[game.character?.faction] || "Le monde commence à retenir ton nom."
+            : game.currentEvent?.legendaryArc === "marineford"
+              ? "La guerre n’a jamais vraiment quitté cette forteresse."
+              : `${LEGENDARY_EMPEROR_NAMES[game.legendaryArcs?.emperor?.emperorId] || "Un Empereur"} bloque désormais ta route.`)
+          : isLegendaryConclusion
+          ? pending.description || "La bataille s’achève et ta route reprend."
+          : isBossTransition
           ? boss?.intro || "Ton parcours t’a conduit jusqu’ici."
           : zone.transitionText || "Une nouvelle étape commence.";
     }
     if (dom.continueZoneTransition) {
       dom.continueZoneTransition.disabled = false;
+      dom.continueZoneTransition.textContent = isLegendaryConclusion
+        ? pending.buttonLabel || "Reprendre la route"
+        : "Continuer";
     }
   }
 
@@ -3333,12 +3691,22 @@
       dom.continueZoneTransition.disabled = true;
     }
     const transitionReason = game.pendingZoneTransition.reason;
+    const conclusionArcId = game.pendingZoneTransition.arcId || null;
     game.pendingZoneTransition = null;
+    if (transitionReason === "legendary-conclusion") {
+      const arc = game.legendaryArcs?.[conclusionArcId];
+      if (arc) {
+        arc.conclusionPending = false;
+        arc.conclusionShown = true;
+        arc.routeResumed = true;
+      }
+    }
     saveGame();
     openScreen(SCREEN.GAME, { save: false });
-    if (transitionReason === "boss-event") {
+    if (["boss-event", "legendary-arc"].includes(transitionReason)) {
       return true;
     }
+    if (transitionReason === "legendary-conclusion") return startNextEvent();
     return startMonth();
   }
 
@@ -3376,6 +3744,266 @@
   /* ========================================================
      ÉVÉNEMENTS
   ======================================================== */
+
+  const LEGENDARY_EMPERORS = Object.freeze({
+    pirate: ["blackbeard", "kaido", "big-mom", "shanks"],
+    marine: ["luffy", "buggy", "blackbeard", "shanks"],
+    "bounty-hunter": ["buggy", "blackbeard", "kaido"],
+    revolutionary: ["blackbeard", "kaido", "big-mom", "shanks", "luffy"],
+  });
+  const LEGENDARY_EMPEROR_NAMES = Object.freeze({
+    blackbeard: "Barbe Noire", kaido: "Kaido", "big-mom": "Big Mom",
+    shanks: "Shanks le Roux", luffy: "Luffy", buggy: "Baggy",
+  });
+  const LEGENDARY_EMPEROR_TITLES = Object.freeze({
+    blackbeard: "fleau-de-barbe-noire", kaido: "tombeur-de-kaido",
+    "big-mom": "briseur-de-totto-land", shanks: "rival-du-roux",
+    luffy: "adversaire-du-chapeau-de-paille", buggy: "geolier-de-baggy",
+  });
+  const LEGENDARY_TALENT_TITLES = Object.freeze({
+    pirate: "supernova",
+    marine: "vice-amiral",
+    revolutionary: "vice-commandant-de-dragon",
+    "bounty-hunter": "cauchemar-des-pirates",
+  });
+  const LEGENDARY_TALENT_INTROS = Object.freeze({
+    pirate: "Le monde commence à retenir ton nom.",
+    marine: "Le quartier général surveille ton ascension.",
+    revolutionary: "Dragon a entendu parler de tes exploits.",
+    "bounty-hunter": "Les pirates redoutent désormais ta silhouette.",
+  });
+  const LEGENDARY_DREAM_OBJECTIVES = Object.freeze({
+    "one-piece": "une copie d’un Road Ponéglyphe", "sea-emperor": "la reconnaissance d’un territoire libre",
+    "worlds-greatest-fortune": "une cargaison impériale légendaire", "forgotten-history": "une archive interdite",
+    "greatest-bounty-hunter": "la preuve du plus grand contrat jamais proposé", "most-dangerous-criminals": "un réseau de criminels protégé par le pavillon",
+    "hunt-an-emperor": "la piste directe de l’Empereur", "contract-fortune": "un contrat capable de changer le marché mondial",
+    "break-the-chains": "la libération d’une population soumise", "reveal-void-century": "un fragment d’histoire confisqué",
+    "build-underground-network": "un relais clandestin au cœur du territoire", "found-free-nation": "la défense d’une future nation libre",
+    admiral: "le commandement d’une opération impériale", "fleet-admiral": "la cohésion de plusieurs flottes de la Marine",
+    "reform-the-marines": "la protection des civils contre un ordre politique", "greatest-marine-hero": "le sauvetage d’une île menacée",
+  });
+
+  let legendaryArcEventCache = null;
+  function getLegendaryArcEvents() {
+    if (!legendaryArcEventCache) {
+      legendaryArcEventCache = (Array.isArray(window.BLUE_LEGACY_LEGENDARY_ARC_EVENTS)
+        ? window.BLUE_LEGACY_LEGENDARY_ARC_EVENTS : []).map(normalizeEvent);
+    }
+    return legendaryArcEventCache;
+  }
+
+  function calculateLegendaryRunQuality(game = state.game) {
+    if (!game) return 0;
+    const core = ["health", "combat", "haki", "intelligence", "charisma"]
+      .reduce((sum, key) => sum + Math.min(100, Math.max(0, Number(game.stats?.[key]) || 0)), 0) / 500;
+    const popularity = Math.min(1, Math.max(0, (Number(game.stats?.popularity) || 0) / 100));
+    const renown = Math.min(1, Math.log10(1 + Math.max(0, Number(game.stats?.bounty) || 0)) / 7);
+    const crew = Math.min(1, Math.max(0, Number(game.stats?.crew) || 0) / 6);
+    const titles = Math.min(1, (game.runTitles?.length || 0) / 6);
+    const decisive = Math.min(1, (game.bossProgress?.completedTiers?.length || 0) / 3);
+    const important = Math.min(1, (game.importantEvents?.length || 0) / 8);
+    return Math.max(0, Math.min(1,
+      core * .42 + popularity * .16 + renown * .13 + crew * .08 +
+      titles * .08 + decisive * .08 + important * .05));
+  }
+
+  function getLegendaryArcChance(arcId, game = state.game) {
+    const quality = calculateLegendaryRunQuality(game);
+    if (arcId === "talent") {
+      const anchors = [[0, .04], [.24, .08], [.40, .19], [.57, .34], [.73, .49], [1, .62]];
+      const upperIndex = anchors.findIndex(([threshold]) => quality <= threshold);
+      if (upperIndex <= 0) return anchors[0][1];
+      const [lowerQuality, lowerChance] = anchors[upperIndex - 1];
+      const [upperQuality, upperChance] = anchors[upperIndex];
+      return lowerChance + (upperChance - lowerChance) *
+        ((quality - lowerQuality) / (upperQuality - lowerQuality));
+    }
+    if (arcId === "marineford") {
+      const anchors = [[0, .02], [.24, .05], [.40, .15], [.57, .30], [.73, .45], [1, .58]];
+      const upperIndex = anchors.findIndex(([threshold]) => quality <= threshold);
+      if (upperIndex <= 0) return anchors[0][1];
+      const [lowerQuality, lowerChance] = anchors[upperIndex - 1];
+      const [upperQuality, upperChance] = anchors[upperIndex];
+      const ratio = (quality - lowerQuality) / (upperQuality - lowerQuality);
+      return lowerChance + (upperChance - lowerChance) * ratio;
+    }
+    const hakiTitles = (game?.runTitles || []).filter((title) =>
+      ["haki-observation", "haki-armement", "haki-des-rois", "maitrise-haki-des-rois-plus"].includes(getDataId(title))).length;
+    const dreamProgress = Math.min(1, Math.max(0, Number(game?.flags?.dreamProgress) || 0) / 8);
+    return Math.min(.48, Math.max(.005,
+      .002 + Math.pow(quality, 2) * .47 + hakiTitles * .01 + dreamProgress * .01));
+  }
+
+  function getLegendaryQualityBand(quality) {
+    if (quality < .24) return "weak";
+    if (quality < .40) return "average";
+    if (quality < .57) return "good";
+    if (quality < .73) return "very-good";
+    return "exceptional";
+  }
+
+  function selectLegendaryEmperor(game = state.game, random = Math.random) {
+    const faction = game?.character?.faction;
+    const available = LEGENDARY_EMPERORS[faction] || LEGENDARY_EMPERORS.pirate;
+    const dream = game?.character?.dream;
+    const preferred = dream === "hunt-an-emperor" ? ["kaido", "blackbeard"]
+      : ["one-piece", "forgotten-history", "reveal-void-century"].includes(dream) ? ["blackbeard", "big-mom"]
+      : dream === "contract-fortune" ? ["buggy", "blackbeard"] : [];
+    const weighted = available.flatMap((id) => preferred.includes(id) ? [id, id] : [id]);
+    return weighted[Math.min(weighted.length - 1, Math.floor(random() * weighted.length))];
+  }
+
+  function localizeLegendaryArcEvent(event, game = state.game) {
+    const localized = cloneData(event);
+    const emperorId = game?.legendaryArcs?.emperor?.emperorId;
+    const emperor = LEGENDARY_EMPEROR_NAMES[emperorId] || "un Empereur";
+    const objective = LEGENDARY_DREAM_OBJECTIVES[game?.character?.dream] || "un objectif capable de changer ta destinée";
+    localized.description = String(localized.description || "").replaceAll("{emperor}", emperor).replaceAll("{objective}", objective);
+    localized.text = localized.description;
+    localized.legendaryArc = localized.tags?.includes("legendary-talent")
+      ? "talent"
+      : localized.tags?.includes("legendary-marineford") ? "marineford" : "emperor";
+    localized.legendaryStep = Number(localized.tags?.find((tag) => tag.startsWith("legendary-step-"))?.split("-").at(-1)) || 1;
+    localized.emperorId = localized.legendaryArc === "emperor" ? emperorId : null;
+    return localized;
+  }
+
+  function getLegendaryArcEvent(arcId, step, game = state.game) {
+    const faction = game?.character?.faction;
+    const id = `legendary-${arcId}-${faction}-${step}`;
+    const event = getLegendaryArcEvents().find((candidate) => candidate.id === id);
+    return event ? localizeLegendaryArcEvent(event, game) : null;
+  }
+
+  function isMarinefordEligible(game = state.game) {
+    if (!game || game.isFinished || game.ending) return false;
+    return Number(game.month) === 13 && getCurrentZone(game)?.id === "red-line";
+  }
+
+  function isTalentArcEligible(game = state.game) {
+    return Boolean(game && !game.isFinished && !game.ending &&
+      [11, 12].includes(Number(game.month)) && getCurrentZone(game)?.id === "grand-line");
+  }
+
+  function getLegendaryArcTitleId(arcId, game = state.game) {
+    if (arcId === "talent") return LEGENDARY_TALENT_TITLES[game?.character?.faction] || null;
+    if (arcId === "marineford") return window.BLUE_LEGACY_LEGENDARY_MARINEFORD_TITLES?.[game?.character?.faction] || null;
+    return LEGENDARY_EMPEROR_TITLES[game?.legendaryArcs?.emperor?.emperorId] || null;
+  }
+
+  function startLegendaryArc(arcId, game = state.game) {
+    const arc = game?.legendaryArcs?.[arcId];
+    if (!game || !arc) return false;
+    if (arcId === "emperor" && !arc.emperorId) arc.emperorId = selectLegendaryEmperor(game);
+    arc.status = "in-progress";
+    arc.step = Math.max(1, arc.step || 1);
+    const event = getLegendaryArcEvent(arcId, arc.step, game);
+    if (!event) { arc.status = "failed"; return false; }
+    game.currentEvent = event;
+    game.currentEventId = event.id;
+    game.currentChoiceIndex = null;
+    game.pendingResult = null;
+    game.pendingZoneTransition = createZoneTransitionData(getCurrentZone(game), game.currentZoneIndex, "legendary-arc", game);
+    checkAchievements(game);
+    saveGame();
+    openScreen(SCREEN.ZONE_TRANSITION, { save: false });
+    return true;
+  }
+
+  function evaluateLegendaryArc(arcId, game = state.game, random = Math.random) {
+    const arc = game?.legendaryArcs?.[arcId];
+    if (!arc || arc.status !== "unassessed") return arc?.status === "selected";
+    if (arcId === "talent" && !isTalentArcEligible(game)) return false;
+    if (arcId === "marineford" && !isMarinefordEligible(game)) return false;
+    if (arcId === "emperor" && !(Number(game.month) === 24 && getCurrentZone(game)?.id === "shinsekai")) return false;
+    const chance = getLegendaryArcChance(arcId, game);
+    const roll = random();
+    arc.chance = chance;
+    arc.roll = roll;
+    arc.quality = calculateLegendaryRunQuality(game);
+    arc.qualityBand = getLegendaryQualityBand(arc.quality);
+    arc.evaluatedAtMonth = Number(game.month) || null;
+    if (arcId === "marineford") arc.evaluatedAfterParadise = true;
+    arc.status = roll < chance ? "selected" : "not-selected";
+    if (arc.status === "selected" && arcId === "emperor") arc.emperorId = selectLegendaryEmperor(game, random);
+    return arc.status === "selected";
+  }
+
+  function maybeStartLegendaryArc(game = state.game) {
+    if (!game || game.currentEvent || game.pendingResult || game.pendingLogbookEntry || game.pendingZoneTransition || game.pendingRewardReveals?.length || game.ending || game.isFinished) return false;
+    if (isTalentArcEligible(game) && game.legendaryArcs.talent.status === "unassessed") {
+      evaluateLegendaryArc("talent", game);
+    }
+    if (game.legendaryArcs.talent.status === "selected") return startLegendaryArc("talent", game);
+    return false;
+  }
+
+  function finalizeLegendaryArc(arcId, game = state.game) {
+    const arc = game?.legendaryArcs?.[arcId];
+    if (!arc) return false;
+    const successes = [1, 2, 3].filter((step) => game.flags?.[`legendary_${arcId}_${step}_success`]).length;
+    const failures = [1, 2, 3].filter((step) => game.flags?.[`legendary_${arcId}_${step}_failure`]).length;
+    const earned = successes >= 2 && failures === 0 && Boolean(game.flags?.[`legendary_${arcId}_3_success`]);
+    if (earned) {
+      const titleId = getLegendaryArcTitleId(arcId, game);
+      if (titleId) { unlockTitle(titleId, null, game, false); arc.titleId = titleId; }
+      arc.status = "succeeded";
+    } else {
+      arc.status = failures >= 2 ? "failed" : "completed-no-title";
+    }
+    arc.step = 3;
+    arc.completedAtMonth = game.month;
+    arc.result = earned ? "title-earned" : failures >= 2 ? "failed" : "survived";
+    checkAchievements(game);
+    return earned;
+  }
+
+  function getLegendaryConclusionCopy(arcId, game = state.game) {
+    const faction = getDataId(game?.character?.faction) || "pirate";
+    const factionEnding = {
+      pirate: "Tu préserves ton équipage et ton pavillon avant de reprendre la mer.",
+      marine: "L’ordre de repli ramène ton unité auprès du commandement.",
+      "bounty-hunter": "Tu abandonnes le contrat avant de risquer davantage pour une cible hors d’atteinte.",
+      revolutionary: "Ta cellule évacue la zone et transforme ce revers en repli stratégique.",
+    }[faction] || "Tu quittes le champ de bataille vivant et reprends ta route.";
+
+    if (arcId === "talent") {
+      const descriptions = {
+        pirate: "Ton nom circule désormais sur plusieurs mers, mais tes exploits ne suffisent pas encore à te faire entrer parmi les Supernovas.",
+        marine: "Le quartier général reconnaît ton potentiel, mais estime que tu n’es pas encore prêt à porter les insignes d’un Vice-Amiral.",
+        revolutionary: "Dragon salue ton engagement, mais le commandement d’une force révolutionnaire attendra encore.",
+        "bounty-hunter": "Les pirates connaissent désormais ton visage, mais ton nom ne provoque pas encore la terreur espérée.",
+      };
+      return { title: "UNE PROMESSE REMARQUÉE", description: descriptions[faction] || descriptions.pirate };
+    }
+    if (arcId === "marineford") {
+      return {
+        title: "LA BATAILLE S’ACHÈVE",
+        description: `Malgré tes efforts, ta mission dans la forteresse ne suffit pas à inscrire ton nom dans la légende de Marineford. ${factionEnding}`,
+      };
+    }
+    const emperor = LEGENDARY_EMPEROR_NAMES[game?.legendaryArcs?.emperor?.emperorId] || "L’Empereur";
+    return {
+      title: "LA ROUTE CONTINUE",
+      description: `Malgré tes efforts, la puissance de ${emperor} te force à battre en retraite. Tu survis à l’affrontement sans accomplir l’exploit légendaire. ${factionEnding}`,
+    };
+  }
+
+  function queueLegendaryConclusion(arcId, game = state.game) {
+    const arc = game?.legendaryArcs?.[arcId];
+    const zone = getCurrentZone(game);
+    if (!arc || !zone || arc.titleId || arc.conclusionShown || arc.routeResumed) return false;
+    if (!arc.conclusion) arc.conclusion = getLegendaryConclusionCopy(arcId, game);
+    arc.conclusionPending = true;
+    game.pendingZoneTransition = {
+      ...createZoneTransitionData(zone, game.currentZoneIndex, "legendary-conclusion", game),
+      arcId,
+      title: arc.conclusion.title,
+      description: arc.conclusion.description,
+      buttonLabel: arcId === "talent" ? "Poursuivre dans Paradise" : "Reprendre la route",
+    };
+    return true;
+  }
 
   function getBossEvents() {
     const catalog = Array.isArray(window.BLUE_LEGACY_DECISIVE_EVENTS)
@@ -3445,7 +4073,7 @@
               : outcome.fallback ? 0 : stage === 2 ? 2 : 1,
           };
         }
-        if (stage === 1) {
+        if (stage === 1 && !localized.tags?.includes("haki-awakening")) {
           delete outcome.flags?.bossFinalDreamCompleted;
           delete outcome.flags?.bossFinalDreamId;
           delete outcome.flags?.bossFinalDreamFailed;
@@ -3468,6 +4096,13 @@
     }
 
     const boss = localizeBossEvent(selected, zone, tier);
+    if (tier === 2 && boss.tags?.includes("haki-awakening")) {
+      // Verrouillé avant l'affichage et avant toute récompense de l'étape 2.
+      game.flags.secondDecisiveHakiBranch =
+        game.flags.firstDecisiveHakiType === "conquerors"
+          ? "mastery"
+          : "awakening";
+    }
     game.currentEvent = boss;
     game.currentEventId = boss.id;
     game.currentChoiceIndex = null;
@@ -3789,7 +4424,10 @@
 
   function getEventResolutionScore(game = state.game, event = null, choice = null) {
     const category = event?.resolutionCategory === "social" ? "social" : "action";
-    const allowed = event?.eventType === "decisive" && Number(event?.decisiveStage) === 3
+    const broadDecisiveWeights = event?.eventType === "decisive" && (
+      Number(event?.decisiveStage) === 3 || event?.tags?.includes("haki-awakening")
+    );
+    const allowed = broadDecisiveWeights
       ? new Set(["health", "combat", "haki", "charisma", "intelligence", "renown"])
       : category === "action"
       ? new Set(["health", "combat", "haki"])
@@ -3822,16 +4460,21 @@
     const shopBonus = event?.eventType === "ordinary" && game?.activeShopItems?.includes("eternal-pose")
       ? Number(findShopItem("eternal-pose")?.ordinaryResolutionBonus) || 5
       : 0;
-    const dBonus = game?.character?.hasD && ["ordinary", "risk", "decisive"].includes(event?.eventType)
+    const dBonus = game?.character?.hasD && ["ordinary", "risk", "decisive", "legendary"].includes(event?.eventType)
       ? CONFIG.dResolutionBonus
       : 0;
-    return Math.max(1, Math.min(100, base - typeDifficulty - stageDifficulty + shopBonus + dBonus));
+    const firstAwakeningBonus = event?.tags?.includes("haki-awakening") &&
+      Number(event?.decisiveStage) === 1 &&
+      !String(choice?.id || "").endsWith("-sovereign")
+      ? 5
+      : 0;
+    return Math.max(1, Math.min(100, base - typeDifficulty - stageDifficulty + shopBonus + dBonus + firstAwakeningBonus));
   }
 
   function getOutcomeTierProbabilities(game = state.game, event = null, choice = null) {
     const score = getEventResolutionScore(game, event, choice);
-    const family = ["ordinary", "risk", "decisive"].includes(event?.eventType)
-      ? event.eventType
+    const family = ["ordinary", "risk", "decisive", "legendary"].includes(event?.eventType)
+      ? (event.eventType === "legendary" ? "risk" : event.eventType)
       : "surprise";
     const curve = OUTCOME_PROBABILITY_CURVES[family];
     const positive = Math.max(0.08, Math.min(0.90, curve.base + score * curve.score));
@@ -4295,7 +4938,7 @@
   }
 
   function getOfferWeight(item = {}) {
-    return ({ uncommon: 1.35, common: 1.2, rare: 1, epic: 0.55, legendary: 0.2 })[
+    return ({ uncommon: 1.35, common: 1.2, rare: 1, epic: 0.55, legendary: 0.16 })[
       normalizeRarity(item.rarity || "rare")
     ] || 1;
   }
@@ -4318,6 +4961,7 @@
     const faction = game?.character?.faction;
     const stage = Number(getCurrentZone(game)?.routeStage) || 1;
     const zoneId = getCurrentZone(game)?.id;
+    if (member.active === false) return false;
     if (member.allowedFactions?.length && !member.allowedFactions.includes(faction)) return false;
     if (Number(member.minStage) > stage) return false;
     if (Number(member.maxStage) && stage > Number(member.maxStage)) return false;
@@ -4381,11 +5025,11 @@
       choices: offers.map((member) => ({
         id: `recruit-${member.id}`,
         text: `Accueillir ${member.name}`,
-        choiceTag: member.rank || member.role,
+        choiceTag: `${getRarityLabel(member.rarity)} • ${member.rank || member.role}`,
         hint: `${member.description} ${formatEffectsText(member.permanentEffects)}`,
         outcomes: [{
           id: `joined-${member.id}`,
-          result: `${member.name} rejoint ${marine ? "ton unité" : "ton groupe"}${marine && member.rank ? ` avec le grade de ${member.rank}` : ` en tant que ${member.role.toLowerCase()}`}.`,
+          result: member.recruitmentText || `${member.name} rejoint ${marine ? "ton unité" : "ton groupe"}${marine && member.rank ? ` avec le grade de ${member.rank}` : ` en tant que ${member.role.toLowerCase()}`}.`,
           crewMember: member,
           outcomeTier: "success",
           important: true,
@@ -4462,9 +5106,24 @@
       return false;
     }
 
+    // Un second clic sur le bouton de transition ne doit jamais remplacer
+    // un événement qui attend encore le choix du joueur.
+    if (game.currentEvent) {
+      openScreen(SCREEN.GAME);
+      return false;
+    }
+
+    if (game.flags?.deferredZoneTransitionAfterArc === "marineford" &&
+        ["succeeded", "failed", "completed-no-title", "not-selected"].includes(game.legendaryArcs?.marineford?.status)) {
+      delete game.flags.deferredZoneTransitionAfterArc;
+      return openZoneTransition(getCurrentZone(game), game.currentZoneIndex, "zone-change");
+    }
+
     if (game.currentAction >= game.actionsThisMonth) {
       return finishMonth();
     }
+
+    if (maybeStartLegendaryArc(game)) return true;
 
     return startEvent();
   }
@@ -4542,16 +5201,42 @@
       return false;
     }
 
-    const completedBoss = game.currentEvent?.eventType === "decisive";
+    const completedEvent = game.currentEvent;
+    const completedBoss = completedEvent?.eventType === "decisive";
+    const legendaryArcId = completedEvent?.legendaryArc || null;
+    const legendaryStep = Number(completedEvent?.legendaryStep) || 0;
     game.currentEvent = null;
     game.currentEventId = null;
     game.currentChoiceIndex = null;
     game.pendingResult = null;
-    game.currentAction += 1;
+    if (!legendaryArcId) game.currentAction += 1;
 
     state.result = null;
 
     saveGame();
+
+    if (legendaryArcId) {
+      const arc = game.legendaryArcs?.[legendaryArcId];
+      if (legendaryStep < 3 && arc) {
+        arc.step = legendaryStep + 1;
+        const nextEvent = getLegendaryArcEvent(legendaryArcId, arc.step, game);
+        if (nextEvent) {
+          game.currentEvent = nextEvent;
+          game.currentEventId = nextEvent.id;
+          saveGame();
+          openScreen(SCREEN.GAME, { save: false });
+          return true;
+        }
+      }
+      const earnedLegendaryTitle = finalizeLegendaryArc(legendaryArcId, game);
+      if (!earnedLegendaryTitle && queueLegendaryConclusion(legendaryArcId, game)) {
+        saveGame();
+        openScreen(SCREEN.ZONE_TRANSITION, { save: false });
+        return true;
+      }
+      saveGame();
+      return startNextEvent();
+    }
 
     const automaticEnding = checkRunEndingConditions(game);
     if (automaticEnding && !completedBoss) return finishAdventure(automaticEnding);
@@ -4572,6 +5257,14 @@
 
     const finishedMonth = game.month;
     const bossTier = getBossTierForFinishedMonth(finishedMonth);
+
+    if (bossTier === 3) {
+      const emperor = game.legendaryArcs?.emperor;
+      if (emperor?.status === "unassessed") evaluateLegendaryArc("emperor", game);
+      if (["selected", "in-progress"].includes(emperor?.status) && startLegendaryArc("emperor", game)) {
+        return true;
+      }
+    }
 
     if (
       bossTier &&
@@ -4620,6 +5313,32 @@
      RÉSOLUTION DES CHOIX
   ======================================================== */
 
+  function debugResolution(stage, details = {}) {
+    if (!RESOLUTION_DEBUG) return;
+    console.debug(`[Blue Legacy][Resolution][${stage}]`, details);
+  }
+
+  function assertResolutionIntegrity(game, resolutionId) {
+    if (!RESOLUTION_DEBUG || !game || !resolutionId) return;
+    const effectApplications = (game.appliedResolutionIds || [])
+      .filter((id) => id === resolutionId).length;
+    const outcomeSlides = game.pendingResult?.resolutionId === resolutionId ? 1 : 0;
+    const journalEntries = (game.periodEvents || [])
+      .filter((entry) => entry.resolutionId === resolutionId).length;
+    console.assert(effectApplications === 1, "Une résolution doit appliquer ses effets exactement une fois.", {
+      resolutionId,
+      effectApplications,
+    });
+    console.assert(outcomeSlides <= 1, "Une résolution ne peut produire qu’une slide de conséquence.", {
+      resolutionId,
+      outcomeSlides,
+    });
+    console.assert(journalEntries === 1, "Une résolution doit produire une seule entrée d’événement.", {
+      resolutionId,
+      journalEntries,
+    });
+  }
+
   function resolveChoice(choiceIndex) {
     const game = state.game;
     const event = game?.currentEvent;
@@ -4629,9 +5348,26 @@
       return false;
     }
 
+    if (
+      state.isResolvingEvent ||
+      game.pendingResult ||
+      game.currentChoiceIndex !== null
+    ) {
+      return false;
+    }
+
+    state.isResolvingEvent = true;
+    dom.eventChoices
+      ?.querySelectorAll("[data-event-choice-index]")
+      .forEach((button) => {
+        button.disabled = true;
+      });
+
     if (choice.condition) {
       try {
         if (!choice.condition(createEventContext(game, event))) {
+          state.isResolvingEvent = false;
+          updateGameScreen();
           return false;
         }
       } catch (error) {
@@ -4640,11 +5376,35 @@
           error,
         );
 
+        state.isResolvingEvent = false;
+        updateGameScreen();
         return false;
       }
     }
 
+    game.resolutionSequence = Math.max(0, Number(game.resolutionSequence) || 0) + 1;
+    const resolutionId = `${game.id || "adventure"}:resolution:${game.resolutionSequence}`;
+    debugResolution("start", {
+      resolutionId,
+      eventId: event.id,
+      choiceId: choice.id,
+      outcomeQueueBefore: game.pendingResult ? 1 : 0,
+      rewardQueueBefore: game.pendingRewardReveals?.length || 0,
+      screen: state.screen,
+      isResolving: state.isResolvingEvent,
+    });
+
     const outcome = secureFinalDreamOutcome(selectOutcome(choice, game, event), event, game);
+    if (event.legendaryArc && event.legendaryStep === 3 &&
+        ["success", "exceptional_success"].includes(outcome.resolvedOutcomeTier || outcome.outcomeTier)) {
+      const arcId = event.legendaryArc;
+      const priorSuccesses = [1, 2].filter((step) => game.flags?.[`legendary_${arcId}_${step}_success`]).length;
+      const priorFailures = [1, 2].filter((step) => game.flags?.[`legendary_${arcId}_${step}_failure`]).length;
+      if (priorSuccesses >= 1 && priorFailures === 0) {
+        const titleId = getLegendaryArcTitleId(arcId, game);
+        if (titleId) outcome.titles = uniqueArray([...(outcome.titles || []), titleId]);
+      }
+    }
     const outcomeNarrative = getOutcomeNarrative(outcome, choice, event);
     const statsBefore = getStatsSnapshot(game.stats);
     const flagsBefore = { ...game.flags };
@@ -4670,7 +5430,7 @@
       game.flags.criticalFailures = (Number(game.flags.criticalFailures) || 0) + 1;
     }
     const rewards = applyOutcomeMajorRewards(outcome, game);
-    queueRewardReveals(rewards, game);
+    queueRewardReveals(rewards, game, { resolutionId, eventId: event.id });
 
     const dreamProgress = getOutcomeDreamProgress(outcome, game);
     if (dreamProgress) {
@@ -4712,7 +5472,7 @@
       if (!title) return;
       const record = { type: "title", text: `Titre obtenu : ${title.name}`, data: cloneData(title) };
       rewards.push(record);
-      queueRewardReveal(record, game);
+      queueRewardReveal(record, game, { resolutionId, eventId: event.id });
     });
     refreshPopularityScore(game);
 
@@ -4724,6 +5484,7 @@
 
     const eventRecord = {
       id: createUniqueId("event-record"),
+      resolutionId,
       eventId: event.id,
       title: event.title,
       description: event.description,
@@ -4749,6 +5510,9 @@
       rarity: event.rarity,
       highStakes: Boolean(event.highStakes),
       tags: cloneData(event.tags),
+      legendaryArc: event.legendaryArc || null,
+      legendaryStep: event.legendaryStep || null,
+      emperorId: event.emperorId || null,
       decisiveStage: event.decisiveStage || null,
       eventType: event.eventType,
       resolutionCategory: event.resolutionCategory,
@@ -4778,9 +5542,11 @@
     checkAchievements(game);
 
     game.pendingResult = {
+      resolutionId,
       eventId: event.id,
       eventTitle: event.title,
       choiceId: choice.id,
+      choiceText: choice.text,
       outcomeId: outcome.id,
       description:
         outcomeNarrative,
@@ -4788,19 +5554,39 @@
       rewards,
       important: eventRecord.important,
       ending: outcome.ending || null,
+      effectsApplied: true,
+      resultConsumed: false,
     };
+
+    game.appliedResolutionIds = uniqueArray([
+      ...(game.appliedResolutionIds || []),
+      resolutionId,
+    ]).slice(-100);
+    assertResolutionIntegrity(game, resolutionId);
+    debugResolution("committed", {
+      resolutionId,
+      eventId: event.id,
+      choiceId: choice.id,
+      outcomeId: outcome.id,
+      outcomeQueueAfter: 1,
+      rewardQueueAfter: game.pendingRewardReveals?.length || 0,
+      screen: SCREEN.RESULT,
+      isResolving: state.isResolvingEvent,
+    });
 
     state.result = cloneData(game.pendingResult);
 
     saveGame();
 
     if (outcome.ending) {
+      state.isResolvingEvent = false;
       return finishAdventure(
         normalizeEndingData(outcome.ending),
       );
     }
 
     openScreen(SCREEN.RESULT, { save: false });
+    state.isResolvingEvent = false;
 
     return true;
   }
@@ -5076,19 +5862,42 @@
   }
 
   function continueAfterResult() {
-    if (!state.game) {
+    const game = state.game;
+    const result = game?.pendingResult;
+    if (
+      !game ||
+      !result ||
+      result.resultConsumed ||
+      state.isContinuingResult ||
+      state.screen !== SCREEN.RESULT
+    ) {
       return false;
     }
 
+    state.isContinuingResult = true;
+    if (dom.continueResult) dom.continueResult.disabled = true;
+    result.resultConsumed = true;
+    if (result.resolutionId) {
+      game.consumedResolutionIds = uniqueArray([
+        ...(game.consumedResolutionIds || []),
+        result.resolutionId,
+      ]).slice(-100);
+      game.pendingRewardReveals = (game.pendingRewardReveals || []).filter(
+        (reward) => reward.sourceResolutionId === result.resolutionId,
+      );
+    }
     state.result = null;
-    state.game.pendingResult = null;
+    game.pendingResult = null;
 
-    if (state.game.pendingRewardReveals?.length) {
+    if (game.pendingRewardReveals?.length) {
       openScreen(SCREEN.REWARD_REVEAL);
+      state.isContinuingResult = false;
       return true;
     }
 
-    return finishEvent();
+    const continued = finishEvent();
+    state.isContinuingResult = false;
+    return continued;
   }
 
   function normalizeEndingData(ending) {
@@ -5861,6 +6670,15 @@
       return finishAdventure(automaticEnding);
     }
 
+    if (Number(game.month) === 13 && getCurrentZone(game)?.id === "red-line") {
+      const marineford = game.legendaryArcs?.marineford;
+      if (marineford?.status === "unassessed") evaluateLegendaryArc("marineford", game);
+      if (["selected", "in-progress"].includes(marineford?.status)) {
+        game.flags.deferredZoneTransitionAfterArc = "marineford";
+        return startLegendaryArc("marineford", game);
+      }
+    }
+
     const zone = getCurrentZone(game);
     if (!zone) {
       saveGame();
@@ -5924,6 +6742,9 @@
       permanentEffects: { ...(member.permanentEffects || member.effects || {}) },
       primaryStat: normalizeStatKey(member.primaryStat || ""),
       rarity: normalizeRarity(member.rarity || "rare"),
+      category: member.category || "",
+      active: member.active !== false,
+      recruitmentText: member.recruitmentText || "",
       allowedFactions: uniqueArray(member.allowedFactions || []),
       minStage: Math.max(1, Number(member.minStage) || 1),
       maxStage: Number(member.maxStage) || null,
@@ -6154,7 +6975,10 @@
     "bounty-hunting": { label: "Chasse aux primes", icon: "🎯" },
     revolution: { label: "Révolution", icon: "✊" },
     combat: { label: "Combat", icon: "⚔️" },
-    haki: { label: "Haki", icon: "🛡️" },
+    haki: { label: "Hakis", icon: "👁️" },
+    prodige: { label: "Prodige", icon: "◆" },
+    marineford: { label: "Marineford", icon: "⚓" },
+    emperor: { label: "Empereur", icon: "👑" },
     crew: { label: "Équipage", icon: "👥" },
     exploration: { label: "Exploration", icon: "🧭" },
     wealth: { label: "Richesse", icon: "💰" },
@@ -6170,6 +6994,9 @@
     "revolution",
     "combat",
     "haki",
+    "prodige",
+    "marineford",
+    "emperor",
     "crew",
     "exploration",
     "wealth",
@@ -6278,6 +7105,37 @@
     );
   }
 
+  const SUPREME_DREAM_TITLE_IDS = new Set([
+    "roi-des-pirates", "empereur-des-mers", "seigneur-des-tresors", "gardien-histoire-oubliee",
+    "legende-des-chasseurs", "fleau-des-criminels", "tombeur-empereur", "maitre-des-contrats",
+    "chain-breaker", "truth-bearer", "architect-of-revolution", "founder-of-free-people",
+    "amiral", "amiral-en-chef", "justice-nouvelle", "heros-de-la-marine",
+  ]);
+
+  function resolveTitleRarity(titleId, archivedTitle = null) {
+    const archived = archivedTitle && typeof archivedTitle === "object" ? archivedTitle : {};
+    const lookupId = slugify(archived.id || titleId || archived.name || archived.label || "");
+    const catalog = findTitleData(lookupId) || findTitleData(archived.name || archived.label || "");
+    const canonicalId = slugify(getDataId(catalog) || lookupId);
+    // Ces identifiants représentent les seize accomplissements suprêmes : les
+    // anciennes copies dorées sont une donnée d'affichage obsolète, pas une
+    // rareté explicite à préserver.
+    if (SUPREME_DREAM_TITLE_IDS.has(canonicalId)) return "mythic";
+    const archivedRarity = slugify(archived.rarity || "");
+    const knownArchivedRarities = new Set([
+      ...Object.keys(TITLE_RARITIES), "commun", "inhabituel", "peu-commun",
+      "epique", "legendaire", "mythique", "tres-rare", "very-rare", "veryrare", "unique", "ultime",
+    ]);
+    if (knownArchivedRarities.has(archivedRarity)) {
+      return normalizeRarity(archivedRarity);
+    }
+    return normalizeRarity(catalog?.rarity || "common");
+  }
+
+  function getTitleRarityClass(titleId, archivedTitle = null) {
+    return `rarity-${resolveTitleRarity(titleId, archivedTitle)}`;
+  }
+
   function normalizeTitleData(
     titleId,
     titleData,
@@ -6311,14 +7169,15 @@
         source.desc ||
         "",
       category:
-        normalizeTitleCategory(source.category),
-      rarity: normalizeRarity(source.rarity),
+        normalizeTitleCategory(catalog.category || source.category),
+      rarity: resolveTitleRarity(lookupId, inline),
+      careerScoreRarity: normalizeRarity(source.careerScoreRarity || source.rarity),
       icon:
         source.icon ||
         getRarityIcon(source.rarity),
       secret: Boolean(source.secret),
       unlockHint:
-        source.unlockHint ||
+        catalog.unlockHint || source.unlockHint ||
         "",
       factions: Array.isArray(source.factions)
         ? uniqueArray(source.factions.map((faction) => String(faction)))
@@ -6335,6 +7194,8 @@
       unlockReason: source.unlockReason || source.reason || "",
       firstUnlockedBy:
         normalizeFirstUnlockedBy(source.firstUnlockedBy),
+      historical: Boolean(source.historical || (!Object.keys(catalog).length && source.id)),
+      active: source.active !== false,
       unlockedAtMonth:
         source.unlockedAtMonth ||
         state.game?.month ||
@@ -6546,9 +7407,8 @@
 
   function applyPastLifeHeroRarity(titleData) {
     if (!dom.pastLifeHero) return "neutral";
-    const rarity = slugify(titleData?.rarity);
-    const visualRarity = Object.prototype.hasOwnProperty.call(TITLE_RARITIES, rarity)
-      ? rarity
+    const visualRarity = titleData
+      ? resolveTitleRarity(getDataId(titleData), titleData)
       : "neutral";
     dom.pastLifeHero.dataset.rarity = visualRarity;
     return visualRarity;
@@ -6585,6 +7445,7 @@
         <span
           class="title-card title-card-badge${locked ? " locked" : " unlocked"}"
           data-rarity="${escapeAttribute(rarity)}"
+          aria-label="Titre ${escapeAttribute(getRarityLabel(rarity).toLowerCase())} : ${escapeAttribute(name)}"
         >
           <span class="title-card-icon" aria-hidden="true">${escapeHtml(icon)}</span>
           <span class="title-card-name">${escapeHtml(name)}</span>
@@ -6596,6 +7457,7 @@
       <article
         class="title-card title-card-${mode}${locked ? " locked" : " unlocked"}"
         data-rarity="${escapeAttribute(rarity)}"
+        aria-label="Titre ${escapeAttribute(getRarityLabel(rarity).toLowerCase())} : ${escapeAttribute(name)}"
       >
         <span class="title-card-icon" aria-hidden="true">${escapeHtml(icon)}</span>
         <div class="title-card-content">
@@ -6657,6 +7519,12 @@
 
     if (alreadyUnlocked) {
       return false;
+    }
+
+    if (titleId === "maitrise-haki-des-rois-plus") {
+      game.runTitles = game.runTitles.filter(
+        (title) => getDataId(title) !== "haki-des-rois",
+      );
     }
 
     const source =
@@ -6894,6 +7762,28 @@
       case "titles-unlocked":
         current = profile.titles?.length || 0;
         break;
+      case "has-title": {
+        const titleId = condition.titleId;
+        current = runs.some((run) => (run.runTitles || []).some((title) => getDataId(title) === titleId)) ||
+          (profile.titles || []).some((title) => getDataId(title) === titleId) ? 1 : 0;
+        target = 1;
+        break;
+      }
+      case "has-any-title": {
+        const titleIds = new Set(condition.titleIds || []);
+        current = runs.some((run) => (run.runTitles || []).some((title) => titleIds.has(getDataId(title)))) ||
+          (profile.titles || []).some((title) => titleIds.has(getDataId(title))) ? 1 : 0;
+        target = 1;
+        break;
+      }
+      case "legendary-companion-recruited":
+        current = runs.some((run) => (run.crewMembers || []).some((member) =>
+          normalizeRarity(member?.rarity) === "legendary" ||
+          normalizeRarity((window.GAME_DATA?.crewRecruitments || [])
+            .find((candidate) => candidate.id === getDataId(member))?.rarity) === "legendary",
+        )) ? 1 : 0;
+        target = 1;
+        break;
       case "shop-items-owned":
         current = uniqueArray(profile.ownedShopItems).length;
         break;
@@ -6906,6 +7796,31 @@
         current = Math.max(0, ...finishedRuns.map((run) =>
           Number(runStats(run).popularity ?? run.popularityScore) || 0,
         ));
+        break;
+      case "legendary-arc-encountered":
+        current = runs.some((run) => {
+          const arc = run.legendaryArcs?.[condition.arcId];
+          return arc && !["unassessed", "not-selected"].includes(arc.status);
+        }) ? 1 : 0;
+        target = 1;
+        break;
+      case "legendary-arc-title":
+        current = runs.some((run) => Boolean(run.legendaryArcs?.[condition.arcId]?.titleId)) ? 1 : 0;
+        target = 1;
+        break;
+      case "both-legendary-arcs":
+        current = runs.some((run) => ["marineford", "emperor"].every((arcId) => {
+          const arc = run.legendaryArcs?.[arcId];
+          return arc && ["succeeded", "failed", "completed-no-title"].includes(arc.status);
+        })) ? 1 : 0;
+        target = 1;
+        break;
+      case "three-legendary-arcs":
+        current = runs.some((run) => ["talent", "marineford", "emperor"].every((arcId) => {
+          const arc = run.legendaryArcs?.[arcId];
+          return arc && !["unassessed", "not-selected"].includes(arc.status);
+        })) ? 1 : 0;
+        target = 1;
         break;
       default:
         current = 0;
@@ -7268,21 +8183,26 @@
     };
   }
 
-  function queueRewardReveal(rewardRecord, game = state.game) {
+  function queueRewardReveal(rewardRecord, game = state.game, source = {}) {
     if (!game) return false;
     const reveal = createRewardRevealData(rewardRecord);
     if (!reveal) return false;
+    reveal.sourceResolutionId = source.resolutionId || rewardRecord?.sourceResolutionId || null;
+    reveal.eventId = source.eventId || rewardRecord?.eventId || null;
     game.pendingRewardReveals ||= [];
     const duplicate = game.pendingRewardReveals.some(
-      (queued) => queued.type === reveal.type && queued.id === reveal.id,
+      (queued) =>
+        queued.type === reveal.type &&
+        queued.id === reveal.id &&
+        queued.sourceResolutionId === reveal.sourceResolutionId,
     );
     if (!duplicate) game.pendingRewardReveals.push(reveal);
     return !duplicate;
   }
 
-  function queueRewardReveals(rewards = [], game = state.game) {
+  function queueRewardReveals(rewards = [], game = state.game, source = {}) {
     return rewards.reduce(
-      (count, reward) => count + (queueRewardReveal(reward, game) ? 1 : 0),
+      (count, reward) => count + (queueRewardReveal(reward, game, source) ? 1 : 0),
       0,
     );
   }
@@ -7577,6 +8497,8 @@
       runAchievements: cloneData(game.runAchievements),
       achievementProgress: cloneData(game.achievementProgress),
       flags: cloneData(game.flags),
+      startingStatVariance: cloneData(game.startingStatVariance),
+      startingStatVarianceRolled: game.startingStatVarianceRolled === true,
       stats: getStatsSnapshot(game.stats),
       popularityScore,
       popularityText,
@@ -7586,6 +8508,7 @@
         game.importantEvents,
       ),
       bossProgress: cloneData(game.bossProgress),
+      legendaryArcs: cloneData(game.legendaryArcs),
       rewards: cloneData(game.rewards),
       route: cloneData(game.route),
       specialZoneId: game.specialZoneId || null,
@@ -8001,15 +8924,17 @@
   }
 
   function createCrewMembersHtml(members = [], compact = false) {
-    const normalized = members.filter(Boolean).map(normalizeCrewMember);
+    const rarityRank = { legendary: 4, epic: 3, rare: 2, uncommon: 1, common: 0 };
+    const normalized = members.filter(Boolean).map(normalizeCrewMember)
+      .sort((left, right) => (rarityRank[right.rarity] || 0) - (rarityRank[left.rarity] || 0));
     if (!normalized.length) return "";
     const visible = compact ? normalized.slice(0, 4) : normalized;
     return `${visible.map((member) => `
-      <article class="crew-member-card${compact ? " is-compact" : ""}">
+      <article class="crew-member-card rarity-${escapeHtml(member.rarity)}${compact ? " is-compact" : ""}">
         <span class="career-asset-icon" aria-hidden="true">${escapeHtml(member.icon)}</span>
         <span class="career-asset-copy">
           <strong>${escapeHtml(member.name)}</strong>
-          <small>${escapeHtml(member.role)}</small>
+          <small><span class="crew-rarity-label">${escapeHtml(getRarityLabel(member.rarity))}</span> • ${escapeHtml(member.role)}</small>
           ${compact ? "" : `<span>${escapeHtml(formatEffectsText(member.permanentEffects))}</span>`}
         </span>
       </article>`).join("")}${compact && normalized.length > visible.length
@@ -8165,6 +9090,7 @@
     dom.zoneTransitionScreen?.classList.remove(
       "boss-transition",
       "boss-danger-transition",
+      "legendary-arc-transition",
     );
   }
 
@@ -8173,6 +9099,7 @@
 
     const typeMeta = EVENT_TYPE_META[event?.eventType] || EVENT_TYPE_META.ordinary;
     document.body.classList.add(typeMeta.themeClass);
+    document.body.classList.toggle("is-legendary-arc", Boolean(event?.legendaryArc));
   }
 
   function getChoiceTagToneClass(choiceTag) {
@@ -8289,6 +9216,7 @@
           )
           .join("");
     }
+    if (dom.continueResult) dom.continueResult.disabled = false;
   }
 
   /* ========================================================
@@ -8570,13 +9498,14 @@
     const uniqueTitles = [...new Map(
       titles.map((title) => [getDataId(title), title]),
     ).values()];
-    const unlockedCount = uniqueTitles.filter(
+    const modernTitles = uniqueTitles.filter((title) => catalogIds.has(getDataId(title)) && title.active !== false);
+    const unlockedCount = modernTitles.filter(
       (title) => unlockedById.has(getDataId(title)),
     ).length;
 
     if (dom.titlesSummary) {
       dom.titlesSummary.textContent =
-        `Collection : ${unlockedCount} / ${uniqueTitles.length}`;
+        `Collection : ${unlockedCount} / ${modernTitles.length}`;
     }
 
     const rarityRank = (title) =>
@@ -8749,6 +9678,7 @@
                 <span class="pantheon-career-text">${escapeHtml(careerText)}</span>
                 ${entry.devilFruit ? `<span class="pantheon-asset-badge">${escapeHtml(entry.devilFruit.icon || "🍈")} ${escapeHtml(entry.devilFruit.name || "Fruit du Démon")}</span>` : ""}
                 ${(entry.crewMembers || []).length ? `<span class="pantheon-asset-badge">👥 ${entry.crewMembers.length} compagnon${entry.crewMembers.length > 1 ? "s" : ""}</span>` : ""}
+                ${Object.values(entry.legendaryArcs || {}).some((arc) => arc && !["unassessed", "not-selected"].includes(arc.status)) ? `<span class="pantheon-asset-badge legendary-exploit-badge">◆ Exploit légendaire</span>` : ""}
               </span>
 
               <span class="pantheon-card-footer">
@@ -8888,6 +9818,12 @@
       dom.pastLifeStats.innerHTML =
         createPastLifeStatsHtml(entry.stats || {}, entry);
     }
+    if (dom.pastLifeStartingVariance) {
+      dom.pastLifeStartingVariance.hidden = entry.startingStatVarianceRolled !== true;
+      dom.pastLifeStartingVariance.innerHTML = entry.startingStatVarianceRolled === true
+        ? `<h4>Variations de départ</h4><div class="starting-variance-list">${createStartingStatVarianceHtml(entry.startingStatVariance)}</div>`
+        : "";
+    }
     if (dom.pastLifeAssets && dom.pastLifeAssetsSection) {
       const fruit = entry.devilFruit || entry.character?.devilFruit || null;
       const members = Array.isArray(entry.crewMembers) ? entry.crewMembers : [];
@@ -8904,6 +9840,31 @@
         createPastLifeLogbookHtml(entry);
       resetHistoricalJournalAccordions();
     }
+
+    updateLegendaryCareerSection(entry);
+  }
+
+  function updateLegendaryCareerSection(entry = {}) {
+    if (!dom.pastLifeLogbook) return;
+    const arcs = entry.legendaryArcs || {};
+    const encountered = Object.entries(arcs).filter(([, arc]) =>
+      arc && !["unassessed", "not-selected"].includes(arc.status));
+    let section = document.getElementById("past-life-legendary-exploits");
+    if (!encountered.length) { section?.remove(); return; }
+    if (!section) {
+      section = document.createElement("section");
+      section.id = "past-life-legendary-exploits";
+      section.className = "past-life-panel legendary-exploits-panel";
+      dom.pastLifeLogbook.parentElement?.insertBefore(section, dom.pastLifeLogbook.parentElement.firstChild);
+    }
+    const label = (arcId, arc) => {
+      const title = arc.titleId ? findTitleData(arc.titleId)?.name : null;
+      const result = title || (arc.status === "failed" ? "Échec de la séquence" : "Séquence terminée sans Titre");
+      if (arcId === "emperor") return `Empereur affronté : ${LEGENDARY_EMPEROR_NAMES[arc.emperorId] || "inconnu"} — ${result}`;
+      if (arcId === "talent") return `Talent prodigieux : ${result}`;
+      return `Marineford : ${result}`;
+    };
+    section.innerHTML = `<h3>◆ Exploits légendaires</h3><ul>${encountered.map(([id, arc]) => `<li>${escapeHtml(label(id, arc))}</li>`).join("")}</ul>`;
   }
 
   let careerExportInProgress = false;
@@ -8911,7 +9872,7 @@
   function getCareerExportFilename(entry = {}) {
     const parts = entry.lastName && entry.firstName
       ? [entry.lastName, entry.hasD ? "D" : "", entry.firstName]
-      : [entry.name || "ancienne-vie"];
+      : [entry.name || ""];
     const safeName = parts
       .filter(Boolean)
       .join("-")
@@ -8919,8 +9880,10 @@
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9_-]+/g, "-")
       .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "") || "ancienne-vie";
-    return `blue-legacy-fiche-${safeName}.png`;
+      .replace(/^-|-$/g, "");
+    return safeName
+      ? `Blue-Legacy_${safeName}_Fiche-de-carriere.png`
+      : "Blue-Legacy_Fiche-de-carriere.png";
   }
 
   function setCareerExportStatus(message = "", error = false) {
@@ -8933,8 +9896,13 @@
     const pending = [...root.querySelectorAll("img")]
       .filter((image) => !image.complete)
       .map((image) => new Promise((resolve) => {
-        image.addEventListener("load", resolve, { once: true });
-        image.addEventListener("error", resolve, { once: true });
+        const timeout = window.setTimeout(resolve, 5000);
+        const finish = () => {
+          window.clearTimeout(timeout);
+          resolve();
+        };
+        image.addEventListener("load", finish, { once: true });
+        image.addEventListener("error", finish, { once: true });
       }));
     return Promise.all(pending);
   }
@@ -9000,16 +9968,50 @@
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
   }
 
-  function printPastLifeAsFallback() {
-    document.body.classList.add("printing-past-life");
-    const cleanup = () => document.body.classList.remove("printing-past-life");
-    window.addEventListener("afterprint", cleanup, { once: true });
-    window.setTimeout(() => {
-      window.print();
-      window.setTimeout(cleanup, 1000);
-    }, 50);
+  function isLikelyMobileExportContext() {
+    return Number(navigator.maxTouchPoints) > 0 &&
+      Boolean(window.matchMedia?.("(pointer: coarse)")?.matches);
+  }
+
+  function openCareerPngFallback(blob) {
+    const url = URL.createObjectURL(blob);
+    const opened = window.open(url, "_blank");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    if (!opened) throw new Error("Ouverture de l’image bloquée");
+    try { opened.opener = null; } catch (_error) { /* Fenêtre isolée par le navigateur. */ }
+    return "opened";
+  }
+
+  async function deliverCareerPng(blob, filename, options = {}) {
+    const mobile = options.mobile ?? isLikelyMobileExportContext();
+    if (mobile && typeof File === "function" && typeof navigator.share === "function") {
+      try {
+        const file = new File([blob], filename, { type: "image/png" });
+        if (typeof navigator.canShare !== "function" || navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: "Fiche de carrière Blue Legacy",
+          });
+          return "shared";
+        }
+      } catch (error) {
+        if (error?.name === "AbortError") return "cancelled";
+        console.warn("[Blue Legacy] Partage natif indisponible, téléchargement utilisé.", error);
+      }
+    }
+
+    if ("download" in document.createElement("a")) {
+      try {
+        downloadCareerBlob(blob, filename);
+        return "downloaded";
+      } catch (error) {
+        console.warn("[Blue Legacy] Téléchargement direct indisponible, ouverture de l’image utilisée.", error);
+      }
+    }
+    return openCareerPngFallback(blob);
   }
 
   async function exportPastLifeCareer() {
@@ -9023,8 +10025,11 @@
     setCareerExportStatus("Préparation de la fiche…");
     let stage = null;
     let svgUrl = null;
+    let canvas = null;
 
     try {
+      document.body.classList.add("is-exporting-career");
+      dom.pastLifeExportArea.classList.add("career-sheet--exporting");
       if (document.fonts?.ready) await document.fonts.ready;
       await waitForExportImages(dom.pastLifeExportArea);
 
@@ -9033,9 +10038,14 @@
       const clone = dom.pastLifeExportArea.cloneNode(true);
       clone.classList.add("career-export-clone");
       clone.querySelectorAll(".no-career-export").forEach((element) => element.remove());
+      clone.querySelectorAll("details").forEach((details) => {
+        details.open = true;
+        details.querySelector("summary")?.setAttribute("aria-expanded", "true");
+      });
       stage.append(clone);
       document.body.append(stage);
       await inlineExportImages(clone);
+      await waitForExportImages(clone);
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
       const width = Math.ceil(stage.scrollWidth);
@@ -9055,7 +10065,7 @@
       const maxPixels = 28000000;
       const maxSide = 16000;
       const scale = Math.min(2, maxSide / width, maxSide / height, Math.sqrt(maxPixels / (width * height)));
-      const canvas = document.createElement("canvas");
+      canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.floor(width * scale));
       canvas.height = Math.max(1, Math.floor(height * scale));
       const context = canvas.getContext("2d");
@@ -9064,15 +10074,30 @@
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
       const png = await canvasToPngBlob(canvas);
-      downloadCareerBlob(png, getCareerExportFilename(getSelectedPastLife() || {}));
-      setCareerExportStatus("Fiche sauvegardée.");
+      const delivery = await deliverCareerPng(
+        png,
+        getCareerExportFilename(getSelectedPastLife() || {}),
+      );
+      if (delivery === "downloaded") {
+        setCareerExportStatus("Fiche de carrière enregistrée en PNG.");
+      } else if (delivery === "shared" || delivery === "opened") {
+        setCareerExportStatus("L’image de ta carrière est prête.");
+      } else {
+        setCareerExportStatus("");
+      }
     } catch (error) {
       console.warn("[Blue Legacy] Export de la fiche impossible", error);
-      setCareerExportStatus("Impossible de créer l’image. Tu peux enregistrer la fiche en PDF.", true);
-      printPastLifeAsFallback();
+      setCareerExportStatus("Impossible de créer l’image de la fiche. Réessaie dans quelques instants.", true);
     } finally {
       if (svgUrl) URL.revokeObjectURL(svgUrl);
+      if (canvas) {
+        canvas.width = 0;
+        canvas.height = 0;
+        canvas.remove();
+      }
       stage?.remove();
+      dom.pastLifeExportArea.classList.remove("career-sheet--exporting");
+      document.body.classList.remove("is-exporting-career");
       button.disabled = false;
       button.removeAttribute("aria-busy");
       button.textContent = originalLabel;
@@ -9386,6 +10411,45 @@
         requestAbandonAdventure();
       },
     );
+
+    dom.resetProfile?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (dom.resetProfileStatus) dom.resetProfileStatus.textContent = "";
+      openDialog(dom.resetProfileFirstModal);
+      dom.cancelResetProfileFirst?.focus();
+    });
+
+    dom.cancelResetProfileFirst?.addEventListener("click", (event) => {
+      event.preventDefault();
+      cancelProfileReset(dom.resetProfileFirstModal);
+    });
+
+    dom.continueResetProfile?.addEventListener("click", (event) => {
+      event.preventDefault();
+      closeDialog(dom.resetProfileFirstModal);
+      openDialog(dom.resetProfileFinalModal);
+      dom.cancelResetProfileFinal?.focus();
+    });
+
+    dom.cancelResetProfileFinal?.addEventListener("click", (event) => {
+      event.preventDefault();
+      cancelProfileReset(dom.resetProfileFinalModal);
+    });
+
+    [dom.resetProfileFirstModal, dom.resetProfileFinalModal].forEach((dialog) => {
+      dialog?.addEventListener("cancel", () => {
+        window.setTimeout(() => dom.resetProfile?.focus(), 0);
+      });
+    });
+
+    dom.confirmResetProfile?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (dom.confirmResetProfile.disabled || state.isResettingProfile) return;
+      dom.confirmResetProfile.disabled = true;
+      resetPlayerProfile();
+    });
 
     dom.creationPrevious?.addEventListener(
       "click",
@@ -10568,6 +11632,17 @@
       },
       devilFruit: index < 3 ? { id: `audit-fruit-${index}`, name: `Fruit ${index}` } : null,
       activeShopItems: ["treasure-map", "eternal-pose"],
+      runTitles: [
+        { id: "haki-observation" },
+        { id: "haki-des-rois" },
+        { id: "maitrise-haki-des-rois-plus" },
+      ],
+      crewMembers: [{ id: "chopper", rarity: "legendary" }],
+      legendaryArcs: {
+        talent: { status: "succeeded", titleId: "supernova" },
+        marineford: { status: "succeeded", titleId: "fleau-de-marineford" },
+        emperor: { status: "succeeded", titleId: "tombeur-de-kaido" },
+      },
     }));
     const richProfile = normalizeProfile({
       pantheon: richRuns,
@@ -10649,7 +11724,10 @@
       event.choices.flatMap((choice) => choice.outcomes.flatMap((outcome) => outcome.titles.map(getDataId))),
     ));
     const titleSourceRows = titles.filter((title) => !title.finalTitle && typeof title.condition !== "function")
-      .map((title) => ({ id: title.id, eventSource: eventTitleIds.has(title.id) }));
+      .map((title) => ({
+        id: title.id,
+        eventSource: eventTitleIds.has(title.id) || Boolean(title.sourceType),
+      }));
     const rarityCounts = Object.fromEntries(Object.keys(TITLE_RARITIES).map((rarity) => [
       rarity,
       achievements.filter((achievement) => normalizeRarity(achievement.rarity) === rarity).length,
@@ -10676,10 +11754,10 @@
         career: runCareerFinalTitleAudit(),
       },
     };
-    report.pass = report.achievements.count >= 35 && report.achievements.count <= 50 &&
+    report.pass = report.achievements.count >= 35 && report.achievements.count <= 60 &&
       report.achievements.uniqueIds && report.achievements.uniqueNames &&
       achievementRows.every((row) => row.positive && !row.negative) &&
-      report.titles.count >= 40 && report.titles.count <= 60 &&
+      report.titles.count >= 40 && report.titles.count <= 90 &&
       report.titles.uniqueIds && report.titles.uniqueNames && report.titles.ultimatePreserved &&
       dreamRows.every((row) => row.pass) && titleRows.every((row) => row.positive) &&
       titleSourceRows.every((row) => row.eventSource) &&
@@ -10768,6 +11846,10 @@
     migrateLegacyCareerFinalTitle,
     runCareerFinalTitleAudit,
     openPastLife,
+    exportPastLifeCareer,
+    getCareerExportFilename,
+    canvasToPngBlob,
+    deliverCareerPng,
     updateSetting,
     getSetting,
     getShopItems,

@@ -50,6 +50,7 @@
     ORDINARY: "ordinary",
     RISK: "risk",
     DECISIVE: "decisive",
+    LEGENDARY: "legendary",
     SURPRISE_FRUIT: "surprise-fruit",
     SURPRISE_RECRUIT: "surprise-recruit",
   });
@@ -942,7 +943,7 @@
     ["mutinous-rowboat", "La chaloupe en mutinerie", "Quatre pirates dérivent dans une chaloupe et ont déjà élu cinq capitaines. Leur véritable navire attend derrière un cap.", "Les aider à reprendre leur navire", "Proposer une alliance temporaire"],
     ["marine-payroll", "La solde de la Marine", "Une sacoche de solde tombe d'un navire de la Marine. Un village affamé et un équipage rival l'ont vue en même temps.", "S'emparer de la sacoche", "La remettre au village"],
     ["powder-monkeys", "Les singes poudriers", "Des singes ont pillé la poudrière d'un pirate local. Ils imitent maintenant les saluts de la Marine avec des mèches allumées.", "Récupérer la poudre", "Attirer les singes loin du port"],
-    ["rival-feast", "Le banquet de la capitaine rivale", "L’équipage rival ont préparé un banquet pour célébrer ta défaite avant même de te combattre. Leur capitaine, la capitaine rivale tarde à revenir, et ses hommes ont déjà mangé le dessert.", "Prendre sa place à table", "Piéger le retour de la capitaine rivale"],
+    ["rival-feast", "Le banquet de la capitaine rivale", "L’équipage rival a préparé un banquet pour célébrer ta défaite avant même de te combattre. La capitaine rivale tarde à revenir, et ses hommes ont déjà mangé le dessert.", "Prendre sa place à table", "Piéger le retour de la capitaine rivale"],
     ["wreck-divers", "Les plongeurs de l'épave royale", "Des plongeurs clandestins remontent la vaisselle d'un ancien royaume d’une mer cardinale. Une cloche engloutie sonne sous leurs pieds.", "Plonger jusqu'à la cloche", "Négocier une part"],
     ["false-log-pose", "Le faux Log Pose de Loguetown", "Un marchand de Loguetown vend des Log Pose aux pirates qui n'ont jamais vu Grand Line. Tous indiquent sa propre boutique, tandis qu’une patrouille de Smoker remonte le marché.", "Démasquer le marchand", "Retourner l'arnaque contre lui"],
     ["captains-shadow", "Les signaux découpés dans la voile", "À midi, des entailles dans la grand-voile projettent sur le pont un ancien code de navigation. Quelqu'un a saboté la toile pour guider le navire vers une crique surveillée.", "Suivre le cap pour surprendre les guetteurs", "Décoder le signal avant de changer de route"],
@@ -2546,7 +2547,7 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "pirate-grand-line-vice-admiral-chase", path: PATHS.PIRATE,
       title: "Les boulets du vice-amiral",
-      description: "Le vice-amiral le vice-amiral chargé de la poursuite poursuit ton pavillon sans relâche. Son navire traverse les changements de climat comme s’il disposait d’un Log Pose pour chacun de ses canons.",
+      description: "Le vice-amiral chargé de la poursuite poursuit ton pavillon sans relâche. Son navire traverse les changements de climat comme s’il disposait d’un Log Pose pour chacun de ses canons.",
       rarity: EVENT_RARITY.COMMON, tags: ["marine", "vice-admiral", "chase"],
       choices: [
         { id: "cross-cyclone", text: "Traverser le cyclone magnétique", choiceTag: "Risqué",
@@ -2774,7 +2775,7 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "marine-grand-line-dangerous-crew-operation", path: PATHS.MARINE,
       title: "Les Pirates du Matin Rouge",
-      description: "Un équipage expérimenté attaque les navires-hôpitaux à l’aube. Leur capitaine un capitaine pirate blessé promet de se rendre si la Marine soigne aussi ses blessés.",
+      description: "Un équipage expérimenté attaque les navires-hôpitaux à l’aube. Son capitaine, un pirate blessé, promet de se rendre si la Marine soigne aussi ses blessés.",
       rarity: EVENT_RARITY.COMMON, tags: ["pirates", "operation", "medical"],
       choices: [
         { id: "accept-surrender", text: "Garantir des soins à tous les blessés", choiceTag: "Honneur",
@@ -2801,7 +2802,7 @@ const COMMON_EVENTS = [
     }),
     createGrandLineFactionEvent({
       id: "marine-grand-line-vice-admiral-order", path: PATHS.MARINE,
-      title: "L’ordre du vice-amiral le vice-amiral chargé de la poursuite",
+      title: "L’ordre du vice-amiral chargé de la poursuite",
       description: "Le vice-amiral chargé de la poursuite ordonne de poursuivre un capitaine dangereux malgré un village pris dans une trombe marine. Son Escargophone répète l’ordre avec une voix beaucoup trop joyeuse.",
       rarity: EVENT_RARITY.COMMON, tags: ["vice-admiral", "order", "civilians"],
       choices: [
@@ -2816,7 +2817,7 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "marine-grand-line-cipher-pol-inquiry", path: PATHS.MARINE,
       title: "L’agent au masque de verre",
-      description: "Un agent du Cipher Pol surnommé l’agente du Cipher Pol exige la disparition d’un dossier. Son masque transparent ne cache rien, sauf peut-être le fait qu’il en porte un second dessous.",
+      description: "Une agente du Cipher Pol exige la disparition d’un dossier. Son masque transparent ne cache rien, sauf peut-être le fait qu’elle en porte un second dessous.",
       rarity: EVENT_RARITY.COMMON, tags: ["cipher-pol", "investigation", "secret"],
       choices: [
         { id: "preserve-file", text: "Mettre le dossier sous scellés de la Marine", choiceTag: "Justice",
@@ -3336,7 +3337,7 @@ const COMMON_EVENTS = [
           success: { result: "L’agente de liaison démasque un agent du Cipher Pol grâce à une faute que seule la vraie cellule utilise.", effects: { morale: 3 }, requiredFlags: { trustedAgentCendre: true }, dreamProgressByDream: { "build-underground-network": 1 }, flags: { cendreExposedCipherInfiltrator: true } },
           setback: { result: "Le suspect s’enfuit avant l’interrogatoire et emporte plusieurs codes.", effects: { morale: -3 }, flags: { infiltratorStoleCellCodes: true } } },
         { id: "verify-both", text: "Vérifier séparément les deux identités", choiceTag: "Prudence",
-          success: { result: "L’agente clandestine confirme l’agente de liaison et isole l’infiltré sans fracture interne.", effects: { morale: 2 }, requiredTraits: ["patient"], flags: { restoredCendreTrust: true, capturedCipherInfiltrator: true } },
+          success: { result: "L’agente clandestine confirme les soupçons de l’agente de liaison et isole l’infiltré sans fracture interne.", effects: { morale: 2 }, requiredTraits: ["patient"], flags: { restoredCendreTrust: true, capturedCipherInfiltrator: true } },
           setback: { result: "L’enquête nourrit les soupçons et l’agente de liaison quitte la cellule avant la conclusion.", effects: { morale: -4 }, requiredFlags: { suspectedAgentCendreSpy: true }, flags: { cendreLeftRevolutionaryNetwork: true } } },
       ],
     }),
@@ -3937,7 +3938,7 @@ const COMMON_EVENTS = [
       scene("shinsekai-crew-crisis", "Le vote sous le mât fendu", "Après des semaines de guerre, l’équipage exige de choisir entre ton rêve et la survie du navire.", "Défendre ton rêve sans mentir", "Confier la décision à l’équipage", { tags: ["crew", "dream"], boldTag: "Honneur" }),
       scene("shinsekai-public-battle", "Le combat diffusé au monde", "La responsable des presses clandestines détourne un réseau d’Escargophones : ta bataille contre les un équipage pirate sera vue dans toutes les mers.", "Combattre sous les objectifs", "Couper le signal et sauver les otages", { tags: ["newspaper", "public"], stat: "popularity" }),
       scene("shinsekai-road-poneglyph-rubbing", "Le rouge sous la forteresse", "Une copie de Road Ponéglyphe repose sous la salle du trésor d’un commandant d’Empereur.", "Descendre pendant le banquet", "Échanger une route contre un relevé", { tags: ["road-poneglyph", "one-piece"], boldTag: "Audace", winFlags: { securedRoadPoneglyphRubbing: true } }),
-      scene("shinsekai-alba-return", "La capitaine rivale, quatrième fois capitaine", "La capitaine rivale commande désormais une flotte dont chaque navire prétend être l’amiral. Votre ancienne relation décide de l’accueil.", "Lui proposer une guerre commune", "Régler enfin votre rivalité", { tags: ["callback", "rival"], callbackFlags: { sparedAlbaRival: true }, winFlags: { alliedAlbaNewWorldFleet: true } }),
+      scene("shinsekai-alba-return", "Le quatrième retour de la capitaine rivale", "La capitaine rivale commande désormais une flotte dont chaque navire prétend être l’amiral. Votre ancienne relation décide de l’accueil.", "Lui proposer une guerre commune", "Régler enfin votre rivalité", { tags: ["callback", "rival"], callbackFlags: { sparedAlbaRival: true }, winFlags: { alliedAlbaNewWorldFleet: true } }),
       scene("shinsekai-kingdom-choice", "La couronne dans la cale", "Un royaume chassé de son île offre sa couronne à qui reprendra le port occupé.", "Reconquérir le port sans garder la couronne", "Transformer la flotte royale en alliance", { tags: ["kingdom", "territory"], boldTag: "Honneur" }),
       scene("shinsekai-black-market-fruit", "L’enchère aux pouvoirs enfermés", "Le marché noir vend un Fruit du Démon authentique au milieu de neuf imitations explosives.", "Voler la caisse authentique", "Détruire le registre des acheteurs", { tags: ["devil-fruit", "black-market"], boldTag: "Quitte ou double" }),
       scene("shinsekai-advanced-haki", "Le pont que les poings ne touchent pas", "Un vétéran du Nouveau Monde attend sur un pont détruit et enseigne à frapper sans laisser la volonté se disperser.", "Affronter son dernier exercice", "Protéger l’équipage pendant sa démonstration", { tags: ["haki", "mentor"], stat: "haki", callbackFlags: { trainedByGaroHandcalm: true } }),
@@ -3967,7 +3968,7 @@ const COMMON_EVENTS = [
       scene("red-line-prisoner-transfer", "La prisonnière au nom censuré", "Une historienne transférée vers une prison secrète affirme pouvoir prouver que son ordre d’arrestation est postérieur à sa capture.", "Suspendre le transfert", "Authentifier les dates", { tags: ["prisoner", "history"], boldTag: "Justice" }),
       scene("red-line-celestial-tribute", "Le tribut avant les secours", "Le tribut destiné aux Nobles Mondiaux occupe les remorqueurs nécessaires à un quartier menacé d’effondrement.", "Réquisitionner les remorqueurs", "Faire évacuer le tribut à la main", { tags: ["celestial-dragons", "civilians"], boldTag: "Sacrifice" }),
       scene("red-line-rare-secret-audit", "Les comptes du commodore corrompu", "Les falsifications du commodore corrompu relient plusieurs bases à un trafic protégé par le Gouvernement mondial.", "Publier l’audit", "Remonter jusqu’au protecteur", { tags: ["callback", "corruption"], callbackFlags: { reportedCommanderSoria: true }, winFlags: { exposedRonceRedLineNetwork: true } }),
-      scene("red-line-rare-vice-admiral-command", "La carte d’le vice-amiral chargé de la poursuite", "Le vice-amiral le vice-amiral chargé de la poursuite te confie la défense de trois passages avec assez de forces pour deux.", "Protéger les populations", "Tendre un piège entre les portes", { tags: ["vice-admiral", "command"], boldTag: "Devoir" }),
+      scene("red-line-rare-vice-admiral-command", "La carte du vice-amiral chargé de la poursuite", "Le vice-amiral chargé de la poursuite te confie la défense de trois passages avec assez de forces pour deux.", "Protéger les populations", "Tendre un piège entre les portes", { tags: ["vice-admiral", "command"], boldTag: "Devoir" }),
       scene("red-line-very-rare-five-elders-order", "L’ordre venu des Cinq Doyens", "Un ordre du Conseil des Cinq Doyens exige qu’un témoin et toute son escorte disparaissent des registres.", "Protéger le témoin", "Retourner l’ordre contre ses auteurs locaux", { tags: ["five-elders", "government"], boldTag: "Sans retour", major: true, dangerTheme: true, winFlags: { defiedFiveEldersWitnessOrder: true } }),
       scene("red-line-very-rare-great-operation", "Les portes de la grande opération", "Un Amiral apparaît par Escargophone pour coordonner l’interception d’une flotte pirate au milieu d’un exode civil.", "Commander l’aile d’évacuation", "Couper la retraite de la flotte", { tags: ["admiral", "fleet"], boldTag: "Devoir", major: true, winFlags: { commandedRedLineGrandOperation: true } }),
 
@@ -4206,21 +4207,21 @@ const COMMON_EVENTS = [
       pirate: Object.freeze([
         specialArcScene("light-on-black-water", "La lumière sur la mer noire", "Dans l’obscurité absolue, le corps lumineux de Kizaru devient l’unique amer — et révèle qu’il a déjà localisé ton pavillon. L’Amiral propose avec son calme ironique de choisir toi-même la direction de la fuite.", "social", false, ["Lui donner un faux cap assez crédible pour attirer son attention", "Éteindre tout le bord et lire seulement le reflet de ses déplacements", "Provoquer Kizaru pour couvrir la retraite de l’équipage"], "Kizaru suit le leurre assez longtemps pour que ton pavillon disparaisse de sa ligne d’interception ; son commentaire amusé confirme qu’il a compris la ruse.", "Le navire sort de son axe, mais un rayon coupe les dernières voiles et transforme la fuite en dérive contrôlée.", "Kizaru traverse le leurre et ferme la route ; tu dois abandonner du matériel pour soustraire l’équipage à l’Amiral."),
         specialArcScene("mirror-wrecks", "Les rayons entre les épaves", "Kizaru ricoche entre des épaves couvertes de plaques réfléchissantes et coupe méthodiquement toutes les sorties. Le vaincre n’est pas réaliste : il faut retourner sa lumière contre la géographie de la Mer sans étoiles.", "action", true, ["Attirer ses rayons vers les coques réfléchissantes", "Tenir le pont pendant que l’équipage change silencieusement de cap", "Traverser son faisceau au seul instant où les épaves l’occultent"], "La lumière se disperse entre les coques et Kizaru interrompt son tir pour ne pas frapper sa propre ligne ; ton objectif est atteint sans prétendre avoir vaincu l’Amiral.", "Tu encaisses la pression et sauves le pavillon, mais Kizaru marque la coque avant de perdre le contact.", "Un reflet imprévu livre ta position ; l’équipage arrache le navire au barrage au prix de blessures et de dégâts sérieux."),
-        specialArcScene("last-illuminated-crew", "Le dernier équipage éclairé", "Kizaru immobilise un équipage pirate blessé dont les lanternes attirent chaque rayon. Il te laisse une ouverture évidente vers la sortie, comme s’il voulait mesurer ce que vaut ton pavillon lorsqu’une fuite facile exige un abandon.", "action", true, ["Interposer ton navire jusqu’à l’évacuation des blessés", "Briser les lanternes à distance puis guider les deux équipages au Haki", "Feindre une attaque frontale pour déplacer Kizaru loin des naufragés"], "Les blessés quittent la zone pendant que Kizaru suspend sa poursuite ; tu n’as pas battu l’Amiral, mais tu as accompli le sauvetage sous son regard.", "Une partie des naufragés est sauvée avant que l’interception reprenne et force les deux pavillons à se séparer.", "La lumière referme le passage trop tôt ; tu extrais les survivants les plus proches mais perds le cap et plusieurs réserves."),
+        specialArcScene("last-illuminated-crew", "Le dernier équipage éclairé", "Kizaru immobilise un équipage pirate blessé dont les lanternes attirent chaque rayon. Il te laisse une ouverture évidente vers la sortie, comme s’il voulait mesurer ce que vaut ton pavillon lorsqu’une fuite facile exige un abandon.", "action", true, ["Interposer ton navire jusqu’à l’évacuation des blessés", "Briser les lanternes à distance puis guider les deux équipages en anticipant le prochain rayon", "Feindre une attaque frontale pour déplacer Kizaru loin des naufragés"], "Les blessés quittent la zone pendant que Kizaru suspend sa poursuite ; tu n’as pas battu l’Amiral, mais tu as accompli le sauvetage sous son regard.", "Une partie des naufragés est sauvée avant que l’interception reprenne et force les deux pavillons à se séparer.", "La lumière referme le passage trop tôt ; tu extrais les survivants les plus proches mais perds le cap et plusieurs réserves."),
       ]),
       marine: Object.freeze([
         specialArcScene("admiral-vague-order", "L’ordre volontairement incomplet", "L’Amiral Kizaru supervise une flotte privée de tout repère et ordonne simplement d’« intercepter ce qui semble suspect ». Son imprécision est un test : obéir aveuglément mettrait des civils dans la ligne de tir.", "social", false, ["Définir toi-même des règles d’identification et les assumer", "Demander à Kizaru de jouer la cible pendant que les unités apprennent ses trajectoires", "Contester l’ordre avant de répartir les observateurs"], "Kizaru valide d’un sourire les règles qui protègent les civils et confie à ton unité la coordination de l’interception.", "L’exercice identifie les vrais navires suspects, mais plusieurs unités contestent encore ton interprétation de l’ordre.", "La flotte suit des signaux contradictoires et Kizaru reprend le commandement avant qu’une collision ne transforme l’exercice en désastre."),
-        specialArcScene("light-projection-drill", "Les silhouettes de lumière", "Kizaru projette des éclats mobiles dans la Mer sans étoiles pour simuler une attaque venue de toutes les directions. Il évalue la perception, la discipline et la protection mutuelle, pas la capacité absurde à le battre.", "action", true, ["Couvrir la formation au Haki plutôt que poursuivre les éclats", "Marquer chaque projection par son écho sur la coque", "Intercepter uniquement la lumière qui menace les transports"], "Ton unité ignore les leurres et protège chaque transport ; Kizaru reconnaît que ta discipline vaut davantage qu’une poursuite spectaculaire.", "La formation tient, mais deux projections franchissent l’écran et exposent les failles du dispositif.", "Les unités se dispersent derrière la vitesse de Kizaru et l’exercice s’achève sur une évacuation chaotique des navires simulés."),
+        specialArcScene("light-projection-drill", "Les silhouettes de lumière", "Kizaru projette des éclats mobiles dans la Mer sans étoiles pour simuler une attaque venue de toutes les directions. Il évalue la perception, la discipline et la protection mutuelle, pas la capacité absurde à le battre.", "action", true, ["Couvrir la formation plutôt que poursuivre les éclats", "Marquer chaque projection par son écho sur la coque", "Intercepter uniquement la lumière qui menace les transports"], "Ton unité ignore les leurres et protège chaque transport ; Kizaru reconnaît que ta discipline vaut davantage qu’une poursuite spectaculaire.", "La formation tient, mais deux projections franchissent l’écran et exposent les failles du dispositif.", "Les unités se dispersent derrière la vitesse de Kizaru et l’exercice s’achève sur une évacuation chaotique des navires simulés."),
         specialArcScene("civilian-convoy-verdict", "Le convoi dans la ligne lumineuse", "Une interception réelle commence lorsque des contrebandiers se mêlent à un convoi civil. Kizaru peut fermer toute la zone en quelques tirs, mais te donne quelques instants pour proposer une méthode moins dangereuse.", "social", false, ["Faire séparer les navires par des codes sonores vérifiables", "Prendre la responsabilité d’une inspection rapprochée", "Coordonner les unités pour rabattre les contrebandiers hors du convoi"], "Ton dispositif isole les contrebandiers sans toucher aux civils et Kizaru laisse officiellement l’opération sous ton commandement.", "La majorité du convoi est protégée, mais une cible profite du tri pour s’échapper dans la nuit.", "Les codes sont compromis et Kizaru doit neutraliser les moteurs au dernier instant ; la mission réussit sans que ton commandement soit validé."),
       ]),
       "bounty-hunter": Object.freeze([
         specialArcScene("unspoken-percentage", "La probabilité que Hawkins tait", "Basil Hawkins attend la même cible dans la nuit sans horizon. Ses cartes donnent un pourcentage à chaque route, sauf une qu’il refuse d’annoncer ; son calcul sert déjà à pousser les chasseurs vers les issues qu’il contrôle.", "social", false, ["Suivre la seule route qu’il ne chiffre pas", "Modifier publiquement la valeur du contrat pour fausser ses réactions", "L’obliger à révéler ce que ses cartes protègent"], "Tu identifies l’angle mort volontaire de Hawkins et atteins la cible avant que ses probabilités puissent enfermer la chasse.", "Le calcul de Hawkins perd sa précision, mais la cible s’échappe avec une partie des preuves.", "Tu choisis exactement la route prévue ; des hommes de paille referment le piège et t’obligent à sacrifier le contrat pour sortir."),
-        specialArcScene("straw-decoys", "Les silhouettes de paille", "Des doubles de paille dérivent autour du navire de Hawkins et rendent chaque présence incertaine. Les dommages détournés par son pouvoir et ses préparatifs font d’un duel frontal une mauvaise chasse.", "action", true, ["Couper les amarres des doubles sans frapper Hawkins", "Repérer au Haki la seule silhouette qui commande les autres", "Traverser le cercle avant qu’il ne redistribue le danger"], "Tu démontes le dispositif sans offrir de dommage à transférer et saisis l’indice que Hawkins gardait au centre du cercle.", "Le cercle est brisé, mais Hawkins conserve la cible et reconnaît seulement que ses cartes t’avaient sous-estimé.", "Les poupées absorbent la première attaque et retournent la pression contre ton groupe ; la retraite coûte cher et la piste disparaît."),
+        specialArcScene("straw-decoys", "Les silhouettes de paille", "Des doubles de paille dérivent autour du navire de Hawkins et rendent chaque présence incertaine. Les dommages détournés par son pouvoir et ses préparatifs font d’un duel frontal une mauvaise chasse.", "action", true, ["Couper les amarres des doubles sans frapper Hawkins", "Repérer la seule silhouette qui commande les autres", "Traverser le cercle avant qu’il ne redistribue le danger"], "Tu démontes le dispositif sans offrir de dommage à transférer et saisis l’indice que Hawkins gardait au centre du cercle.", "Le cercle est brisé, mais Hawkins conserve la cible et reconnaît seulement que ses cartes t’avaient sous-estimé.", "Les poupées absorbent la première attaque et retournent la pression contre ton groupe ; la retraite coûte cher et la piste disparaît."),
         specialArcScene("recalculated-hunt", "La chasse recalculée", "Après tes choix dans la Mer sans étoiles, Hawkins annonce que ta survie a fait chuter la fiabilité de ses prédictions. Il propose une dernière course vers la cible, où chaque balise allumée modifie les probabilités suivantes.", "social", false, ["Éteindre les balises dans un ordre que ses cartes ne modélisent pas", "Partager une fausse prédiction avec les chasseurs concurrents", "Parier le contrat sur une interception unique"], "Hawkins doit recalculer trop tard : tu sécurises la cible et le paiement tout en gagnant son respect prudent.", "La cible est neutralisée, mais Hawkins obtient les preuves qui décident du commanditaire final.", "Le pari confirme sa meilleure probabilité et livre la cible à Hawkins ; tu conserves ta vie, pas le contrat."),
       ]),
       revolutionary: Object.freeze([
         specialArcScene("crows-without-lanterns", "Les corbeaux sans lanternes", "Karasu disperse ses corbeaux de suie dans l’obscurité pour porter des messages entre des réfugiés invisibles. Il te demande de trouver le seul essaim compromis sans allumer la moindre lumière gouvernementale.", "social", false, ["Comparer les silences entre les messages de Karasu", "Créer un faux ordre que seul l’essaim infiltré relaiera", "Coordonner les réfugiés par des signaux frappés sur les coques"], "Tu isoles la fausse liaison et Karasu confie à ta cellule une partie de la route clandestine.", "Le convoi passe, mais l’essaim compromis emporte l’emplacement d’un refuge secondaire.", "Le faux signal se propage au mauvais groupe et Karasu disperse toute l’opération avant l’arrivée de la patrouille."),
-        specialArcScene("soot-interception-test", "L’interception de suie", "Karasu transforme la nuit en exercice : ses corbeaux encerclent ton navire, déplacent les ordres et simulent une patrouille gouvernementale. La confrontation teste la discrétion et la résistance, pas une hostilité entre Révolutionnaires.", "action", true, ["Traverser l’essaim sans rompre la formation", "Protéger les messagers au Haki pendant la fausse attaque", "Capturer le corbeau porteur du véritable ordre"], "Ton groupe conserve ses codes et son cap sous la pression ; Karasu met fin au test et reconnaît la fiabilité de ta cellule.", "Tu protèges les messagers mais révèles un relais, que Karasu fait immédiatement déplacer.", "L’essaim sépare le groupe et l’exercice expose une faille qui aurait condamné la cellule lors d’une vraie interception."),
+        specialArcScene("soot-interception-test", "L’interception de suie", "Karasu transforme la nuit en exercice : ses corbeaux encerclent ton navire, déplacent les ordres et simulent une patrouille gouvernementale. La confrontation teste la discrétion et la résistance, pas une hostilité entre Révolutionnaires.", "action", true, ["Traverser l’essaim sans rompre la formation", "Protéger les messagers pendant la fausse attaque", "Capturer le corbeau porteur du véritable ordre"], "Ton groupe conserve ses codes et son cap sous la pression ; Karasu met fin au test et reconnaît la fiabilité de ta cellule.", "Tu protèges les messagers mais révèles un relais, que Karasu fait immédiatement déplacer.", "L’essaim sépare le groupe et l’exercice expose une faille qui aurait condamné la cellule lors d’une vraie interception."),
         specialArcScene("black-convoy", "Le convoi derrière Karasu", "Un navire gouvernemental suit les réfugiés grâce aux vibrations de leurs rames. Karasu veut aveugler ses guetteurs avec la suie ; ton plan doit décider comment sauver le convoi sans transformer l’obscurité en piège pour les civils.", "social", false, ["Faire de la suie un faux sillage vers une épave", "Répartir les réfugiés derrière plusieurs essaims", "Défendre une route plus lente mais vérifiable par tous"], "La patrouille poursuit le faux sillage et Karasu conduit chaque embarcation jusqu’au refuge sans perdre un seul agent.", "Les réfugiés atteignent la côte, mais un relais et plusieurs réserves doivent être abandonnés.", "La patrouille comprend la diversion et force Karasu à couvrir une évacuation précipitée ; le réseau survit amputé de cette route."),
       ]),
     }),
@@ -4237,7 +4238,7 @@ const COMMON_EVENTS = [
       ]),
       "bounty-hunter": Object.freeze([
         specialArcScene("black-blade-line", "La ligne tracée par la lame noire", "Mihawk coupe d’un seul geste le passage devant ta cible, puis attend au bord du fragment détaché. Il n’est ni une prime raisonnable ni un adversaire à vaincre : il observe si ta chasse mérite de franchir sa ligne.", "social", false, ["Demander le droit de poursuivre sans dégainer", "Expliquer pourquoi la cible doit être prise vivante", "Contourner sa ligne en assumant le refus du duel"], "Mihawk reconnaît la précision de ton intention et te laisse poursuivre sans transformer l’épreuve en duel suicidaire.", "Il ouvre un passage étroit, mais la cible gagne assez de temps pour préparer sa défense.", "Ta justification ne résiste pas à son silence ; Mihawk maintient la ligne et le contrat s’éloigne avec l’île suivante."),
-        specialArcScene("single-strike-trial", "Une seule attaque de Mihawk", "Mihawk annonce une unique attaque contre le pont rocheux que tu dois franchir. Réussir signifie préserver la chasse malgré sa puissance, pas le vaincre ni soutenir un duel complet.", "action", true, ["Dévier les éclats plutôt que sa lame", "Lire son intention au Haki et quitter l’axe", "Protéger la cible capturée pendant l’effondrement"], "Tu traverses avec ta capture intacte et survis à l’onde qui tranche le pont ; Mihawk accorde simplement le droit de continuer.", "La capture reste sous contrôle, mais ton groupe perd son équipement dans la coupure du terrain.", "L’attaque sépare la cible de ton groupe ; Mihawk n’en porte pas une seconde, mais la chasse doit être abandonnée."),
+        specialArcScene("single-strike-trial", "Une seule attaque de Mihawk", "Mihawk annonce une unique attaque contre le pont rocheux que tu dois franchir. Réussir signifie préserver la chasse malgré sa puissance, pas le vaincre ni soutenir un duel complet.", "action", true, ["Dévier les éclats plutôt que sa lame", "Lire son intention et quitter l’axe", "Protéger la cible capturée pendant l’effondrement"], "Tu traverses avec ta capture intacte et survis à l’onde qui tranche le pont ; Mihawk accorde simplement le droit de continuer.", "La capture reste sous contrôle, mais ton groupe perd son équipement dans la coupure du terrain.", "L’attaque sépare la cible de ton groupe ; Mihawk n’en porte pas une seconde, mais la chasse doit être abandonnée."),
         specialArcScene("precision-over-pride", "La précision plutôt que l’orgueil", "La cible utilise Mihawk comme bouclier en provoquant publiquement les chasseurs. Le véritable test consiste à accomplir le contrat sans offrir au meilleur sabreur un combat inutile.", "social", false, ["Révéler la fuite cachée derrière la provocation", "Attendre que la dérive sépare Mihawk de la cible", "Reconnaître l’écart de puissance et concentrer tous les chasseurs sur le contrat"], "Tu neutralises la cible sans diriger une arme vers Mihawk ; son bref acquiescement vaut reconnaissance de ton jugement professionnel.", "La cible est capturée, mais un rival revendique la manœuvre décisive devant les témoins.", "L’orgueil gagne les chasseurs et Mihawk détruit leur dispositif d’un geste ; la cible profite du chaos pour fuir."),
       ]),
       revolutionary: Object.freeze([
@@ -4253,7 +4254,7 @@ const COMMON_EVENTS = [
         specialArcScene("two-crews-one-cyclone", "Deux équipages dans le même cyclone", "Le cœur de la tempête aspire les deux navires tandis que l’assemblage de Kid attire chaque éclair. Une alliance forcée peut sauver les équipages, mais aucun capitaine n’acceptera de paraître soumis.", "action", true, ["Guider la décharge pendant que Kid disperse le métal", "Attacher les deux navires sous deux pavillons distincts", "Prendre le gouvernail du passage et lui laisser le noyau magnétique"], "Les deux équipages sortent du cyclone et Kid admet que ton pavillon a tenu sans plier, avant de rompre l’alliance sur-le-champ.", "Les navires survivent, mais Kid emporte la majeure partie du métal et proclame sa version de l’exploit.", "La coordination cède sous les provocations ; chaque équipage s’arrache seul au cyclone en abandonnant cargaison et réparations."),
       ]),
       marine: Object.freeze([
-        specialArcScene("smoker-storm-interception", "L’interception dans la fumée", "Le vice-amiral Smoker mène un exercice où sa fumée se confond avec les nuages bas et masque une cible entre les paratonnerres. Il teste la poursuite et la lecture du terrain, pas un combat hostile entre Marines.", "action", false, ["Couper sa trajectoire au pied des tours", "Repérer sa jitte au Haki dans la fumée", "Protéger la sortie civile plutôt que poursuivre son leurre"], "Tu identifies la vraie interception et Smoker confie à ton unité la tête de la prochaine patrouille.", "La cible simulée est contenue, mais Smoker franchit ton dispositif et note une faille dans la protection.", "Sa fumée divise l’unité et l’exercice s’arrête lorsque la foudre menace les retardataires."),
+        specialArcScene("smoker-storm-interception", "L’interception dans la fumée", "Le vice-amiral Smoker mène un exercice où sa fumée se confond avec les nuages bas et masque une cible entre les paratonnerres. Il teste la poursuite et la lecture du terrain, pas un combat hostile entre Marines.", "action", false, ["Couper sa trajectoire au pied des tours", "Repérer sa jitte dans la fumée", "Protéger la sortie civile plutôt que poursuivre son leurre"], "Tu identifies la vraie interception et Smoker confie à ton unité la tête de la prochaine patrouille.", "La cible simulée est contenue, mais Smoker franchit ton dispositif et note une faille dans la protection.", "Sa fumée divise l’unité et l’exercice s’arrête lorsque la foudre menace les retardataires."),
         specialArcScene("arrest-or-rescue", "L’arrestation ou le village", "Des trafiquants fuient vers les tours au moment où la foudre incendie un quartier. Smoker veut maintenir la poursuite, mais écoute ton plan si tu peux empêcher que la cible et les civils soient sacrifiés l’un à l’autre.", "social", true, ["Convaincre Smoker de te laisser le sauvetage pendant qu’il poursuit", "Bloquer les sorties avec sa fumée avant d’évacuer", "Donner la priorité au village et assumer la fuite possible"], "Smoker verrouille les trafiquants tandis que ton unité évacue le quartier ; arrestation et protection réussissent sans trahir sa justice.", "Les civils sont sauvés, mais le chef du réseau s’échappe entre les éclairs.", "La répartition arrive trop tard : Smoker abandonne la poursuite pour éviter des victimes et critique sévèrement ton commandement."),
         specialArcScene("jitte-conductor-operation", "La jitte et les conducteurs", "Smoker traque le dernier convoi du réseau à travers une usine saturée de métal. Sa mobilité de fumée est rapide, mais la foudre suit les conducteurs et menace les prisonniers utilisés comme couverture.", "social", false, ["Tracer pour Smoker une route sans conducteur", "Faire déposer les armes avant qu’elles attirent la prochaine salve", "Coordonner une fausse évacuation pour isoler le convoi"], "Smoker frappe le véhicule de tête pendant que ton plan libère les prisonniers ; il reconnaît une opération menée selon les priorités justes.", "Le convoi est arrêté, mais plusieurs preuves brûlent dans la décharge électrique.", "La foudre suit une arme oubliée et force toutes les unités à rompre l’encerclement pour sauver les captifs."),
       ]),
@@ -4264,7 +4265,7 @@ const COMMON_EVENTS = [
       ]),
       revolutionary: Object.freeze([
         specialArcScene("sabo-firebreak", "Le coupe-feu de Sabo", "Sabo utilise le Mera Mera no Mi pour ouvrir un passage dans une installation gouvernementale, mais le métal surchauffé attire la foudre vers les quartiers ouvriers. Il exige un plan qui détruise le relais sans condamner les civils.", "social", false, ["Défendre une évacuation complète avant le sabotage", "Répartir les charges loin des conducteurs", "Coordonner les ouvriers avec les signaux de feu de Sabo"], "Sabo détruit le relais au moment prévu tandis que ton réseau évacue chaque quartier ; l’opération valide ta capacité de commandement.", "L’installation tombe et les civils survivent, mais plusieurs agents doivent abandonner leur couverture.", "Le plan sous-estime la conduction et Sabo détourne ses flammes pour protéger les habitants, laissant l’objectif gouvernemental intact."),
-        specialArcScene("haki-in-thunder", "Le Haki dans le tonnerre", "Sabo impose un entraînement au Haki sous les impacts, utilisant ses techniques martiales pour tester garde, volonté et protection. La confrontation est contrôlée, mais l’orage rend chaque erreur réellement dangereuse.", "action", true, ["Maintenir ta garde face à ses frappes sans reculer vers le métal", "Protéger un partenaire pendant l’enchaînement", "Lire son intention entre le tonnerre et la chaleur"], "Tu tiens l’épreuve sans exposer ton partenaire et Sabo reconnaît une volonté prête pour l’opération finale.", "La garde résiste, mais Sabo doit interrompre l’enchaînement avant qu’un éclair ne frappe la zone d’exercice.", "Une erreur de placement attire la décharge ; Sabo évacue le groupe et l’entraînement s’achève sur des blessures évitables."),
+        specialArcScene("haki-in-thunder", "La garde dans le tonnerre", "Sabo impose un entraînement défensif sous les impacts, utilisant ses techniques martiales pour tester garde, volonté et protection. La confrontation est contrôlée, mais l’orage rend chaque erreur réellement dangereuse.", "action", true, ["Maintenir ta garde face à ses frappes sans reculer vers le métal", "Protéger un partenaire pendant l’enchaînement", "Lire son intention entre le tonnerre et la chaleur"], "Tu tiens l’épreuve sans exposer ton partenaire et Sabo reconnaît une volonté prête pour l’opération finale.", "La garde résiste, mais Sabo doit interrompre l’enchaînement avant qu’un éclair ne frappe la zone d’exercice.", "Une erreur de placement attire la décharge ; Sabo évacue le groupe et l’entraînement s’achève sur des blessures évitables."),
         specialArcScene("storm-prison-operation", "La prison au centre de l’orage", "Sabo veut libérer les travailleurs enfermés dans une centrale conductrice tandis que la cellule locale préfère détruire immédiatement les données du Gouvernement. Ton choix de méthode décidera si l’opération reste une libération.", "social", false, ["Faire des prisonniers la priorité avant les archives", "Demander à Sabo de contenir l’incendie pendant l’extraction", "Séparer la cellule entre sauvetage et sabotage contrôlé"], "Tous les prisonniers sortent avant que Sabo et les agents neutralisent la centrale ; les preuves utiles survivent sans passer avant les vies.", "Les captifs sont libérés, mais les archives et une partie du réseau local disparaissent dans l’orage.", "Les deux objectifs se gênent et Sabo abandonne le sabotage pour extraire les derniers prisonniers sous le feu gouvernemental."),
       ]),
     }),
@@ -4944,7 +4945,7 @@ const COMMON_EVENTS = [
     ]}),
     createRiskEvent({ id: "risk-hunter-shinsekai-emperor-prey", title: "La cible sous le pavillon d'un Empereur", description: "Dans le Nouveau Monde, ta cible se réfugie sur un navire protégé par une flotte d'Empereur. L'extraction doit réussir avant l'arrivée du commandant.", resolutionCategory: "action", paths: [PATHS.BOUNTY_HUNTER], zones: ["shinsekai"], tags: ["hunt", "emperor"], choices: [
       { id: "board-fast", text: "Aborder avant le signal de la flotte", tag: "Combat", resolutionWeights: { health: 0.2, combat: 0.6, haki: 0.2 }, success: "La cible tombe avant que les renforts comprennent l'objectif réel.", successEffects: { combat: 3, fortune: 18000 }, failure: "Les renforts ferment le pont et la retraite se fait sous un feu nourri.", failureEffects: { health: -12, fortune: -9000 } },
-      { id: "shield-extraction", text: "Couvrir l'extraction sous la pression du commandant", tag: "Haki", resolutionWeights: { health: 0.25, combat: 0.15, haki: 0.6 }, success: "Ta volonté tient assez longtemps pour extraire la cible vivante.", successEffects: { haki: 3, bounty: 120000 }, failure: "La pression brise la formation et la cible disparaît dans la flotte.", failureEffects: { health: -8, bounty: -90000 } },
+      { id: "shield-extraction", text: "Couvrir l'extraction sous la pression du commandant", tag: "Défense", resolutionWeights: { health: 0.25, combat: 0.15, haki: 0.6 }, success: "Ta garde tient assez longtemps pour extraire la cible vivante.", successEffects: { haki: 3, bounty: 120000 }, failure: "La pression brise la formation et la cible disparaît dans la flotte.", failureEffects: { health: -8, bounty: -90000 } },
     ]}),
     createRiskEvent({ id: "risk-revolutionary-redline-chain-convoy", title: "Le convoi suspendu à Red Line", description: "Un convoi d'esclaves traverse une voie extérieure de Red Line. Une rupture des chaînes condamnerait aussi les prisonniers à la chute.", resolutionCategory: "action", paths: [PATHS.REVOLUTIONARY], zones: ["red-line"], tags: ["slavery", "rescue"], choices: [
       { id: "hold-bridge", text: "Tenir le pont pendant l'ouverture des colliers", tag: "Endurance", resolutionWeights: { health: 0.5, combat: 0.25, haki: 0.25 }, success: "Le pont reste stable jusqu'à la libération du dernier prisonnier.", successEffects: { haki: 2, popularity: 4 }, failure: "Le pont cède partiellement. Les prisonniers survivent, mais tu encaisses l'effondrement.", failureEffects: { health: -12 } },
@@ -5204,7 +5205,7 @@ const COMMON_EVENTS = [
       "Transformer toute l’opération militaire en sauvetage",
       "Conduire soldats et civils contre l’ordre d’abandon",
       "heroism",
-      { success: ["Ton Haki tient la ligne jusqu’au passage du dernier convoi. Cent mille vies sont sauvées et soldats comme civils te donnent le titre de Héros de la Marine.", "La flotte ennemie devient l’écran involontaire d’une évacuation totale. Ta victoire se mesure aux survivants, et la Marine reconnaît publiquement son plus grand héros.", "Les unités te suivent malgré l’ordre discutable et aucun quartier n’est abandonné. Les témoignages traversent toutes les mers : ton acte de protection devient une légende propre, sans copier celle de Garp."], mixed: "La majorité des civils échappe au désastre, mais plusieurs unités sont abandonnées et la vérité reste étouffée. L’acte est grand sans devenir le symbole espéré.", failure: "Le corridor cède avant la fin de l’évacuation. Tu survis avec des rescapés, mais trop de vies sont perdues pour appeler cette journée un accomplissement." },
+      { success: ["Ta défense tient la ligne jusqu’au passage du dernier convoi. Cent mille vies sont sauvées et soldats comme civils te donnent le titre de Héros de la Marine.", "La flotte ennemie devient l’écran involontaire d’une évacuation totale. Ta victoire se mesure aux survivants, et la Marine reconnaît publiquement son plus grand héros.", "Les unités te suivent malgré l’ordre discutable et aucun quartier n’est abandonné. Les témoignages traversent toutes les mers : ton acte de protection devient une légende propre, sans copier celle de Garp."], mixed: "La majorité des civils échappe au désastre, mais plusieurs unités sont abandonnées et la vérité reste étouffée. L’acte est grand sans devenir le symbole espéré.", failure: "Le corridor cède avant la fin de l’évacuation. Tu survis avec des rescapés, mais trop de vies sont perdues pour appeler cette journée un accomplissement." },
       [{ haki: 20, health: 48 }, { combat: 46, haki: 18 }, { health: 50, crew: 2 }],
     ),
   });
@@ -5302,6 +5303,7 @@ const COMMON_EVENTS = [
       minimumStats: options.minimumStats || {},
       requiredTraits: options.requiredTraits || [],
       requiredFlags: options.requiredFlags || {},
+      condition: typeof options.condition === "function" ? options.condition : null,
       requiresD: options.requiresD ?? null,
       dreamProgress: options.dreamProgress || 0,
       dreamProgressByDream: options.dreamProgressByDream || {},
@@ -5349,10 +5351,10 @@ const COMMON_EVENTS = [
       : { [`bossTier${tier}_${profile.id}Setback`]: true };
     const previousAdvanceFlag = tier > 1 ? `bossTier${tier - 1}_${profile.id}Advanced` : null;
     const previousSetbackFlag = tier > 1 ? `bossTier${tier - 1}_${profile.id}Setback` : null;
-    const historyRequirements = tier === 1 || variantIndex === 2
+    const historyRequirements = tier === 3 || tier === 1 || variantIndex === 2
       ? {}
       : { [variantIndex === 0 ? previousAdvanceFlag : previousSetbackFlag]: true };
-    const historyExclusions = tier > 1 && variantIndex === 2
+    const historyExclusions = tier < 3 && tier > 1 && variantIndex === 2
       ? [previousAdvanceFlag, previousSetbackFlag]
       : [];
 
@@ -5362,9 +5364,10 @@ const COMMON_EVENTS = [
     const decisiveCategory = /war|hunt|survival|liberation|rescue|navigation|heroism/.test(trial.type)
       ? "action"
       : "social";
+    const organizationVerb = /^(?:les|des)\b/i.test(profile.organization) ? "doivent" : "doit";
     const sceneWitness = trial.loreCharacters.length
       ? `${trial.loreCharacters.join(" et ")} assiste à la façon dont la situation bascule. `
-      : `${profile.organization} doit réagir à la façon dont la situation bascule. `;
+      : `${profile.organization} ${organizationVerb} réagir à la façon dont la situation bascule. `;
     const tierContext = {
       1: "Les premiers choix de ta carrière reviennent déjà peser sur cette crise.",
       2: "Tes alliances, tes dettes et ta réputation accumulées donnent à cette crise une portée nouvelle.",
@@ -5386,7 +5389,7 @@ const COMMON_EVENTS = [
     return createEvent({
       id,
       title: trial.title,
-      description: `${trial.premise} À {zone}, ${profile.organization} doit désormais prendre position. ${tierContext}`,
+      description: `${trial.premise} À {zone}, ${profile.organization} ${organizationVerb} désormais prendre position. ${tierContext}`,
       eventType: EVENT_TYPES.DECISIVE,
       resolutionCategory: decisiveCategory,
       category: `decisive-stage-${tier}`,
@@ -5478,12 +5481,183 @@ const COMMON_EVENTS = [
     });
   }
 
+  const HAKI_TITLE_IDS = Object.freeze({
+    observation: "haki-observation",
+    armament: "haki-armement",
+    kings: "haki-des-rois",
+    kingsMastery: "maitrise-haki-des-rois-plus",
+  });
+
+  const HAKI_DECISIVE_SCENES = Object.freeze({
+    pirate: Object.freeze({
+      stage1: Object.freeze({
+        id: "haki-awakening-pirate",
+        title: "Les trois silences de Reverse Mountain",
+        description: "À {zone}, un courant referme la passe sur ton navire tandis qu’un équipage rival profite du chaos pour menacer les tiens. Le fracas disparaît soudain derrière une pression intérieure inconnue : quelques secondes décideront de ce que ta volonté sait réellement accomplir.",
+        choices: ["Lire le courant avant son prochain choc", "Faire de ton corps le rempart du pont", "Ordonner aux deux équipages de plier"],
+      }),
+      stage2: Object.freeze({
+        id: "haki-confrontation-pirate",
+        title: "La volonté sous le blocus",
+        description: "Près de {zone}, une flotte pirate beaucoup plus nombreuse verrouille le passage sans exposer son capitaine. Sa pression couche les moins aguerris ; vaincre la flotte entière est impossible, mais ton équipage attend de voir si ta volonté ouvrira une route.",
+        choices: ["Protéger le pont jusqu’au passage du dernier allié", "Frapper le navire qui transmet les ordres", "Avancer seul et refuser le tribut"],
+      }),
+    }),
+    marine: Object.freeze({
+      stage1: Object.freeze({
+        id: "haki-awakening-marine",
+        title: "Le convoi sous la passe",
+        description: "À {zone}, une opération d’interception tourne au sauvetage lorsqu’un convoi civil dérive entre les tirs. L’officier responsable perd le contact avec l’avant-garde et ton unité doit agir avant qu’un nouvel impact ne ferme la passe.",
+        choices: ["Anticiper la prochaine salve et déplacer le convoi", "Recevoir l’impact devant les embarcations", "Rappeler toute la ligne à son devoir"],
+      }),
+      stage2: Object.freeze({
+        id: "haki-confrontation-marine",
+        title: "L’ordre qui brise une ligne",
+        description: "Aux abords de {zone}, un ordre gouvernemental exige d’abandonner un quartier pour préserver un bâtiment officiel. Une présence écrasante accompagne l’assaut ennemi ; tes soldats hésitent entre la chaîne de commandement et les civils restés derrière.",
+        choices: ["Tenir le corridor autour des civils", "Prendre l’initiative contre l’avant-garde", "Imposer un nouvel ordre à toute l’unité"],
+      }),
+    }),
+    "bounty-hunter": Object.freeze({
+      stage1: Object.freeze({
+        id: "haki-awakening-bounty-hunter",
+        title: "La cible aux cent feintes",
+        description: "À {zone}, un pirate recherché utilise le relief et ses hommes pour multiplier les fausses attaques. Le contrat n’exige pas un duel glorieux : il faut distinguer l’intention réelle, survivre à sa charge ou briser l’assurance de sa bande.",
+        choices: ["Attendre le seul mouvement qui ne ment pas", "Fermer la garde et absorber sa charge", "Faire déposer les armes à toute sa bande"],
+      }),
+      stage2: Object.freeze({
+        id: "haki-confrontation-bounty-hunter",
+        title: "Le contrat de la Red Line",
+        description: "Près de {zone}, une cible bien plus dangereuse retourne les autres chasseurs contre toi puis libère une pression qui fige les équipages. La capture n’est plus le seul enjeu : preuves, survivants et réputation peuvent disparaître ensemble.",
+        choices: ["Couvrir les chasseurs pris dans la pression", "Arracher la preuve au navire de la cible", "Réclamer seul le droit de poursuivre le contrat"],
+      }),
+    }),
+    revolutionary: Object.freeze({
+      stage1: Object.freeze({
+        id: "haki-awakening-revolutionary",
+        title: "L’extraction sans signal",
+        description: "À {zone}, une cellule évacue des familles pendant qu’une unité gouvernementale brouille tous les signaux. Les agents ne peuvent plus se coordonner ; ton instinct, ta garde ou ta capacité à rallier les hésitants décidera de l’extraction.",
+        choices: ["Lire les patrouilles dans leurs angles morts", "Protéger la sortie jusqu’au dernier passage", "Faire reculer l’unité par un refus sans appel"],
+      }),
+      stage2: Object.freeze({
+        id: "haki-confrontation-revolutionary",
+        title: "Le relais encerclé",
+        description: "Aux abords de {zone}, une force gouvernementale encercle un relais qui protège plusieurs cellules. Sa pression étouffe toute tentative de sortie. Détruire l’ennemi est irréaliste ; préserver le réseau exige de tenir, surprendre ou imposer une volonté collective.",
+        choices: ["Former un rempart autour des évacués", "Ouvrir une brèche dans le dispositif", "Donner aux cellules un ordre que la peur ne couvre pas"],
+      }),
+    }),
+  });
+
+  function hasRunTitle(game, titleId) {
+    return Boolean(game?.runTitles?.some((title) => (title?.id || title) === titleId));
+  }
+
+  function createHakiStageOneChoice(eventId, path, choiceIndex, text) {
+    const routes = [
+      {
+        id: "perception", tag: "Anticipation",
+        weights: { health: 0.15, combat: 0.10, haki: 0.45, intelligence: 0.30 },
+        title: HAKI_TITLE_IDS.observation,
+        success: "Tu perçois l’intention hostile avant le mouvement et guides les tiens à travers l’unique ouverture.",
+        mixed: "Ton instinct s’éveille dans le tumulte : la route reste coûteuse, mais le danger ne te surprend plus.",
+        failure: "Les intentions se confondent avec le chaos. Tu sauves l’essentiel, au prix d’une retraite éprouvante.",
+        reward: { intelligence: 2, bounty: 160000 }, penalty: { health: -4, popularity: -1 },
+      },
+      {
+        id: "guard", tag: "Garde",
+        weights: { health: 0.30, combat: 0.30, haki: 0.40 },
+        title: HAKI_TITLE_IDS.armament,
+        success: "Ta garde se durcit au point d’arrêter l’impact et maintient tous ceux qui comptent hors de portée.",
+        mixed: "Ta volonté renforce ton corps au moment critique. Tu plies, mais la ligne derrière toi ne rompt pas.",
+        failure: "L’impact traverse ta garde. La mission continue, mais chaque mouvement rappelle le prix payé.",
+        reward: { combat: 2, bounty: 170000 }, penalty: { health: -6, haki: -2 },
+      },
+      {
+        id: "sovereign", tag: "Volonté",
+        weights: { health: 0.10, combat: 0.10, haki: 0.10, charisma: 0.50, renown: 0.20 },
+        title: HAKI_TITLE_IDS.kings,
+        success: "Une onde de volonté fait vaciller les plus faibles. Ceux qui restent debout comprennent qu’ils ne pourront pas t’imposer leur loi.",
+        noTitle: "Ta voix traverse la peur et rassemble les tiens, mais aucune puissance souveraine ne répond encore à ton refus.",
+        failure: "Ta volonté rencontre une pression plus vaste qu’elle. Le silence qui suit n’accorde aucun éveil, seulement une leçon difficile.",
+        reward: { charisma: 2, bounty: 230000 }, penalty: { health: -3, charisma: -2, popularity: -1 },
+      },
+    ];
+    const route = routes[choiceIndex];
+    const commonFlags = {
+      completedDecisiveStage1: true,
+      hakiAwakeningAttempted: true,
+      conquerorsHakiAwakenedAtFirstDecisive: false,
+    };
+    const outcomes = route.id === "sovereign"
+      ? [
+          createDecisiveOutcome(`${eventId}-${route.id}-awakened`, route.success, route.reward, { outcomeTier: "success", weight: 1, chance: 1, titles: [route.title], flags: { ...commonFlags, awakenedHakiKings: true, firstDecisiveHakiType: "conquerors", conquerorsHakiAwakenedAtFirstDecisive: true } }),
+          createDecisiveOutcome(`${eventId}-${route.id}-held`, route.noTitle, { charisma: 1, bounty: 120000 }, { outcomeTier: "success", weight: 1, flags: { ...commonFlags, firstDecisiveHakiType: "none", resistedKingsAwakening: true } }),
+          createDecisiveOutcome(`${eventId}-${route.id}-uncertain`, "La pression retombe sans révéler de pouvoir souverain. Les tiens restent debout, mais ta volonté doit encore trouver sa véritable portée.", { charisma: 1 }, { outcomeTier: "mixed", flags: { ...commonFlags, firstDecisiveHakiType: "none", resistedKingsAwakening: true } }),
+          createDecisiveOutcome(`${eventId}-${route.id}-failed`, route.failure, route.penalty, { outcomeTier: "failure", fallback: true, flags: { ...commonFlags, firstDecisiveHakiType: "none", failedKingsAwakening: true } }),
+        ]
+      : [
+          createDecisiveOutcome(`${eventId}-${route.id}-awakened`, route.success, route.reward, { outcomeTier: "success", titles: [route.title], flags: { ...commonFlags, firstDecisiveHakiType: route.id === "perception" ? "observation" : "armament", [`awakened_${route.title}`]: true } }),
+          createDecisiveOutcome(`${eventId}-${route.id}-emerging`, route.mixed, { [route.id === "perception" ? "intelligence" : "haki"]: 1, bounty: 100000 }, { outcomeTier: "mixed", titles: [route.title], flags: { ...commonFlags, firstDecisiveHakiType: route.id === "perception" ? "observation" : "armament", [`awakened_${route.title}`]: true } }),
+          createDecisiveOutcome(`${eventId}-${route.id}-failed`, route.failure, route.penalty, { outcomeTier: "failure", fallback: true, flags: { ...commonFlags, firstDecisiveHakiType: "none", hakiAwakeningSetback: true } }),
+        ];
+    return { id: `${eventId}-${route.id}`, text, choiceTag: route.tag, resolutionWeights: route.weights, outcomes };
+  }
+
+  function createHakiStageTwoChoice(eventId, choiceIndex, text) {
+    const routes = [
+      { id: "protect", tag: "Protection", weights: { health: 0.32, combat: 0.13, haki: 0.40, charisma: 0.15 }, penalty: { health: -7, haki: -3, popularity: -2 } },
+      { id: "initiative", tag: "Initiative", weights: { health: 0.15, combat: 0.45, haki: 0.30, charisma: 0.10 }, penalty: { health: -6, combat: -4, bounty: -80000 } },
+      { id: "command", tag: "Volonté", weights: { health: 0.10, combat: 0.10, haki: 0.25, charisma: 0.40, renown: 0.15 }, penalty: { charisma: -5, haki: -3, popularity: -3 } },
+    ];
+    const route = routes[choiceIndex];
+    const completed = { completedDecisiveStage2: true, hakiConfrontationResolved: true };
+    return {
+      id: `${eventId}-${route.id}`, text, choiceTag: route.tag, resolutionWeights: route.weights,
+      outcomes: [
+        createDecisiveOutcome(`${eventId}-${route.id}-mastery`, "Ta volonté souveraine cesse d’être un éclat incontrôlé : elle traverse la confrontation avec précision et protège ceux que tu as choisis.", { health: 1, combat: 1, haki: 1, charisma: 1, bounty: 520000 }, { outcomeTier: "success", titles: [HAKI_TITLE_IDS.kingsMastery], flags: { ...completed, masteredHakiKings: true }, condition: ({ game }) => game?.flags?.firstDecisiveHakiType === "conquerors" && game?.flags?.secondDecisiveHakiBranch === "mastery" }),
+        createDecisiveOutcome(`${eventId}-${route.id}-awakened`, "Face à la pression, ta volonté répond par une onde qui renverse les plus faibles et ouvre enfin la voie sans prétendre vaincre la puissance adverse.", { charisma: 3, haki: 2, bounty: 420000 }, { outcomeTier: "success", titles: [HAKI_TITLE_IDS.kings], flags: { ...completed, awakenedHakiKings: true, conquerorsHakiAwakenedAtSecondDecisive: true }, condition: ({ game }) => game?.flags?.firstDecisiveHakiType !== "conquerors" && game?.flags?.secondDecisiveHakiBranch === "awakening" }),
+        createDecisiveOutcome(`${eventId}-${route.id}-resisted`, "Tu empêches la confrontation de devenir un désastre, mais la pression adverse ne déclenche aucun nouvel éveil. La route reste ouverte au prix d’un effort considérable.", { health: 1, bounty: 180000 }, { outcomeTier: "mixed", flags: { ...completed, resistedHakiConfrontation: true } }),
+        createDecisiveOutcome(`${eventId}-${route.id}-failed`, "La pression brise ta tentative et force une retraite coûteuse. La volonté déjà acquise demeure, mais cette confrontation laisse une marque réelle.", route.penalty, { outcomeTier: "failure", fallback: true, flags: { ...completed, hakiConfrontationSetback: true } }),
+      ],
+    };
+  }
+
+  function createHakiDecisiveEvent(faction, stage) {
+    const scene = HAKI_DECISIVE_SCENES[faction][`stage${stage}`];
+    const dreamIds = (window.GAME_DATA?.dreams?.[faction] || []).map((dream) => dream.id);
+    return createEvent({
+      id: scene.id,
+      title: scene.title,
+      description: scene.description,
+      eventType: EVENT_TYPES.DECISIVE,
+      resolutionCategory: "action",
+      category: `decisive-stage-${stage}`,
+      tags: ["decisive", `decisive-stage-${stage}`, faction, "haki-awakening"],
+      paths: [faction], zones: [], rarity: stage === 1 ? EVENT_RARITY.UNCOMMON : EVENT_RARITY.RARE,
+      weight: 1, unique: true, important: true, highStakes: stage === 2,
+      decisiveStage: stage, dreamIds,
+      requiredFlags: stage === 2 ? { completedDecisiveStage1: true } : {},
+      loreCharacters: [], decisiveKind: stage === 1 ? "awakening" : "will-confrontation",
+      intro: stage === 1 ? "Une faculté encore inconnue cherche sa forme dans l’urgence." : "La pression adverse met ta volonté personnelle à l’épreuve.",
+      choices: scene.choices.map((text, index) => stage === 1
+        ? createHakiStageOneChoice(scene.id, faction, index, text)
+        : createHakiStageTwoChoice(scene.id, index, text)),
+    });
+  }
+
+  const HAKI_DECISIVE_EVENTS = Object.freeze(
+    ["pirate", "marine", "bounty-hunter", "revolutionary"].flatMap((faction) => [
+      createHakiDecisiveEvent(faction, 1),
+      createHakiDecisiveEvent(faction, 2),
+    ]),
+  );
+
   const BOSS_EVENTS = Object.freeze(
-    BOSS_DREAM_PROFILES.flatMap((profile) =>
-      [1, 2, 3].flatMap((tier) =>
-        [0, 1, 2].map((variantIndex) => createBossEvent(profile, tier, variantIndex)),
+    [
+      ...HAKI_DECISIVE_EVENTS,
+      ...BOSS_DREAM_PROFILES.flatMap((profile) =>
+        [0, 1, 2].map((variantIndex) => createBossEvent(profile, 3, variantIndex)),
       ),
-    ),
+    ],
   );
 
   function validateBossEvents(events) {
@@ -5500,7 +5674,8 @@ const COMMON_EVENTS = [
       [1, 2, 3].forEach((tier) => {
         const variants = events.filter((event) =>
           event.decisiveStage === tier && event.dreamIds?.includes(profile.id));
-        if (variants.length !== 3) warnings.push(`${profile.id}/tier ${tier} : ${variants.length} variante(s)`);
+        const expected = tier === 3 ? 3 : 1;
+        if (variants.length !== expected) warnings.push(`${profile.id}/tier ${tier} : ${variants.length} variante(s), ${expected} attendue(s)`);
       });
     });
     events.forEach((event) => {
@@ -5559,6 +5734,115 @@ const COMMON_EVENTS = [
     validateBossEvents(BOSS_EVENTS);
     window.setTimeout(() => validateBossEvents(BOSS_EVENTS), 0);
   }
+
+  /* ========================================================
+     ARCS LÉGENDAIRES
+     Ces événements restent hors du tirage narratif ordinaire. Le moteur de
+     partie les réserve et les enchaîne sans les insérer dans la route.
+  ======================================================== */
+
+  const LEGENDARY_ARC_STORIES = Object.freeze({
+    talent: {
+      pirate: [
+        ["Le nom dans le journal", "À Paradise, un correspondant de Morgans relie tes derniers exploits à une nouvelle génération de pirates. Une patrouille veut saisir ses notes avant l’impression.", ["Défendre publiquement le correspondant", "Faire parvenir les notes par une route secrète", "Attirer la patrouille loin de ton équipage"]],
+        ["L’épreuve du rookie", "Bellamy provoque ton pavillon devant un port entier pour vérifier si la réputation qui grandit repose sur autre chose que des rumeurs.", ["Accepter un affrontement bref et décisif", "Retourner ses hommes contre sa mise en scène", "Protéger le port avant de répondre à la provocation"]],
+        ["Une affiche pour la génération suivante", "Morgans attend la preuve qui fera de ton nom celui d’une nouvelle Supernova, tandis que la Marine referme la baie.", ["Briser le blocus sous les regards", "Révéler les preuves des exploits accomplis", "Faire sortir tous les pavillons alliés ensemble"]],
+      ],
+      marine: [
+        ["L’escadre sans commandant", "À Paradise, Smoker te confie une escadre dont l’officier supérieur vient d’être blessé. Pirates et civils sont pris dans la même tempête.", ["Prendre la tête de l’interception", "Organiser d’abord l’évacuation civile", "Diviser l’escadre en unités autonomes"]],
+        ["La justice mise à l’épreuve", "Une opération ordonnée par le quartier général menace un village utilisé comme couverture. Tsuru observe la manière dont tu commanderas les renforts.", ["Modifier le plan sans abandonner l’objectif", "Tenir la ligne et ouvrir un corridor", "Présenter les preuves avant de lancer l’assaut"]],
+        ["Les insignes du quartier général", "Garp assiste à la dernière opération : neutraliser une flotte sans sacrifier les recrues décidera de ta promotion.", ["Diriger l’abordage avec l’avant-garde", "Piéger la flotte loin des habitants", "Confier chaque front à l’officier le plus capable"]],
+      ],
+      revolutionary: [
+        ["Le rapport destiné à Dragon", "À Paradise, Koala transmet à Dragon le récit de tes libérations. Une cellule compromise doit encore être évacuée avant que ce potentiel soit confirmé.", ["Prendre la tête de l’extraction", "Créer de faux itinéraires pour Cipher Pol", "Rallier les habitants à la protection de la cellule"]],
+        ["La confiance de Sabo", "Sabo te confie plusieurs groupes qui ne se connaissent pas. Une garnison exploite leur méfiance pour encercler un village insurgé.", ["Unir les groupes dans une attaque commune", "Détruire le réseau de surveillance", "Évacuer les familles avant de fermer le piège"]],
+        ["Sous l’autorité de Dragon", "Dragon attend ton rapport tandis qu’une dernière opération peut sauver tout un réseau sans remplacer aucun commandant historique.", ["Coordonner les cellules depuis le front", "Retourner les communications ennemies", "Préserver le réseau avant de revendiquer la victoire"]],
+      ],
+      "bounty-hunter": [
+        ["Les contrats convergents", "À Paradise, trois guildes découvrent que leurs contrats mènent au même réseau pirate. Ton nom circule déjà parmi les équipages recherchés.", ["Réunir les chasseurs sous un plan commun", "Suivre seul la piste la plus dangereuse", "Retourner les receleurs du réseau"]],
+        ["La chasse de Paradise", "Un capitaine rookie connu rachète les ports qui pourraient témoigner. La capture exige davantage qu’un duel spectaculaire.", ["L’intercepter pendant le transfert", "Infiltrer son marché clandestin", "Protéger les témoins et couper sa retraite"]],
+        ["Le surnom sur les avis de recherche", "La chute publique du réseau peut consacrer le surnom de Cauchemar des pirates, à condition de ramener une preuve incontestable.", ["Capturer le capitaine vivant", "Livrer les registres aux ports victimes", "Forcer toute la flotte à déposer les armes"]],
+      ],
+    },
+    marineford: {
+      pirate: [
+        ["La brèche des condamnés", "Un transfert secret traverse la forteresse reconstruite. Kizaru verrouille la baie tandis qu’un ancien allié de ton pavillon attend dans les cales.", ["Masquer l’approche derrière les épaves", "Créer une diversion sur les batteries", "Négocier un passage avec les pirates encerclés"]],
+        ["Le corridor de lumière", "L’extraction a déclenché l’encerclement. Les Pacifistas ferment les quais et chaque décision prise à l’arrivée détermine désormais qui peut encore fuir.", ["Tenir le quai pour les retardataires", "Détourner les Pacifistas vers la digue", "Confier le prisonnier à l’équipage et ouvrir la route"]],
+        ["Le pavillon dans la baie", "Akainu ordonne de condamner les accès plutôt que de poursuivre chaque navire. Il ne s’agit pas de le vaincre, mais d’arracher une flotte entière à son dispositif.", ["Briser la chaîne du port", "Protéger le dernier navire sous le bombardement", "Retourner le plan d’évacuation contre le blocus"]],
+      ],
+      marine: [
+        ["L’alarme de la forteresse", "Un commando profite d’un transfert du Cipher Pol pour frapper Marineford. Coby découvre que des familles d’ouvriers sont enfermées dans le secteur visé.", ["Évacuer les familles avant de fermer les portes", "Sécuriser le transfert sans abandonner les quais", "Réorganiser les recrues autour de Coby"]],
+        ["La ligne que l’ordre oublie", "Ryokugyu exige de tenir le dépôt tandis que les saboteurs poussent les civils vers les tirs. Ton premier ordre est déjà discuté dans toute la garnison.", ["Former un corridor sous les tirs", "Isoler les saboteurs de leurs otages", "Désobéir et déplacer la ligne défensive"]],
+        ["Le symbole et les vivants", "La place centrale menace de s’effondrer. Fujitora couvre une partie de l’évacuation, mais te laisse choisir ce que ton unité fera du temps gagné.", ["Sauver les dernières recrues", "Neutraliser le détonateur central", "Coordonner la retraite de toute la baie"]],
+      ],
+      "bounty-hunter": [
+        ["Le contrat sous les canons", "La Cross Guild finance la capture d’un courtier pendant qu’un convoi gouvernemental entre à Marineford. Le contrat omet les prisonniers civils attachés à sa cible.", ["Accepter le contrat mais protéger les prisonniers", "Révéler la clause cachée aux autres chasseurs", "Suivre la cible à travers le convoi"]],
+        ["La cible aux deux commanditaires", "Le courtier détient les preuves d’un marché entre le Cipher Pol et des pirates. Smoker veut les documents ; ton commanditaire veut le silence.", ["Capturer la cible avec les preuves", "Livrer une copie à Smoker", "Retourner les chasseurs corrompus contre le courtier"]],
+        ["Le prix d’une vérité", "La bataille se referme sur les quais. La cible peut être livrée, mais des dizaines de prisonniers resteront dans la zone bombardée.", ["Sécuriser la cible et ouvrir les cellules", "Renoncer à une part du contrat pour évacuer", "Imposer un cessez-le-feu par les preuves"]],
+      ],
+      revolutionary: [
+        ["Les noms sous la forteresse", "Sabo transmet l’existence d’un registre de prisonniers politiques caché sous Marineford. Le Cipher Pol commence leur déplacement avant l’aube.", ["Infiltrer les archives du transfert", "Saboter les portes sans exposer la cellule", "Faire sortir les familles par les tunnels"]],
+        ["La flamme dans les galeries", "Le premier mouvement a révélé un réseau de cellules sous la baie. Lucci dirige la chasse tandis que Sabo retient les agents les plus dangereux.", ["Libérer les prisonniers pendant l’affrontement", "Détruire les registres biométriques", "Maintenir une route de retraite pour Sabo"]],
+        ["Les chaînes devant le monde", "Les survivants atteignent les quais, mais le Gouvernement prépare une version officielle niant leur existence. Une dernière transmission peut changer leur destin.", ["Diffuser les preuves avec les témoignages", "Briser le blocus pour évacuer les prisonniers", "Protéger l’émetteur jusqu’au dernier navire"]],
+      ],
+    },
+    emperor: {
+      pirate: [
+        ["Le pavillon sur la route", "La flotte de {emperor} contrôle l’objectif lié à ton rêve : {objective}. Reculer préserverait tes forces, mais abandonnerait cette piste.", ["Infiltrer la flotte extérieure", "Défier publiquement son autorité", "Négocier avec un commandant dissident"]],
+        ["Le cercle impérial", "Ton premier mouvement force {emperor} à engager un commandant majeur. L’objectif reste accessible derrière la bataille.", ["Affronter le commandant en protégeant l’équipage", "Percer jusqu’à l’objectif", "Retourner le terrain contre la flotte"]],
+        ["La volonté d’un Empereur", "{emperor} entre dans la confrontation. La victoire dépend d’un effort collectif et de ta capacité à accomplir l’objectif, pas d’un duel irréaliste.", ["Porter l’action décisive avec les alliés", "Sauver l’objectif sous sa pression", "Forcer la flotte impériale à céder le passage"]],
+      ],
+      marine: [
+        ["L’ordre contre un Empereur", "La Marine engage une opération contre {emperor} autour de {objective}. Ton unité reçoit un objectif que la force seule ne peut sécuriser.", ["Établir un blocus mobile", "Protéger les populations prises entre les flottes", "Infiltrer la chaîne de commandement adverse"]],
+        ["La flotte sous pression", "La réponse impériale disperse les unités avancées. Tes choix initiaux déterminent les renforts qui te font encore confiance.", ["Rassembler les navires isolés", "Neutraliser un commandant sans sacrifier les civils", "Exposer la faille tactique à l’état-major"]],
+        ["Justice face au pavillon", "{emperor} intervient alors que l’objectif est presque sécurisé. La flotte entière doit créer l’ouverture que ton unité exploitera.", ["Diriger l’assaut collectif", "Achever la mission malgré la présence impériale", "Obtenir une retraite qui protège l’île"]],
+      ],
+      "bounty-hunter": [
+        ["Le contrat impossible", "Un consortium offre un contrat lié à {emperor} : {objective}. La prime masque plusieurs intérêts contradictoires.", ["Vérifier le commanditaire avant d’approcher", "Suivre la cible jusque dans la flotte", "Former une coalition de chasseurs"]],
+        ["Les menottes de l’Empereur", "Un commandant impérial protège désormais la cible. La capture de {emperor} reste improbable, mais une preuve ou un lieutenant changerait ta carrière.", ["Isoler le commandant", "Voler la preuve recherchée", "Transformer le contrat en piège public"]],
+        ["La prise qui fait légende", "{emperor} couvre la retraite de son organisation. Il faut obtenir un résultat réel sans prétendre dominer seul toute sa puissance.", ["Conclure la capture avec les renforts", "Arracher l’objectif puis survivre", "Forcer une capitulation politique"]],
+      ],
+      revolutionary: [
+        ["L’île sous un pavillon", "L’influence de {emperor} protège un système d’oppression autour de {objective}. Une population entière attend que quelqu’un ouvre la première brèche.", ["Armer la résistance locale", "Infiltrer le réseau impérial", "Évacuer les familles avant l’insurrection"]],
+        ["Le commandant et la révolte", "Un commandant de {emperor} écrase le soulèvement. Les choix initiaux ont toutefois conservé une route vers le cœur du dispositif.", ["Unir les cellules pour tenir la place", "Détruire l’infrastructure d’oppression", "Retourner les soldats exploités contre leurs maîtres"]],
+        ["Le jour où l’île répond", "{emperor} intervient au-dessus d’une bataille collective. Libérer l’île exige de préserver le mouvement, même sans vaincre personnellement l’Empereur.", ["Porter l’assaut avec la population", "Protéger l’évacuation sous sa présence", "Briser définitivement son contrôle politique"]],
+      ],
+    },
+  });
+
+  const LEGENDARY_MARINEFORD_TITLES = Object.freeze({
+    pirate: "fleau-de-marineford", marine: "heros-de-marineford",
+    "bounty-hunter": "arbitre-de-marineford", revolutionary: "liberateur-de-marineford",
+  });
+
+  function createLegendaryArcEvent(arcId, faction, step, story) {
+    const [title, description, choiceTexts] = story;
+    const successFlag = `legendary_${arcId}_${step}_success`;
+    const failureFlag = `legendary_${arcId}_${step}_failure`;
+    return createEvent({
+      id: `legendary-${arcId}-${faction}-${step}`,
+      title, description, paths: [faction], zones: [], minMonth: 1, maxMonth: 24,
+      eventType: "legendary", resolutionCategory: step === 1 ? "social" : "action",
+      rarity: EVENT_RARITY.VERY_RARE, unique: true, important: true, highStakes: true,
+      tags: ["legendary-arc", `legendary-${arcId}`, `legendary-step-${step}`],
+      choices: choiceTexts.map((text, choiceIndex) => ({
+        id: `approach-${choiceIndex + 1}`, text,
+        resolutionWeights: step === 1
+          ? [{ intelligence: .45, charisma: .35, renown: .20 }, { charisma: .45, intelligence: .25, renown: .30 }, { intelligence: .35, charisma: .40, renown: .25 }][choiceIndex]
+          : [{ health: .22, combat: .43, haki: .35 }, { health: .28, combat: .32, haki: .40 }, { health: .18, combat: .37, haki: .30, charisma: .15 }][choiceIndex],
+        outcomes: [
+          { id: "legendary-success", result: step === 3 ? "Ton action transforme la conclusion collective en exploit dont le monde conservera la trace." : "Ton choix préserve l’objectif et donne un avantage réel pour la suite de l’opération.", effects: { combat: step > 1 ? 2 : 0, intelligence: step === 1 ? 2 : 0, popularity: 1, bounty: arcId === "emperor" ? 260000 : 160000 }, flags: { [successFlag]: true }, outcomeTier: "success", weight: 3 },
+          { id: "legendary-mixed", result: "L’objectif avance, mais les pertes et les compromis réduisent la portée de cette étape.", effects: { health: -1, haki: 1, bounty: 80000 }, flags: { [`legendary_${arcId}_${step}_mixed`]: true }, outcomeTier: "mixed", weight: 2 },
+          { id: "legendary-failure", result: "La puissance adverse impose un revers sévère. La séquence continue, mais le prestige final s’éloigne.", effects: { health: -5, combat: -2, popularity: -1 }, flags: { [failureFlag]: true }, outcomeTier: "failure", fallback: true, weight: 1 },
+        ],
+      })),
+    });
+  }
+
+  const LEGENDARY_ARC_EVENTS = Object.freeze(Object.entries(LEGENDARY_ARC_STORIES)
+    .flatMap(([arcId, factions]) => Object.entries(factions)
+      .flatMap(([faction, stories]) => stories.map((story, index) =>
+        createLegendaryArcEvent(arcId, faction, index + 1, story)))));
 
   const ALL_EVENTS = Object.freeze([
     ...COMMON_EVENTS,
@@ -5723,6 +6007,8 @@ const COMMON_EVENTS = [
   ]);
 
   window.SEA_OF_LEGENDS_EVENTS = ALL_EVENTS;
+  window.BLUE_LEGACY_LEGENDARY_ARC_EVENTS = LEGENDARY_ARC_EVENTS;
+  window.BLUE_LEGACY_LEGENDARY_MARINEFORD_TITLES = LEGENDARY_MARINEFORD_TITLES;
   window.BLUE_LEGACY_DECISIVE_EVENTS = BOSS_EVENTS;
   window.BLUE_LEGACY_SPECIAL_ZONE_AUDIT = Object.freeze(SPECIAL_ZONE_EVENT_AUDIT);
   if (new URLSearchParams(window.location.search).has("audit")) {

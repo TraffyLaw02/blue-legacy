@@ -11,7 +11,7 @@
     exploration: { label: "Exploration", icon: "🧭" },
     factions: { label: "Factions", icon: "⚑" },
     dreams: { label: "Rêves et destin", icon: "✨" },
-    combat: { label: "Combat et Haki", icon: "⚔️" },
+    combat: { label: "Combat et Défense", icon: "⚔️" },
     crew: { label: "Équipage et leadership", icon: "👥" },
     fortune: { label: "Fortune et prime", icon: "💰" },
     "rare-events": { label: "Événements rares", icon: "🌟" },
@@ -63,12 +63,18 @@
     achievement("discover-will-of-d", "La volonté demeure", "Une initiale ancienne accompagne désormais l’une de tes légendes.", "dreams", "legendary", "D.", "Condition secrète", { type: "has-d" }, { secret: true }),
 
     achievement("reach-high-combat", "L’épreuve du fer", "Ta maîtrise du combat a atteint un niveau remarquable.", "combat", "uncommon", "⚔️", "Atteindre 55 en Combat.", { type: "stat-at-least", stat: "combat", target: 55 }),
-    achievement("reach-high-haki", "La volonté prend forme", "Ton Haki impose désormais sa présence.", "combat", "epic", "🛡️", "Atteindre 35 en Haki.", { type: "stat-at-least", stat: "haki", target: 35 }),
+    // L'identifiant historique reste inchangé afin de préserver les profils et
+    // les berrys déjà versés ; le Succès décrit désormais la statistique réelle.
+    achievement("reach-high-haki", "Défense inébranlable", "Ta garde résiste aux dangers qui briseraient une carrière moins préparée.", "combat", "epic", "🛡️", "Atteindre 35 en Défense.", { type: "stat-at-least", stat: "haki", target: 35 }),
+    achievement("awaken-first-haki", "Premier éveil", "Un véritable pouvoir de Haki s’est éveillé au cours d’une épreuve décisive.", "combat", "rare", "👁️", "Obtenir un premier Titre de Haki.", { type: "has-any-title", titleIds: ["haki-observation", "haki-armement", "haki-des-rois", "maitrise-haki-des-rois-plus"] }),
+    achievement("awaken-kings-haki", "Volonté souveraine", "Une volonté capable d’ébranler les autres s’est manifestée.", "combat", "legendary", "👑", "Obtenir le Titre Haki des Rois.", { type: "has-any-title", titleIds: ["haki-des-rois", "maitrise-haki-des-rois-plus"] }),
+    achievement("master-kings-haki", "Volonté maîtrisée", "Le Haki des Rois répond désormais à une intention consciente.", "combat", "mythic", "🌈", "Condition secrète", { type: "has-title", titleId: "maitrise-haki-des-rois-plus" }, { secret: true }),
     achievement("finish-low-combat", "Sans lever le poing", "La route s’est achevée sans faire de la force ta réponse principale.", "combat", "epic", "🕊️", "Terminer une aventure avec 12 ou moins en Combat.", { type: "finished-stat-at-most", stat: "combat", target: 12 }),
     achievement("reach-high-intelligence", "L’autre voie", "Une carrière entière s’est construite sur l’analyse et la stratégie.", "combat", "rare", "🧠", "Atteindre 60 en Intelligence.", { type: "stat-at-least", stat: "intelligence", target: 60 }),
     achievement("reach-high-charisma", "Une voix qui rassemble", "Ton influence personnelle a uni des alliés que tout séparait.", "crew", "rare", "✨", "Atteindre 75 en Charisme.", { type: "stat-at-least", stat: "charisma", target: 75 }),
 
     achievement("gather-large-crew", "Tous à bord", "Un équipage imposant s’est rassemblé autour de toi.", "crew", "uncommon", "👥", "Réunir au moins quatre membres d’équipage.", { type: "max-stat-at-least", stat: "crew", target: 4 }),
+    achievement("recruit-legendary-companion", "Rencontre légendaire", "Une figure légendaire a accepté de partager temporairement cette route.", "crew", "legendary", "🤝", "Recruter un premier compagnon légendaire.", { type: "legendary-companion-recruited" }),
     achievement("shinsekai-damaged-ship", "Seul contre la mer", "Un équipage réduit a tout de même atteint le Nouveau Monde.", "crew", "epic", "👤", "Atteindre le Nouveau Monde avec un membre d’équipage ou moins.", { type: "zone-with-stat-at-most", zoneId: "shinsekai", stat: "crew", target: 1 }),
 
     achievement("gather-great-fortune", "Les poches pleines", "Ta Fortune dépasse celle de bien des capitaines.", "fortune", "uncommon", "💰", "Atteindre 150 000 berrys de Fortune.", { type: "stat-at-least", stat: "fortune", target: 150000 }),
@@ -92,6 +98,14 @@
     achievement("complete-shop", "Collection du grand large", "Tous les objets permanents de la Boutique font désormais partie de ta collection.", "collection", "legendary", "🎒", "Posséder les cinq objets de la Boutique.", { type: "shop-items-owned", target: 5 }, { progressLabel: "Objets possédés" }),
     achievement("finish-with-two-items", "Bien préparé", "Deux héritages permanents ont soutenu une aventure complète sans décider de son destin à ta place.", "adventure", "rare", "🧰", "Terminer une aventure avec deux objets de Boutique actifs.", { type: "finished-with-shop-items", target: 2 }),
     achievement("popular-legend", "Au sommet des nouvelles", "Ta carrière s’est achevée parmi les noms les plus connus des mers.", "fortune", "legendary", "⭐", "Terminer une aventure avec au moins 95 de Popularité.", { type: "finished-popularity", target: 95 }),
+
+    achievement("reach-marineford", "La forteresse se souvient", "Une carrière a été entraînée dans la nouvelle crise de Marineford.", "rare-events", "rare", "◆", "Atteindre l’arc légendaire de Marineford.", { type: "legendary-arc-encountered", arcId: "marineford" }),
+    achievement("earn-marineford-title", "Trois actes à Marineford", "Une carrière a transformé les trois étapes de Marineford en légende.", "rare-events", "legendary", "⚓", "Obtenir un Titre exclusif de Marineford.", { type: "legendary-arc-title", arcId: "marineford" }),
+    achievement("face-an-emperor", "Sous un pavillon impérial", "Une carrière a affronté directement l’influence d’un Empereur.", "rare-events", "epic", "👑", "Atteindre un Combat contre un Empereur.", { type: "legendary-arc-encountered", arcId: "emperor" }),
+    achievement("earn-emperor-title", "Le monde retient le choc", "Une confrontation impériale s’est achevée sur un exploit incontestable.", "rare-events", "mythic", "🌊", "Obtenir un Titre exclusif lié à un Empereur.", { type: "legendary-arc-title", arcId: "emperor" }),
+    achievement("earn-talent-title", "Une ascension prodigieuse", "Une carrière a transformé une promesse de Paradise en reconnaissance légendaire.", "rare-events", "legendary", "◆", "Obtenir un Titre exclusif de l’arc Un talent prodigieux.", { type: "legendary-arc-title", arcId: "talent" }),
+    achievement("complete-both-legendary-arcs", "Deux pages de légende", "Marineford et un Empereur ont marqué la même aventure.", "challenges", "mythic", "◆", "Terminer les deux arcs légendaires dans une même carrière.", { type: "both-legendary-arcs" }),
+    achievement("encounter-three-legendary-arcs", "Trois pages de légende", "Talent, Marineford et un Empereur ont marqué une même carrière.", "challenges", "mythic", "◆", "Rencontrer les trois arcs légendaires dans une même carrière.", { type: "three-legendary-arcs" }, { secret: true }),
 
     achievement("unlock-ten-titles", "Collection de légendes", "Ta collection rassemble déjà de nombreuses identités remarquables.", "collection", "rare", "🎖️", "Débloquer dix Titres.", { type: "titles-unlocked", target: 10 }, { progressLabel: "Titres débloqués" }),
     achievement("record-ten-lives", "Une mer de souvenirs", "Le Panthéon raconte désormais une véritable génération d’aventuriers.", "collection", "legendary", "👑", "Condition secrète", { type: "runs-completed", target: 10 }, { secret: true, progressLabel: "Anciennes vies" }),

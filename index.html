@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <meta content="Blue Legacy, une aventure narrative sur les mers." name="description"/>
-<title>Blue Legacy — 0.9.2</title>
+<title>Blue Legacy — 0.9.3</title>
 <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
@@ -36,9 +36,11 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <nav aria-label="Menu principal" class="home-menu">
 <button class="menu-button home-secondary-button" data-screen-target="shop-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🛍️</span><span class="home-secondary-button__label">Boutique</span></button>
 <button class="menu-button home-secondary-button" data-screen-target="achievements-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🏆</span><span class="home-secondary-button__label">Succès</span></button>
-<button class="menu-button home-secondary-button" data-screen-target="titles-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🎖️</span><span class="home-secondary-button__label">Titres</span></button>
 <button class="menu-button home-secondary-button" data-screen-target="pantheon-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">👑</span><span class="home-secondary-button__label">Panthéon</span></button>
+<button class="menu-button home-secondary-button" data-screen-target="titles-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🎖️</span><span class="home-secondary-button__label">Titres</span></button>
+<button aria-label="Réinitialiser entièrement le profil joueur" class="menu-button home-secondary-button home-reset-button" id="reset-profile-btn" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">↺</span><span class="home-secondary-button__label">Réinitialiser le profil</span></button>
 </nav>
+<p class="home-reset-status" id="reset-profile-status" aria-live="polite"></p>
 </section>
 <!-- BOUTIQUE PERMANENTE -->
 <section aria-labelledby="shop-title" class="screen layout-wide shop-screen" hidden="" id="shop-screen">
@@ -267,6 +269,10 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h2 id="d-reveal-name">Nom D. du personnage</h2>
 <p>Certains noms portent une volonté que le monde n’a jamais réussi à éteindre.</p>
 </div>
+<section class="starting-stat-variance" id="starting-stat-variance" aria-labelledby="starting-stat-variance-title" hidden>
+<h3 id="starting-stat-variance-title">Variations de départ</h3>
+<div class="starting-variance-list" id="starting-stat-variance-list"></div>
+</section>
 <button class="button button-primary" id="begin-game-btn" type="button">
             Commencer l’aventure
           </button>
@@ -274,7 +280,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 </section>
 <!-- ÉCRAN DE JEU -->
 <!-- TRANSITION ENTRE LES GRANDES ZONES -->
-<section aria-labelledby="zone-transition-title" class="screen zone-transition-screen layout-narrow" hidden="" id="zone-transition-screen">
+<section aria-labelledby="zone-transition-title" aria-live="polite" class="screen zone-transition-screen layout-narrow" hidden="" id="zone-transition-screen">
 <div class="zone-transition-card">
 <div aria-hidden="true" class="zone-transition-icon" id="zone-transition-icon">🗺️</div>
 <p class="zone-transition-eyebrow" id="zone-transition-eyebrow">Nouvelle zone</p>
@@ -462,6 +468,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 </div>
 </header>
 <div id="past-life-export-area">
+<header class="career-export-brand" aria-hidden="true"><img src="assets/logo.png" alt=""><span>Blue Legacy · Fiche de carrière</span></header>
 <section class="past-life-hero" id="past-life-hero" aria-labelledby="past-life-title">
 <div class="past-life-hero-heading">
 <span aria-hidden="true" class="past-life-hero-faction" id="past-life-faction-icon">🌊</span>
@@ -505,6 +512,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <section class="past-life-panel" aria-labelledby="past-life-stats-title">
 <h3 id="past-life-stats-title">Statistiques finales</h3>
 <div class="stats-grid" id="past-life-stats"></div>
+<div class="past-life-starting-variance" id="past-life-starting-variance" hidden></div>
 </section>
 </div>
 </div>
@@ -561,6 +569,27 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <div class="modal-actions">
 <button class="button" type="submit" value="cancel">Conserver ma partie</button>
 <button class="button button-danger" id="confirm-new-game-btn" type="submit" value="confirm">Nouvelle aventure</button>
+</div>
+</form>
+</dialog>
+<dialog aria-labelledby="reset-profile-first-title" aria-modal="true" class="modal reset-profile-modal" id="reset-profile-first-modal">
+<form class="modal-content" method="dialog">
+<h2 id="reset-profile-first-title">Réinitialiser le profil ?</h2>
+<p>Cette action supprimera définitivement ta partie en cours, tes anciennes carrières, tes Titres, tes Succès, tes berrys et tous les objets achetés.</p>
+<p><strong>Cette action est irréversible.</strong></p>
+<div class="modal-actions">
+<button autofocus class="button" id="cancel-reset-profile-first-btn" type="button">Annuler</button>
+<button class="button button-danger-soft" id="continue-reset-profile-btn" type="button">Continuer</button>
+</div>
+</form>
+</dialog>
+<dialog aria-labelledby="reset-profile-final-title" aria-modal="true" class="modal reset-profile-modal" id="reset-profile-final-modal">
+<form class="modal-content" method="dialog">
+<h2 id="reset-profile-final-title">Vraiment, vraiment sûr ?</h2>
+<p>Toutes tes aventures et toute ta progression seront effacées. Il ne sera pas possible de les récupérer.</p>
+<div class="modal-actions">
+<button autofocus class="button" id="cancel-reset-profile-final-btn" type="button">Non, je garde mon profil</button>
+<button class="button button-danger" id="confirm-reset-profile-btn" type="button">Oui, tout effacer</button>
 </div>
 </form>
 </dialog>

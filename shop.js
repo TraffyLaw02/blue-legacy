@@ -43,7 +43,7 @@
       price: 450,
       rarity: "epic",
       description: "Un emblème personnel conçu pour rappeler à son porteur la légende qu’il veut bâtir.",
-      effect: "Santé, Combat, Haki, Intelligence et Charisme commencent avec un léger bonus.",
+      effect: "Santé, Combat, Défense, Intelligence et Charisme commencent avec un léger bonus.",
       initialEffects: { health: 2, combat: 2, haki: 2, intelligence: 2, charisma: 2 },
     },
     {

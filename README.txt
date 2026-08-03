@@ -1,5 +1,13 @@
 Blue Legacy
 
+Arcs légendaires
+
+Trois rencontres rares peuvent marquer une même carrière : une reconnaissance exceptionnelle pendant Paradise, une crise à Marineford entre Paradise et Red Line, puis un affrontement contre un Empereur avant la dernière étape du rêve. Leurs tirages sont indépendants, dépendent en partie de la qualité de la carrière et ne sont jamais garantis. Chacun peut accorder un Titre exclusif.
+
+Variation des statistiques initiales
+
+À la validation définitive d’un nouveau personnage, Santé, Combat, Défense, Intelligence et Charisme reçoivent chacun une variation indépendante et uniforme de -3 à +3. Le résultat est enregistré une seule fois, révélé avant l’aventure et conservé dans sa fiche du Panthéon. Les anciennes sauvegardes restent neutres et leurs statistiques ne sont jamais recalculées.
+
 Construisez votre légende sur les mers.
 
 Blue Legacy est un roguelite narratif jouable directement dans un navigateur. Chaque partie raconte une nouvelle vie faite de choix, de rencontres, de combats, d’alliances, de réussites et d’échecs.
@@ -196,7 +204,7 @@ Les statistiques principales sont :
 
 Santé
 Combat
-Haki
+Défense
 Intelligence
 Charisme
 
@@ -206,11 +214,33 @@ une réputation liée à sa faction ;
 de la Fortune ;
 un niveau d’Équipage ;
 une Popularité globale.
+
+Défense et Haki
+
+La Défense est la statistique qui mesure la garde, l’esquive, l’anticipation et la capacité à protéger ou encaisser.
+
+Les trois formes de Haki ne sont pas des statistiques. Ce sont des éveils rares obtenus pendant l’aventure et représentés par des Titres. Les deux premiers événements décisifs mettent cette progression personnelle à l’épreuve. Le dernier événement décisif reste consacré à l’accomplissement du rêve choisi.
+
+La Défense reste une statistique principale. Les pouvoirs rares correspondants sont regroupés séparément dans la catégorie de Titres « Hakis ». La première épreuve permet d’éveiller l’Observation, l’Armement ou, plus rarement, le Haki des Rois. Tenter ce dernier immédiatement est plus risqué, mais son éveil apporte un gain nettement supérieur.
+
+Lors de la deuxième épreuve, un personnage qui n’a pas éveillé le Haki des Rois au premier tournant peut le tenter dans de meilleures conditions, tout en conservant son éventuel Haki de l’Observation ou de l’Armement. Seul un personnage ayant déjà éveillé le Haki des Rois pendant la première épreuve peut viser la Maîtrise du Haki des Rois+ : cette évolution est prestigieuse, mais son bonus supplémentaire reste volontairement léger.
+
+Événements légendaires
+----------------------
+
+Certaines carrières remarquables peuvent être entraînées dans une crise exceptionnelle à Marineford après leur traversée de Paradise, ou dans un affrontement contre un Empereur. Leur apparition dépend en partie de la puissance et des accomplissements déjà construits pendant la carrière, mais elle n’est jamais garantie.
+
+Chaque arc légendaire forme une histoire de trois événements liés, adaptée à la faction et, face à un Empereur, au rêve poursuivi. Une réussite presque complète peut accorder un Titre exclusif visible dans le Panthéon. Ces parenthèses ne remplacent aucune des six zones, n’ajoutent aucun mois et restent indépendantes des zones spéciales. Une même aventure peut rencontrer les deux arcs.
+
 Popularité
 
 La Popularité représente la qualité globale de la carrière.
 
 Elle prend en compte les statistiques, les réussites, les Titres, les décisions, la progression du rêve et les accomplissements de la run.
+
+Le calcul additionne huit composantes plafonnées : progression, statistiques de carrière, renommée de faction, ressources et compagnons, collection (Titres et Fruit), narration, issue finale et petits modificateurs directs des événements. La somme est calibrée sur l’échelle 1–100. Au-dessus de 90, une compression de prestige rend chaque point beaucoup plus difficile à gagner ; 100 reste un plafond exceptionnel, jamais une récompense automatique.
+
+Les Titres sont comptés une seule fois selon leur rareté. Les bonus directs de Popularité des événements sont cumulés dans une composante limitée à ±3 points : répéter un même type d’événement ne peut donc pas faire exploser le score. Un rêve accompli et une bonne issue comptent fortement, mais ne suffisent pas sans une carrière solide.
 
 Repères généraux :
 
@@ -218,6 +248,8 @@ Repères généraux :
 83 à 89 : bonne carrière
 90 et plus : très bonne carrière
 95 et plus : carrière exceptionnelle
+
+Calibration statistique 0.9.3 : sur 120 000 carrières simulées, une stratégie cohérente produit une moyenne de 80,89 et une médiane de 81 ; les quatre factions restent à moins de 2,5 points de moyenne. Le rapport et les exports reproductibles se trouvent dans `tests/popularity-audit-report.md` et `tests/popularity-balance-results.*`.
 Fortune et berrys
 
 La Fortune appartient uniquement à la run en cours.
@@ -245,6 +277,8 @@ Compagnons
 
 Certaines rencontres permettent de recruter des compagnons ou des soutiens.
 
+Le catalogue couvre plusieurs rôles — médecine, navigation, protection, stratégie et unités de la Marine. Certains compagnons légendaires, reconnaissables à leur présentation dorée, sont beaucoup plus rares et apportent des avantages puissants mais contrôlés.
+
 Ils peuvent :
 
 améliorer les statistiques ;
@@ -252,7 +286,7 @@ apporter des effets passifs ;
 influencer certaines décisions ;
 intervenir dans des situations particulières.
 
-Les membres de l’équipage principal de Luffy ne sont pas recrutables.
+Les membres de l’équipage principal de Luffy ne sont normalement pas recrutables. Chopper et Nami constituent deux exceptions légendaires, présentées comme des alliances temporaires qui ne rompent pas leurs liens avec Luffy.
 
 Les personnages extrêmement puissants ne peuvent pas rejoindre directement l’équipage du joueur.
 
@@ -534,8 +568,16 @@ Ordinateur
 
 L’interface est pensée en priorité pour les petits écrans, avec une largeur minimale ciblée d’environ 320 pixels.
 
+Titres et Succès
+
+Les Titres sont obtenus pendant une carrière et rejoignent ensuite la collection permanente du profil. Leur moyen d’obtention reste caché avant le premier déblocage. Les catégories générales sont complétées par cinq groupes particulièrement importants : Hakis, Prodige, Marineford, Empereur et Titres ultimes.
+
+Les Titres de Haki proviennent des deux premières épreuves décisives et restent indépendants de la statistique numérique Défense. Les Titres Prodige, Marineford et Empereur récompensent une réussite remarquable dans l’arc rare correspondant. Les seize Titres ultimes, tous mythiques, ne sont accordés qu’après l’accomplissement réel du rêve choisi.
+
+Les Succès sont permanents et peuvent progresser sur plusieurs carrières. Leur récompense en berrys n’est versée qu’une seule fois ; ces berrys servent aux achats permanents de la Boutique. Les conditions secrètes restent masquées jusqu’à leur découverte.
+
 État du développement
-Version actuelle : 0.9.2
+Version actuelle : 0.9.3
 
 La version 0.9.2 contient notamment :
 
@@ -623,4 +665,4 @@ Crédits
 
 Projet imaginé et développé par Léo Robert, avec l’aide d’outils d’intelligence artificielle pour la conception, l’écriture, l’équilibrage et le développement.
 
-Blue Legacy — Version 0.9.2
+Blue Legacy — Version 0.9.3
