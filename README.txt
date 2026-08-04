@@ -663,6 +663,6 @@ Le code original, l’interface et les systèmes propres à Blue Legacy restent 
 
 Crédits
 
-Projet imaginé et développé par Léo Robert, avec l’aide d’outils d’intelligence artificielle pour la conception, l’écriture, l’équilibrage et le développement.
+Projet imaginé et développé par @Traffy02Law , avec l’aide d’outils d’intelligence artificielle pour la conception, l’écriture, l’équilibrage et le développement.
 
 Blue Legacy — Version 0.9.3
