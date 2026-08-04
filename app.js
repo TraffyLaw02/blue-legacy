@@ -1049,9 +1049,9 @@
 
   function inferPlayableScreen(payload = {}) {
     if (payload.game?.pendingLogbookEntry) return SCREEN.LOGBOOK;
-    if (payload.game?.pendingZoneTransition) return SCREEN.ZONE_TRANSITION;
     if (payload.result || payload.game?.pendingResult) return SCREEN.RESULT;
     if (payload.game?.pendingRewardReveals?.length) return SCREEN.REWARD_REVEAL;
+    if (payload.game?.pendingZoneTransition) return SCREEN.ZONE_TRANSITION;
     if (payload.game?.currentEvent) return SCREEN.GAME;
     return payload.game?.month ? SCREEN.GAME : SCREEN.D_REVEAL;
   }
@@ -2891,7 +2891,9 @@
     // Migration prudente : l'origine du Haki des Rois n'est déduite que d'un
     // enregistrement explicite du premier décisif. La simple présence du Titre
     // est ambiguë, puisqu'il peut avoir été obtenu au deuxième décisif.
-    if (normalized.flags.firstDecisiveHakiType === undefined) {
+    if (!["observation", "armament", "conquerors", "none"].includes(
+      normalized.flags.firstDecisiveHakiType,
+    )) {
       const history = [...normalized.periodEvents, ...normalized.importantEvents];
       const firstDecisiveRecord = history.find((record) =>
         String(record?.eventId || record?.id || "").startsWith("haki-awakening-"));
@@ -2911,6 +2913,12 @@
         normalized.flags.firstDecisiveHakiType = "none";
       }
     }
+    if (normalized.flags.completedDecisiveStage1 &&
+        !["observation", "armament", "conquerors"].includes(
+          normalized.flags.firstDecisiveHakiType,
+        )) {
+      normalized.flags.firstDecisiveHakiType = "none";
+    }
     // Le résultat historique explicite est l'unique autorité. Un ancien
     // booléen incohérent ne peut plus transformer Armement/Observation en Rois.
     normalized.flags.conquerorsHakiAwakenedAtFirstDecisive =
@@ -2920,7 +2928,40 @@
       normalized.flags.secondDecisiveHakiBranch =
         normalized.flags.firstDecisiveHakiType === "conquerors"
           ? "mastery"
-          : "awakening";
+          : "base-conquerors";
+    }
+    if (normalized.flags.secondDecisiveHakiBranch === "awakening") {
+      normalized.flags.secondDecisiveHakiBranch = "base-conquerors";
+    }
+    // Une correction automatique n'est sûre que si la sauvegarde prouve à la
+    // fois l'origine non souveraine et l'application antérieure des deux
+    // niveaux. Le bonus de base reste acquis ; seul le petit supplément est
+    // retiré, sans réappliquer aucun effet.
+    const masteryId = "maitrise-haki-des-rois-plus";
+    const kingsId = "haki-des-rois";
+    const safelyBuggedActiveRun =
+      !normalized.isFinished && !normalized.finishedAt &&
+      !normalized.endingType && !normalized.ending &&
+      normalized.flags.completedDecisiveStage2 === true &&
+      ["observation", "armament", "none"].includes(normalized.flags.firstDecisiveHakiType) &&
+      normalized.runTitles.some((title) => getDataId(title) === masteryId) &&
+      normalized.appliedTitleEffects.includes(kingsId) &&
+      normalized.appliedTitleEffects.includes(masteryId);
+    if (safelyBuggedActiveRun) {
+      const mastery = findTitleData(masteryId);
+      Object.entries(mastery?.effects?.immediate || {}).forEach(([stat, value]) => {
+        if (Number.isFinite(Number(normalized.stats?.[stat]))) {
+          normalized.stats[stat] = Number(normalized.stats[stat]) - Number(value || 0);
+        }
+      });
+      normalized.runTitles = normalized.runTitles.filter((title) => getDataId(title) !== masteryId);
+      if (!normalized.runTitles.some((title) => getDataId(title) === kingsId)) {
+        normalized.runTitles.push(normalizeTitleData(kingsId, findTitleData(kingsId)));
+      }
+      normalized.appliedTitleEffects = normalized.appliedTitleEffects.filter((id) => id !== masteryId);
+      normalized.flags.masteredHakiKings = false;
+      normalized.flags.correctedInvalidHakiMastery = true;
+      normalized.stats = normalizeStats(normalized.stats);
     }
     // Le niveau supérieur remplace seulement l'affichage actif du niveau de
     // base ; appliedTitleEffects garde les deux identifiants pour empêcher
@@ -3615,10 +3656,13 @@
     const isBossTransition = pending.reason === "boss-event";
     const isLegendaryTransition = pending.reason === "legendary-arc";
     const isLegendaryConclusion = pending.reason === "legendary-conclusion";
+    const isHakiConclusion = pending.reason === "haki-conclusion";
+    const isDreamFailureConclusion = pending.reason === "dream-failure-conclusion";
+    const isDecisiveConclusion = isHakiConclusion || isDreamFailureConclusion;
     const boss = isBossTransition ? game.currentEvent : null;
     applyZoneTransitionTheme(zone);
     resetBossTransitionTheme();
-    if (isBossTransition) {
+    if (isBossTransition || isDecisiveConclusion) {
       dom.zoneTransitionScreen?.classList.add("boss-transition");
       if (boss?.eventType === "risk") {
         dom.zoneTransitionScreen?.classList.add("boss-danger-transition");
@@ -3626,26 +3670,32 @@
     }
     dom.zoneTransitionScreen?.classList.toggle("legendary-arc-transition", isLegendaryTransition || isLegendaryConclusion);
     dom.zoneTransitionScreen?.classList.toggle("legendary-arc-conclusion", isLegendaryConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("haki-conclusion", isHakiConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("dream-failure-conclusion", isDreamFailureConclusion);
     dom.zoneTransitionScreen?.classList.toggle(
       "talent-arc-transition",
       isLegendaryTransition && game.currentEvent?.legendaryArc === "talent",
     );
 
     if (dom.zoneTransitionIcon) {
-      dom.zoneTransitionIcon.textContent = isLegendaryTransition || isLegendaryConclusion ? "◆" : isBossTransition
+      dom.zoneTransitionIcon.textContent = isLegendaryTransition || isLegendaryConclusion ? "◆" : isDecisiveConclusion
+        ? pending.icon || "✦"
+        : isBossTransition
         ? (boss?.decisiveStage === 3 ? "👑" : "⭐")
         : zone.icon || "🗺️";
     }
     if (dom.zoneTransitionEyebrow) {
       dom.zoneTransitionEyebrow.textContent =
-        isLegendaryTransition || isLegendaryConclusion ? "Arc légendaire" : isBossTransition
+        isLegendaryTransition || isLegendaryConclusion ? "Arc légendaire" : isDecisiveConclusion
+          ? pending.eyebrow || "Épreuve décisive"
+          : isBossTransition
           ? "Événement décisif"
           : special ? "Étape inattendue • Zone spéciale" : "Nouvelle zone";
     }
     if (dom.zoneTransitionProgress) {
-      dom.zoneTransitionProgress.hidden = isLegendaryTransition || isLegendaryConclusion;
+      dom.zoneTransitionProgress.hidden = isLegendaryTransition || isLegendaryConclusion || isDecisiveConclusion;
       dom.zoneTransitionProgress.textContent =
-        isLegendaryTransition || isLegendaryConclusion
+        isLegendaryTransition || isLegendaryConclusion || isDecisiveConclusion
           ? ""
           : isBossTransition
           ? `${zone.name} • Événement décisif`
@@ -3653,9 +3703,9 @@
     }
     if (dom.zoneTransitionTitle) {
       dom.zoneTransitionTitle.textContent = isLegendaryTransition
-        ? (game.currentEvent?.legendaryArc === "talent" ? "UN TALENT PRODIGIEUX..."
+        ? (game.currentEvent?.legendaryArc === "talent" ? "UN TALENT PRODIGIEUX ?"
           : game.currentEvent?.legendaryArc === "marineford" ? "MARINEFORD" : "COMBAT CONTRE UN EMPEREUR !")
-        : isLegendaryConclusion
+        : isLegendaryConclusion || isDecisiveConclusion
         ? pending.title || "LA ROUTE CONTINUE"
         : isBossTransition
         ? boss?.title || "Événement décisif"
@@ -3669,7 +3719,7 @@
             : game.currentEvent?.legendaryArc === "marineford"
               ? "La guerre n’a jamais vraiment quitté cette forteresse."
               : `${LEGENDARY_EMPEROR_NAMES[game.legendaryArcs?.emperor?.emperorId] || "Un Empereur"} bloque désormais ta route.`)
-          : isLegendaryConclusion
+          : isLegendaryConclusion || isDecisiveConclusion
           ? pending.description || "La bataille s’achève et ta route reprend."
           : isBossTransition
           ? boss?.intro || "Ton parcours t’a conduit jusqu’ici."
@@ -3677,7 +3727,7 @@
     }
     if (dom.continueZoneTransition) {
       dom.continueZoneTransition.disabled = false;
-      dom.continueZoneTransition.textContent = isLegendaryConclusion
+      dom.continueZoneTransition.textContent = isLegendaryConclusion || isDecisiveConclusion
         ? pending.buttonLabel || "Reprendre la route"
         : "Continuer";
     }
@@ -3702,6 +3752,13 @@
       }
     }
     saveGame();
+    if (["haki-conclusion", "dream-failure-conclusion"].includes(transitionReason)) {
+      openScreen(SCREEN.GAME, { save: false });
+      if (game.currentAction >= game.actionsThisMonth) {
+        return finishMonth({ deferEndingUntilLogbook: true });
+      }
+      return startNextEvent();
+    }
     openScreen(SCREEN.GAME, { save: false });
     if (["boss-event", "legendary-arc"].includes(transitionReason)) {
       return true;
@@ -4005,6 +4062,96 @@
     return true;
   }
 
+  const HAKI_TITLE_REWARD_IDS = Object.freeze([
+    "haki-observation",
+    "haki-armement",
+    "haki-des-rois",
+    "maitrise-haki-des-rois-plus",
+  ]);
+
+  function queueHakiFailureConclusion(event, rewards, resolutionId, game = state.game) {
+    const stage = Number(event?.decisiveStage);
+    const zone = getCurrentZone(game);
+    if (!game || !zone || !event?.tags?.includes("haki-awakening") || ![1, 2].includes(stage)) return false;
+    const gainedHaki = (rewards || []).some((reward) =>
+      reward?.type === "title" && HAKI_TITLE_REWARD_IDS.includes(getDataId(reward.data || reward.title || reward)),
+    );
+    if (gainedHaki) return false;
+    if (game.pendingZoneTransition?.reason === "haki-conclusion" &&
+        game.pendingZoneTransition.resolutionId === resolutionId) return false;
+
+    const masteryAttempt = stage === 2 && game.flags?.firstDecisiveHakiType === "conquerors";
+    const copy = stage === 1
+      ? {
+          id: "haki-awakening-failure",
+          icon: "◇",
+          title: "L’éveil n’a pas eu lieu",
+          description: "Tu pousses ta volonté jusqu’à ses limites, mais rien ne répond encore. Malgré tes efforts, aucun Haki ne s’éveille cette fois-ci.",
+        }
+      : masteryAttempt
+        ? {
+            id: "conquerors-mastery-failure",
+            icon: "👑",
+            title: "Une maîtrise encore incomplète",
+            description: "Ton Haki des Rois se manifeste avec puissance, mais il échappe encore à ton contrôle. Tu conserves ce pouvoir, sans parvenir à atteindre une véritable maîtrise.",
+          }
+        : {
+            id: "conquerors-awakening-failure",
+            icon: "✦",
+            title: "La volonté reste silencieuse",
+            description: "Tu cherches à imposer ta volonté au monde, mais la pression retombe sans provoquer l’éveil espéré. Le Haki des Rois demeure encore hors de ta portée.",
+          };
+    game.pendingZoneTransition = {
+      ...createZoneTransitionData(zone, game.currentZoneIndex, "haki-conclusion", game),
+      ...copy,
+      resolutionId,
+      eyebrow: "ÉPREUVE DÉCISIVE",
+      buttonLabel: "Poursuivre l’aventure",
+    };
+    return true;
+  }
+
+  function getFinalDreamFailureCopy(game = state.game) {
+    const popularity = Number(game?.stats?.popularity) || 0;
+    const faction = getDataId(game?.character?.faction) || "pirate";
+    const careerOpening = popularity >= 90
+      ? "Tu as marqué les mers et bâti une véritable légende. Pourtant, malgré ce parcours exceptionnel, le rêve qui guidait ton voyage demeure hors de portée."
+      : popularity >= 75
+        ? "Ton parcours restera dans les mémoires, mais la dernière marche était encore trop haute. Tu ne parviens pas à accomplir le rêve qui t’avait poussé à prendre la mer."
+        : "Tu as poursuivi ton rêve jusqu’au bout, mais cette dernière épreuve dépasse encore tes forces. Ton aventure s’achève sans que ton ambition devienne réalité.";
+    const factionClosing = {
+      pirate: "Les mers se souviendront néanmoins de la légende bâtie sous ton pavillon.",
+      marine: "Les responsabilités assumées et les batailles remportées continueront néanmoins de porter ton nom au sein de la Marine.",
+      "bounty-hunter": "Les contrats accomplis et les cibles terrassées demeurent les marques d’une carrière que la dernière prise ne peut effacer.",
+      revolutionary: "Les peuples aidés et les chaînes brisées sur ta route survivront à ce projet resté inachevé.",
+    }[faction] || "Tout ce que tu as accompli sur les mers demeure inscrit dans ton histoire.";
+    return {
+      id: "final-dream-failure",
+      icon: "☆",
+      title: "Un rêve hors de portée",
+      description: `${careerOpening} ${factionClosing}`,
+    };
+  }
+
+  function queueFinalDreamFailureConclusion(event, resolutionId, game = state.game) {
+    const finalOutcome = game?.bossProgress?.finalOutcome;
+    const zone = getCurrentZone(game);
+    if (!game || !zone || event?.eventType !== "decisive" || Number(event?.decisiveStage) !== 3) return false;
+    if (!finalOutcome || finalOutcome.dreamCompleted !== false) return false;
+    if (finalOutcome.dreamId && finalOutcome.dreamId !== game.character?.dream) return false;
+    if (finalOutcome.factionId && finalOutcome.factionId !== game.character?.faction) return false;
+    if (game.pendingZoneTransition?.reason === "dream-failure-conclusion" &&
+        game.pendingZoneTransition.resolutionId === resolutionId) return false;
+    game.pendingZoneTransition = {
+      ...createZoneTransitionData(zone, game.currentZoneIndex, "dream-failure-conclusion", game),
+      ...getFinalDreamFailureCopy(game),
+      resolutionId,
+      eyebrow: "DERNIÈRE ÉPREUVE",
+      buttonLabel: "Découvrir la fin de ma carrière",
+    };
+    return true;
+  }
+
   function getBossEvents() {
     const catalog = Array.isArray(window.BLUE_LEGACY_DECISIVE_EVENTS)
       ? window.BLUE_LEGACY_DECISIVE_EVENTS
@@ -4101,7 +4248,7 @@
       game.flags.secondDecisiveHakiBranch =
         game.flags.firstDecisiveHakiType === "conquerors"
           ? "mastery"
-          : "awakening";
+          : "base-conquerors";
     }
     game.currentEvent = boss;
     game.currentEventId = boss.id;
@@ -5215,6 +5362,13 @@
 
     saveGame();
 
+    if (["haki-conclusion", "dream-failure-conclusion"].includes(
+      game.pendingZoneTransition?.reason,
+    )) {
+      openScreen(SCREEN.ZONE_TRANSITION, { save: false });
+      return true;
+    }
+
     if (legendaryArcId) {
       const arc = game.legendaryArcs?.[legendaryArcId];
       if (legendaryStep < 3 && arc) {
@@ -5431,6 +5585,7 @@
     }
     const rewards = applyOutcomeMajorRewards(outcome, game);
     queueRewardReveals(rewards, game, { resolutionId, eventId: event.id });
+    queueHakiFailureConclusion(event, rewards, resolutionId, game);
 
     const dreamProgress = getOutcomeDreamProgress(outcome, game);
     if (dreamProgress) {
@@ -5475,6 +5630,7 @@
       queueRewardReveal(record, game, { resolutionId, eventId: event.id });
     });
     refreshPopularityScore(game);
+    queueFinalDreamFailureConclusion(event, resolutionId, game);
 
     const statsAfter = getStatsSnapshot(game.stats);
     const statChanges = getStatsDifference(
@@ -9673,7 +9829,7 @@
               <span class="pantheon-card-body">
                 <span class="pantheon-dream${dreamCompleted ? " is-complete" : ""}">
                   <span aria-hidden="true">${dreamCompleted ? "✓" : "✦"}</span>
-                  <span>${dreamCompleted ? "Rêve accompli" : `Rêve : ${escapeHtml(dreamLabel)}`}</span>
+                  <span>${dreamCompleted ? "Rêve accompli" : `Rêve non accompli : ${escapeHtml(dreamLabel)}`}</span>
                 </span>
                 <span class="pantheon-career-text">${escapeHtml(careerText)}</span>
                 ${entry.devilFruit ? `<span class="pantheon-asset-badge">${escapeHtml(entry.devilFruit.icon || "🍈")} ${escapeHtml(entry.devilFruit.name || "Fruit du Démon")}</span>` : ""}

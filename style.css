@@ -1888,6 +1888,46 @@ body.is-boss-danger-event #result-screen .result-card.negative {
   border-left: 4px solid var(--danger-red-dark);
 }
 
+/* Conclusion purement narrative des épreuves de Haki : même prestige doré que
+   l’événement décisif, avec une tonalité sobre qui ne suggère pas un game over. */
+.zone-transition-screen.haki-conclusion {
+  --zone-primary: #5f4708;
+  --zone-secondary: #f8e7a4;
+  --zone-accent: #d6a91f;
+  --zone-text: #2b2108;
+  min-height: 100dvh;
+  background: linear-gradient(155deg, #fff8dc 0%, #e8c75e 58%, #8b6812 100%);
+}
+
+.zone-transition-screen.haki-conclusion .zone-transition-card {
+  max-width: 620px;
+}
+
+.zone-transition-screen.haki-conclusion .zone-transition-description {
+  max-width: 52ch;
+  margin-inline: auto;
+}
+
+.zone-transition-screen.dream-failure-conclusion {
+  --zone-primary: #59491e;
+  --zone-secondary: #f3e7bb;
+  --zone-accent: #b9983d;
+  --zone-text: #292311;
+  min-height: 100dvh;
+  background: linear-gradient(155deg, #fffaf0 0%, #d9c47e 58%, #66511d 100%);
+}
+
+.zone-transition-screen.dream-failure-conclusion .zone-transition-card {
+  max-width: 640px;
+  border-color: #9f8130;
+  box-shadow: 0 5px 0 rgba(77, 59, 15, .34), 0 14px 28px rgba(58, 45, 15, .2);
+}
+
+.zone-transition-screen.dream-failure-conclusion .zone-transition-description {
+  max-width: 56ch;
+  margin-inline: auto;
+}
+
 /* Les arcs légendaires utilisent une identité monochrome, distincte du rouge
    du risque, du doré décisif et de l’arc-en-ciel mythique. */
 .zone-transition-screen.legendary-arc-transition {
