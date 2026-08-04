@@ -304,14 +304,21 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <aside aria-label="État du personnage" class="character-status" id="character-status">
 <div class="character-identity-row">
 <h3 id="game-character-name">Nom du personnage</h3>
+<div class="character-panel-toggles">
 <button aria-controls="game-stats-panel" aria-expanded="false" class="game-stats-toggle" id="game-stats-toggle" type="button">
 <span>Statistiques</span>
 <span aria-hidden="true" class="game-stats-toggle-chevron">⌄</span>
 </button>
+<button aria-controls="game-details-panel" aria-expanded="false" class="game-stats-toggle" id="game-details-toggle" type="button">
+<span>Détails</span>
+<span aria-hidden="true" class="game-stats-toggle-chevron">⌄</span>
+</button>
+</div>
 </div>
 <div class="game-stats-panel" hidden="" id="game-stats-panel">
 <div class="stats-grid" id="game-stats-list"></div>
 </div>
+<div class="game-details-panel" hidden="" id="game-details-panel">
 <div class="career-assets" id="game-career-assets" hidden="">
 <section class="career-asset-section" id="game-fruit-section" hidden="">
 <h4>🍈 Fruit du Démon</h4>
@@ -326,6 +333,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h4 id="active-titles-title">🎖️ Titres actuels</h4>
 <div class="active-titles-list" id="game-active-titles"></div>
 </section>
+</div>
 <section class="game-shop-items" id="game-shop-items-section" aria-labelledby="game-shop-items-title" hidden>
 <h4 id="game-shop-items-title">🎒 Objets équipés</h4>
 <div id="game-shop-items"></div>

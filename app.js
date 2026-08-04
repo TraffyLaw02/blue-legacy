@@ -334,6 +334,7 @@
     returnScreen: SCREEN.HOME,
     resumeScreen: SCREEN.GAME,
     gameStatsExpanded: false,
+    gameDetailsExpanded: false,
     pendingShopPurchaseId: null,
     isResolvingEvent: false,
     isContinuingResult: false,
@@ -342,6 +343,7 @@
   };
 
   const GAME_STATS_EXPANDED_SESSION_KEY = "blueLegacyGameStatsExpanded";
+  const GAME_DETAILS_EXPANDED_SESSION_KEY = "blueLegacyGameDetailsExpanded";
 
   const dom = {};
 
@@ -403,6 +405,8 @@
     dom.gameStatsToggle = byId("game-stats-toggle");
     dom.gameStatsPanel = byId("game-stats-panel");
     dom.gameStats = byId("game-stats-list");
+    dom.gameDetailsToggle = byId("game-details-toggle");
+    dom.gameDetailsPanel = byId("game-details-panel");
     dom.gameCareerAssets = byId("game-career-assets");
     dom.gameFruitSection = byId("game-fruit-section");
     dom.gameDevilFruit = byId("game-devil-fruit");
@@ -9134,12 +9138,6 @@
         );
       }
 
-      if (character.devilFruit) {
-        details.push(
-          character.devilFruit.name,
-        );
-      }
-
       dom.gameCharacterName.innerHTML = `
         ${escapeHtml(character.name)}
         ${
@@ -10487,12 +10485,21 @@
      ÉVÉNEMENTS DOM
   ======================================================== */
 
-  function readGameStatsExpandedPreference() {
+  function readExpandedPreference(key, defaultValue = false) {
     try {
-      return sessionStorage.getItem(GAME_STATS_EXPANDED_SESSION_KEY) === "true";
+      const stored = sessionStorage.getItem(key);
+      return stored === null ? defaultValue : stored === "true";
     } catch (error) {
-      return false;
+      return defaultValue;
     }
+  }
+
+  function readGameStatsExpandedPreference() {
+    return readExpandedPreference(GAME_STATS_EXPANDED_SESSION_KEY);
+  }
+
+  function readGameDetailsExpandedPreference() {
+    return readExpandedPreference(GAME_DETAILS_EXPANDED_SESSION_KEY);
   }
 
   function setGameStatsExpanded(expanded, { persist = true } = {}) {
@@ -10521,6 +10528,32 @@
     setGameStatsExpanded(!state.gameStatsExpanded);
   }
 
+  function setGameDetailsExpanded(expanded, { persist = true } = {}) {
+    const nextExpanded = Boolean(expanded);
+    state.gameDetailsExpanded = nextExpanded;
+
+    if (dom.gameDetailsPanel) dom.gameDetailsPanel.hidden = !nextExpanded;
+    if (dom.gameDetailsToggle) {
+      dom.gameDetailsToggle.setAttribute("aria-expanded", String(nextExpanded));
+      dom.gameDetailsToggle.setAttribute(
+        "aria-label",
+        `${nextExpanded ? "Masquer" : "Afficher"} les détails du personnage`,
+      );
+    }
+
+    if (persist) {
+      try {
+        sessionStorage.setItem(GAME_DETAILS_EXPANDED_SESSION_KEY, String(nextExpanded));
+      } catch (error) {
+        // L’état en mémoire reste suffisant si le stockage de session est indisponible.
+      }
+    }
+  }
+
+  function toggleGameDetailsPanel() {
+    setGameDetailsExpanded(!state.gameDetailsExpanded);
+  }
+
   function bindEvents() {
     dom.openGameMenu?.setAttribute("aria-label", "Ouvrir le menu");
     dom.openGameMenu?.setAttribute("aria-expanded", "false");
@@ -10534,6 +10567,12 @@
       event.preventDefault();
       event.stopPropagation();
       toggleGameStatsPanel();
+    });
+
+    dom.gameDetailsToggle?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleGameDetailsPanel();
     });
 
     dom.pastLifeExportButton?.addEventListener("click", (event) => {
@@ -11942,6 +11981,8 @@
     openGameMenu,
     closeGameMenu,
     toggleGameMenu,
+    setGameStatsExpanded,
+    setGameDetailsExpanded,
     loadGame,
     saveGame,
     clearSave,
@@ -12034,6 +12075,7 @@
   function initializeApplication() {
     collectDom();
     setGameStatsExpanded(readGameStatsExpandedPreference(), { persist: false });
+    setGameDetailsExpanded(readGameDetailsExpandedPreference(), { persist: false });
     createGameMenu();
     bindEvents();
     applySettings();

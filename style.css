@@ -1510,7 +1510,7 @@ dl:last-child {
 
 .character-identity-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 8px 12px;
 }
@@ -1521,6 +1521,13 @@ dl:last-child {
   font-size: 1.25rem;
   overflow-wrap: break-word;
   word-break: normal;
+}
+
+.character-panel-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 7px;
 }
 
 .game-stats-toggle {
@@ -1546,6 +1553,24 @@ dl:last-child {
   background: color-mix(in srgb, var(--sky) 38%, var(--cream));
 }
 
+.game-stats-toggle[aria-expanded="true"] {
+  color: var(--white);
+  background: var(--ocean-deep);
+  border-color: var(--ocean-deep);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--ocean-deep) 55%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--white) 18%, transparent);
+}
+
+.game-stats-toggle:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold) 78%, var(--white));
+  outline-offset: 3px;
+}
+
+.game-stats-toggle:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
 .game-stats-toggle-chevron {
   font-size: 1rem;
   line-height: 1;
@@ -1556,8 +1581,16 @@ dl:last-child {
   transform: rotate(180deg);
 }
 
-.game-stats-panel {
+.game-stats-panel,
+.game-details-panel {
   margin-top: 12px;
+}
+
+@media (max-width: 430px) {
+  .game-stats-toggle {
+    min-height: 42px;
+    padding-inline: 10px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4236,6 +4269,14 @@ body.shake #app,
    18. TABLETTES ET ORDINATEURS
 ========================================================= */
 @media (min-width: 620px) {
+  .character-identity-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .character-panel-toggles {
+    justify-content: flex-end;
+  }
+
   .app-shell {
     padding: 28px 22px 48px;
   }
