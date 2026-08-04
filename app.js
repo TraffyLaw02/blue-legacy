@@ -10084,23 +10084,45 @@
     }));
   }
 
-  function inlineExportComputedStyles(root) {
-    [root, ...root.querySelectorAll("*")].forEach((element) => {
-      const computed = getComputedStyle(element);
-      const cssText = [...computed]
-        .map((property) => `${property}:${computed.getPropertyValue(property)};`)
-        .join("");
-      element.setAttribute("style", cssText);
-    });
+  function waitForExportFrame() {
+    return new Promise((resolve) => requestAnimationFrame(resolve));
   }
 
-  function loadExportImage(url) {
-    return new Promise((resolve, reject) => {
-      const image = new Image();
-      image.addEventListener("load", () => resolve(image), { once: true });
-      image.addEventListener("error", reject, { once: true });
-      image.src = url;
+  async function waitForExportFonts() {
+    if (!document.fonts?.ready) return;
+    await Promise.race([
+      document.fonts.ready.catch(() => undefined),
+      new Promise((resolve) => window.setTimeout(resolve, 3000)),
+    ]);
+  }
+
+  const UNSUPPORTED_EXPORT_COLOR = /(?:color|color-mix|lab|lch|oklab|oklch)\(/i;
+  const EXPORT_COLOR_PROPERTIES = [
+    "color", "background-color", "background-image", "border-top-color",
+    "border-right-color", "border-bottom-color", "border-left-color",
+    "outline-color", "text-decoration-color", "box-shadow", "text-shadow",
+    "fill", "stroke",
+  ];
+
+  function assertExportUsesSafeColors(root) {
+    const unsupported = [];
+    const nodes = [root, ...root.querySelectorAll("*")];
+    nodes.forEach((element) => {
+      [null, "::before", "::after"].forEach((pseudo) => {
+        const computed = getComputedStyle(element, pseudo);
+        const invalid = EXPORT_COLOR_PROPERTIES.find((property) =>
+          UNSUPPORTED_EXPORT_COLOR.test(computed.getPropertyValue(property)));
+        if (invalid) unsupported.push(`${element.tagName.toLowerCase()}${pseudo || ""}.${invalid}`);
+      });
+      const inlineStyle = element.getAttribute("style") || "";
+      if (UNSUPPORTED_EXPORT_COLOR.test(inlineStyle)) {
+        unsupported.push(`${element.tagName.toLowerCase()}.style`);
+      }
     });
+    if (unsupported.length) {
+      throw new Error(`${unsupported.length} couleur(s) d’export non compatible(s) : ${unsupported.slice(0, 6).join(", ")}`);
+    }
+    return true;
   }
 
   function canvasToPngBlob(canvas) {
@@ -10121,7 +10143,7 @@
     document.body.append(link);
     link.click();
     link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
     return true;
   }
 
@@ -10177,20 +10199,28 @@
     button.setAttribute("aria-busy", "true");
     button.textContent = "Création de l’image…";
     setCareerExportStatus("Préparation de la fiche…");
+    let exportStep = "prepare";
     let stage = null;
-    let svgUrl = null;
+    let clone = null;
     let canvas = null;
+    let exportDimensions = null;
 
     try {
+      if (typeof window.html2canvas !== "function") {
+        throw new Error("html2canvas n’est pas chargé");
+      }
       document.body.classList.add("is-exporting-career");
       dom.pastLifeExportArea.classList.add("career-sheet--exporting");
-      if (document.fonts?.ready) await document.fonts.ready;
+      exportStep = "fonts";
+      await waitForExportFonts();
+      exportStep = "images";
       await waitForExportImages(dom.pastLifeExportArea);
 
+      exportStep = "clone";
       stage = document.createElement("div");
       stage.className = "career-export-stage";
-      const clone = dom.pastLifeExportArea.cloneNode(true);
-      clone.classList.add("career-export-clone");
+      clone = dom.pastLifeExportArea.cloneNode(true);
+      clone.classList.add("career-export-clone", "career-export-safe");
       clone.querySelectorAll(".no-career-export").forEach((element) => element.remove());
       clone.querySelectorAll("details").forEach((details) => {
         details.open = true;
@@ -10198,36 +10228,61 @@
       });
       stage.append(clone);
       document.body.append(stage);
+      exportStep = "images";
       await inlineExportImages(clone);
       await waitForExportImages(clone);
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      exportStep = "fonts";
+      await waitForExportFonts();
+      await waitForExportFrame();
+      await waitForExportFrame();
 
-      const width = Math.ceil(stage.scrollWidth);
-      const height = Math.ceil(stage.scrollHeight);
+      exportStep = "layout";
+      const rect = clone.getBoundingClientRect();
+      const width = Math.ceil(Math.max(rect.width, clone.scrollWidth, stage.scrollWidth));
+      const height = Math.ceil(Math.max(rect.height, clone.scrollHeight, stage.scrollHeight));
       if (!width || !height) throw new Error("Dimensions d’export invalides");
-      inlineExportComputedStyles(stage);
-      const exportRoot = stage.cloneNode(true);
-      exportRoot.style.position = "static";
-      exportRoot.style.inset = "auto";
-      exportRoot.style.zIndex = "auto";
-      exportRoot.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-
-      const serialized = new XMLSerializer().serializeToString(exportRoot);
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%">${serialized}</foreignObject></svg>`;
-      svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
-      const image = await loadExportImage(svgUrl);
+      assertExportUsesSafeColors(clone);
       const maxPixels = 28000000;
       const maxSide = 16000;
       const scale = Math.min(2, maxSide / width, maxSide / height, Math.sqrt(maxPixels / (width * height)));
-      canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.floor(width * scale));
-      canvas.height = Math.max(1, Math.floor(height * scale));
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Canvas indisponible");
-      context.fillStyle = "#FFF9EC";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      if (!Number.isFinite(scale) || scale <= 0) throw new Error("Échelle d’export invalide");
+      const outputWidth = Math.max(1, Math.floor(width * scale));
+      const outputHeight = Math.max(1, Math.floor(height * scale));
+      if (outputWidth > maxSide || outputHeight > maxSide || outputWidth * outputHeight > maxPixels) {
+        throw new Error("Fiche trop grande pour un export PNG sûr");
+      }
+      exportDimensions = { width, height, scale, outputWidth, outputHeight };
+      exportStep = "capture";
+      canvas = await window.html2canvas(clone, {
+        backgroundColor: "#fff9ec",
+        scale,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        removeContainer: true,
+        imageTimeout: 10000,
+        width,
+        height,
+        windowWidth: width,
+        windowHeight: height,
+        scrollX: 0,
+        scrollY: 0,
+      });
+      if (!canvas.width || !canvas.height) throw new Error("Canvas d’export vide");
+      exportStep = "blob";
       const png = await canvasToPngBlob(canvas);
+      if (png.type !== "image/png" || png.size === 0) throw new Error("Blob PNG invalide");
+      document.documentElement.dataset.careerExportResult = JSON.stringify({
+        type: png.type,
+        size: png.size,
+        ...exportDimensions,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+      });
+      document.dispatchEvent(new CustomEvent("bluelegacy:career-export-ready", {
+        detail: { blob: png, canvas, dimensions: exportDimensions },
+      }));
+      exportStep = "delivery";
       const delivery = await deliverCareerPng(
         png,
         getCareerExportFilename(getSelectedPastLife() || {}),
@@ -10240,15 +10295,28 @@
         setCareerExportStatus("");
       }
     } catch (error) {
-      console.warn("[Blue Legacy] Export de la fiche impossible", error);
-      setCareerExportStatus("Impossible de créer l’image de la fiche. Réessaie dans quelques instants.", true);
+      console.error(`[Blue Legacy] Export échoué pendant l’étape ${exportStep}`, {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        dimensions: exportDimensions,
+        userAgent: navigator.userAgent,
+        error,
+      });
+      const localDevelopment = location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname);
+      setCareerExportStatus(
+        localDevelopment
+          ? `Échec de l’export : ${exportStep} — ${error?.message || "erreur inconnue"}`
+          : "Impossible de créer l’image de la fiche. Réessaie dans quelques instants.",
+        true,
+      );
     } finally {
-      if (svgUrl) URL.revokeObjectURL(svgUrl);
       if (canvas) {
         canvas.width = 0;
         canvas.height = 0;
         canvas.remove();
       }
+      clone?.classList.remove("career-export-clone", "career-export-safe");
       stage?.remove();
       dom.pastLifeExportArea.classList.remove("career-sheet--exporting");
       document.body.classList.remove("is-exporting-career");
@@ -12044,6 +12112,7 @@
     runCareerFinalTitleAudit,
     openPastLife,
     exportPastLifeCareer,
+    assertExportUsesSafeColors,
     getCareerExportFilename,
     canvasToPngBlob,
     deliverCareerPng,

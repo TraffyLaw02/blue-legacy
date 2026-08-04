@@ -3762,6 +3762,172 @@ body.shake #app,
   transition: none !important;
 }
 
+/* Palette volontairement classique pour html2canvas 1.4.1. Aucune couleur
+   moderne n'est laissée au clone rendu pendant la capture. */
+.career-export-safe {
+  --cream: #fff9ec;
+  --panel: #ffffff;
+  --white: #ffffff;
+  --ink: #25313c;
+  --muted: #667681;
+  --ocean: #2d9cdb;
+  --ocean-deep: #176b9c;
+  --sky: #8ed6f2;
+  --sky-soft: #eaf7fc;
+  --sand: #f6e7c1;
+  --line: #b9a98c;
+  --line-dark: #715237;
+  --gold: #d5a514;
+  --negative: #a63f3f;
+  --rarity-common: #7b8794;
+  --rarity-common-soft: #eef1f3;
+  --rarity-common-dark: #48525c;
+  --rarity-uncommon: #3da66f;
+  --rarity-uncommon-soft: #e5f6ed;
+  --rarity-uncommon-dark: #21633f;
+  --rarity-rare: #2d9cdb;
+  --rarity-rare-soft: #e5f4fc;
+  --rarity-rare-dark: #17658f;
+  --rarity-epic: #9b51e0;
+  --rarity-epic-soft: #f2e8fc;
+  --rarity-epic-dark: #62308f;
+  --rarity-legendary: #d5a514;
+  --rarity-legendary-soft: #fff6d2;
+  --rarity-legendary-dark: #795c08;
+  --rarity-mythic: #7387bc;
+  --rarity-mythic-soft: #f8f3ee;
+  --rarity-mythic-dark: #354262;
+  color: #25313c !important;
+  background: #fff9ec !important;
+  border-color: #b9a98c !important;
+  box-shadow: none !important;
+}
+
+.career-export-safe *,
+.career-export-safe *::before,
+.career-export-safe *::after {
+  color: #25313c !important;
+  background-color: rgba(255, 255, 255, 0) !important;
+  background-image: none !important;
+  border-color: #b9a98c !important;
+  outline-color: #176b9c !important;
+  text-decoration-color: #176b9c !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  fill: #25313c !important;
+  stroke: #25313c !important;
+}
+
+.career-export-safe .career-export-brand,
+.career-export-safe .past-life-panel,
+.career-export-safe .past-life-logbook-period,
+.career-export-safe .devil-fruit-card,
+.career-export-safe .crew-member-card,
+.career-export-safe .empty-state,
+.career-export-safe .logbook-news-item,
+.career-export-safe .past-life-logbook-highlights li,
+.career-export-safe .past-life-logbook-changes span {
+  color: #25313c !important;
+  background: #ffffff !important;
+  border-color: #b9a98c !important;
+  box-shadow: 0 2px 0 rgba(113, 82, 55, 0.16) !important;
+}
+
+.career-export-safe .past-life-hero {
+  color: #25313c !important;
+  background: linear-gradient(135deg, #eaf7fc, #ffffff) !important;
+  border-color: #176b9c !important;
+  box-shadow: 0 4px 0 rgba(23, 107, 156, 0.28) !important;
+}
+
+.career-export-safe .past-life-hero[data-rarity="mythic"] {
+  background: linear-gradient(115deg, #eaf7fc, #f3edfc, #fff0f7, #fff3e8, #fff8d8, #edf8f0, #e8f4fb) !important;
+  border-color: #7387bc !important;
+}
+
+.career-export-safe h1,
+.career-export-safe h2,
+.career-export-safe h3,
+.career-export-safe h4,
+.career-export-safe strong,
+.career-export-safe .past-life-hero h3,
+.career-export-safe .past-life-panel > h3,
+.career-export-safe .past-life-logbook-zone {
+  color: #25313c !important;
+}
+
+.career-export-safe .career-popularity-card,
+.career-export-safe .stat-card,
+.career-export-safe .stats-grid > *,
+.career-export-safe .starting-variance-item {
+  color: #25313c !important;
+  background: #eaf7fc !important;
+  border-color: #8bbbd3 !important;
+}
+
+.career-export-safe .rarity-common,
+.career-export-safe [data-rarity="common"] {
+  --rarity-color: #7b8794;
+  --rarity-soft: #eef1f3;
+  --rarity-dark: #48525c;
+}
+
+.career-export-safe .rarity-uncommon,
+.career-export-safe [data-rarity="uncommon"] {
+  --rarity-color: #3da66f;
+  --rarity-soft: #e5f6ed;
+  --rarity-dark: #21633f;
+}
+
+.career-export-safe .rarity-rare,
+.career-export-safe [data-rarity="rare"] {
+  --rarity-color: #2d9cdb;
+  --rarity-soft: #e5f4fc;
+  --rarity-dark: #17658f;
+}
+
+.career-export-safe .rarity-epic,
+.career-export-safe [data-rarity="epic"] {
+  --rarity-color: #9b51e0;
+  --rarity-soft: #f2e8fc;
+  --rarity-dark: #62308f;
+}
+
+.career-export-safe .rarity-legendary,
+.career-export-safe [data-rarity="legendary"] {
+  --rarity-color: #d5a514;
+  --rarity-soft: #fff6d2;
+  --rarity-dark: #795c08;
+}
+
+.career-export-safe .rarity-mythic,
+.career-export-safe [data-rarity="mythic"] {
+  --rarity-color: #7387bc;
+  --rarity-soft: #f8f3ee;
+  --rarity-dark: #354262;
+}
+
+.career-export-safe .title-card-badge,
+.career-export-safe [class*="rarity-"] {
+  color: var(--rarity-dark) !important;
+  background: var(--rarity-soft) !important;
+  border-color: var(--rarity-color) !important;
+  box-shadow: 0 2px 0 var(--rarity-dark) !important;
+}
+
+.career-export-safe .title-card-badge[data-rarity="mythic"] {
+  background: linear-gradient(115deg, #69aedd, #8d79cf, #cf83b5, #e5a06f, #d9c35f, #78b58d, #5a9fcb) !important;
+  border-color: #5d6894 !important;
+}
+
+.career-export-safe details,
+.career-export-safe .past-life-logbook-content,
+.career-export-safe .active-titles-list,
+.career-export-safe [class*="scroll"] {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
 .career-export-clone *,
 .career-sheet--exporting * {
   animation: none !important;
