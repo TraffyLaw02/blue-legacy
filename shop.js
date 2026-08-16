@@ -65,7 +65,7 @@
     { id: "epic", type: "background", name: "Fond épique", rarity: "epic", price: 350, description: "Des nuances violettes dignes des grandes routes." },
     { id: "legendary", type: "background", name: "Fond légendaire", rarity: "legendary", price: 550, description: "Une finition dorée pour les légendes des mers." },
     { id: "mythic", type: "background", name: "Fond mythique", rarity: "mythic", price: 850, description: "Un prisme marin subtil inspiré des raretés mythiques." },
-    { id: "cosmetic-d", type: "name-decoration", name: "D. cosmétique", rarity: "legendary", price: 500, description: "Ajoute visuellement le D. à la Carte de légende, sans aucun effet en aventure." },
+    { id: "cosmetic-d", type: "name-decoration", name: "D. cosmétique", rarity: "legendary", price: 10000, description: "Ajoute visuellement le D. à la Carte de légende, sans aucun effet en aventure." },
   ].map((item) => Object.freeze(item));
   window.BLUE_LEGACY_PROFILE_COSMETICS = Object.freeze(profileCosmetics);
 })();

@@ -497,6 +497,10 @@
 
     dom.settings = byId("settings-content");
 
+    dom.welcomeIdentityModal = byId("welcome-identity-modal");
+    dom.welcomeIdentityForm = byId("welcome-identity-form");
+    dom.welcomeIdentityError = byId("welcome-identity-error");
+
     dom.abandonModal = byId("abandon-modal");
     dom.confirmAbandon = byId("confirm-abandon-btn");
     dom.newGameModal = byId("new-game-modal");
@@ -779,6 +783,41 @@
     return loadProfile();
   }
 
+  function hasPermanentPlayerIdentity(profile = getProfile()) {
+    return Boolean(
+      String(profile.playerIdentity?.lastName || "").trim() &&
+      String(profile.playerIdentity?.firstName || "").trim()
+    );
+  }
+
+  function showWelcomeIdentityIfNeeded() {
+    if (!dom.welcomeIdentityModal || hasPermanentPlayerIdentity()) return false;
+    if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = "";
+    openDialog(dom.welcomeIdentityModal);
+    window.setTimeout(() => dom.welcomeIdentityForm?.elements.lastName?.focus(), 0);
+    return true;
+  }
+
+  function saveWelcomeIdentity(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const lastName = String(dom.welcomeIdentityForm?.elements.lastName?.value || "").trim().slice(0, 40);
+    const firstName = String(dom.welcomeIdentityForm?.elements.firstName?.value || "").trim().slice(0, 40);
+    if (!lastName || !firstName) {
+      if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = "Le nom et le prénom sont obligatoires.";
+      return false;
+    }
+    const profile = getProfile();
+    profile.playerIdentity.lastName = lastName;
+    profile.playerIdentity.firstName = firstName;
+    saveProfile(profile);
+    closeDialog(dom.welcomeIdentityModal);
+    updateHomeScreen();
+    if (state.screen === SCREEN.STATISTICS) updateStatisticsScreen();
+    window.BlueLegacyLeaderboard?.refreshHome();
+    return true;
+  }
+
   function getShopItems() {
     return Array.isArray(window.BLUE_LEGACY_SHOP_ITEMS)
       ? window.BLUE_LEGACY_SHOP_ITEMS
@@ -984,7 +1023,7 @@
         dom.resetProfileStatus.textContent = "Profil réinitialisé. Une nouvelle aventure peut commencer.";
       }
       state.profileResetCompletedAt = Date.now();
-      dom.startAdventure?.focus();
+      if (!showWelcomeIdentityIfNeeded()) dom.startAdventure?.focus();
       return true;
     } finally {
       state.isResettingProfile = false;
@@ -1234,6 +1273,32 @@
     return [last, d, first].filter(Boolean).join(" ");
   }
 
+  function renderPlayerIdentity(element, profileOrIdentity = {}) {
+    if (!element) return;
+    const identity = profileOrIdentity.playerIdentity || profileOrIdentity;
+    const cosmetics = profileOrIdentity.profileCosmetics || {};
+    const first = String(identity.firstName || "").trim();
+    const last = String(identity.lastName || "").trim();
+    const showD = cosmetics.ownsCosmeticD && cosmetics.showD;
+    element.replaceChildren();
+    if (!first && !last) {
+      element.textContent = "Aventurier inconnu";
+      return;
+    }
+    const parts = [
+      { value: last, className: "player-identity-last-name" },
+      { value: showD ? "D." : "", className: "player-identity-d" },
+      { value: first, className: "player-identity-first-name" },
+    ].filter((part) => part.value);
+    parts.forEach((part, index) => {
+      if (index) element.append(document.createTextNode(" "));
+      const span = document.createElement("span");
+      span.className = part.className;
+      span.textContent = part.value;
+      element.append(span);
+    });
+  }
+
   function formatProfileIdentity(profile) {
     return formatPlayerIdentity(profile);
   }
@@ -1270,10 +1335,12 @@
     const ownedBackgrounds = getProfileCosmetics().filter((item) => item.type === "background" && profile.profileCosmetics.ownedBackgrounds.includes(item.id));
     const recordCells = [["health", "❤️"], ["combat", "⚔️"], ["haki", "🛡️"], ["intelligence", "🧠"], ["charisma", "✨"]]
       .map(([key, icon]) => `<div class="legend-record"><span aria-hidden="true">${icon}</span><small>${escapeHtml(STATS[key].label)}</small><strong>${recordDisplay(summary.coreRecords[key])}</strong></div>`).join("");
-    const identityHtml = editing ? `<form class="profile-identity-form" id="profile-identity-form"><label>Prénom<input name="firstName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.firstName)}" autocomplete="given-name"></label><label>Nom<input name="lastName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.lastName)}" autocomplete="family-name"></label><div><button class="button button-primary" data-statistics-save-identity type="button">Enregistrer</button>${identityDefined ? '<button class="button" data-statistics-cancel-identity type="button">Annuler</button>' : ""}</div></form>` : `<button class="statistics-edit-button" data-statistics-edit-identity type="button">Modifier</button>`;
+    const identityFormHtml = editing ? `<form class="profile-identity-form" id="profile-identity-form"><label>Nom<input name="lastName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.lastName)}" autocomplete="family-name"></label><label>Prénom<input name="firstName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.firstName)}" autocomplete="given-name"></label><div><button class="button button-primary" data-statistics-save-identity type="button">Enregistrer</button>${identityDefined ? '<button class="button" data-statistics-cancel-identity type="button">Annuler</button>' : ""}</div></form>` : "";
+    const editIdentityButtonHtml = editing ? "" : `<button class="statistics-edit-button" data-statistics-edit-identity type="button">Modifier</button>`;
     const backgroundsHtml = state.statisticsAppearanceOpen ? `<div class="background-selector" aria-label="Fonds possédés">${ownedBackgrounds.map((item) => `<button type="button" class="background-choice" data-statistics-background="${escapeAttribute(item.id)}" data-background="${escapeAttribute(item.id)}" aria-pressed="${item.id === profile.profileCosmetics.selectedBackground}"><span>${escapeHtml(item.name)}</span><small>${item.id === profile.profileCosmetics.selectedBackground ? "Actif" : "Sélectionner"}</small></button>`).join("")}</div>` : "";
     const dControl = profile.profileCosmetics.ownsCosmeticD ? `<label class="cosmetic-d-toggle"><input type="checkbox" data-statistics-cosmetic-d ${profile.profileCosmetics.showD ? "checked" : ""}> Afficher le D.</label>` : '<p class="locked-cosmetic">🔒 D. cosmétique · À débloquer dans la Boutique</p>';
-    dom.statisticsContent.innerHTML = `<article class="legend-card" data-background="${escapeAttribute(profile.profileCosmetics.selectedBackground)}"><header class="legend-card-header"><div><p>CARTE DE LÉGENDE</p><h3>${escapeHtml(formatProfileIdentity(profile))}</h3></div><img src="assets/icone.png" alt="Emblème Blue Legacy"></header>${identityHtml}<p class="legend-popularity">⭐ Record de Popularité : <strong>${recordDisplay(summary.popularity)}${summary.popularity === null ? "" : " / 100"}</strong></p><div class="legend-highlights"><span>🌊 Aventures <strong>${summary.started}</strong></span><span>✨ Rêves accomplis <strong>${summary.dreamsCompleted}</strong></span><span>👑 Runs exceptionnelles <strong>${summary.exceptionalRuns}</strong></span></div><section><h4>Records</h4><div class="legend-records">${recordCells}</div></section><div class="legend-collections"><span>🏆 Succès ${profile.achievements.length}/${getAllAchievements().length}</span><span>🎖️ Titres ${profile.titles.length}/${getAllTitles().length}</span><span>🎒 Objets ${profile.ownedShopItems.length}/${getShopItems().length}</span></div><p class="legend-faction">Voie favorite : <strong>${escapeHtml(summary.favoriteFaction)}</strong></p></article><section class="card-customization"><div><h3>Personnaliser la carte</h3><p>Utilise uniquement les cosmétiques déjà possédés.</p></div><button class="button" data-statistics-toggle-appearance type="button" aria-expanded="${state.statisticsAppearanceOpen}">🎨 Changer le fond</button>${backgroundsHtml}${dControl}</section><section class="detailed-statistics"><h3>Statistiques détaillées</h3><dl><div><dt>Aventures lancées</dt><dd>${summary.started}</dd></div><div><dt>Aventures terminées</dt><dd>${summary.completed}</dd></div><div><dt>Abandons connus</dt><dd>${summary.abandoned}</dd></div><div><dt>Meilleure Fortune</dt><dd>${recordDisplay(summary.bestFortune, true)}</dd></div><div><dt>Record de renommée</dt><dd>${recordDisplay(summary.bestRenown, true)}</dd></div><div><dt>Plus grand équipage</dt><dd>${recordDisplay(summary.largestCrew)}</dd></div><div><dt>Titres maximum dans une run</dt><dd>${recordDisplay(summary.mostTitles)}</dd></div><div><dt>Compagnons maximum</dt><dd>${recordDisplay(summary.mostCompanions)}</dd></div><div><dt>Fruits découverts</dt><dd>${summary.fruitsDiscovered}</dd></div></dl></section>`;
+    dom.statisticsContent.innerHTML = `<article class="legend-card" data-background="${escapeAttribute(profile.profileCosmetics.selectedBackground)}"><header class="legend-card-header"><div class="legend-card-identity"><p>CARTE DE LÉGENDE</p><h3 id="profile-identity-display"></h3></div><div class="legend-card-header-actions">${editIdentityButtonHtml}<img src="assets/icone.png" alt="Emblème Blue Legacy"></div></header>${identityFormHtml}<p class="legend-popularity">⭐ Record de Popularité : <strong>${recordDisplay(summary.popularity)}${summary.popularity === null ? "" : " / 100"}</strong></p><div class="legend-highlights"><span>🌊 Aventures <strong>${summary.started}</strong></span><span>✨ Rêves accomplis <strong>${summary.dreamsCompleted}</strong></span><span>👑 Runs exceptionnelles <strong>${summary.exceptionalRuns}</strong></span></div><section><h4>Records</h4><div class="legend-records">${recordCells}</div></section><div class="legend-collections"><span>🏆 Succès ${profile.achievements.length}/${getAllAchievements().length}</span><span>🎖️ Titres ${profile.titles.length}/${getAllTitles().length}</span><span>🎒 Objets ${profile.ownedShopItems.length}/${getShopItems().length}</span></div><p class="legend-faction">Voie favorite : <strong>${escapeHtml(summary.favoriteFaction)}</strong></p></article><section class="card-customization"><div><h3>Personnaliser la carte</h3><p>Utilise uniquement les cosmétiques déjà possédés.</p></div><button class="button" data-statistics-toggle-appearance type="button" aria-expanded="${state.statisticsAppearanceOpen}">🎨 Changer le fond</button>${backgroundsHtml}${dControl}</section><section class="detailed-statistics"><h3>Statistiques détaillées</h3><dl><div><dt>Aventures lancées</dt><dd>${summary.started}</dd></div><div><dt>Aventures terminées</dt><dd>${summary.completed}</dd></div><div><dt>Abandons connus</dt><dd>${summary.abandoned}</dd></div><div><dt>Meilleure Fortune</dt><dd>${recordDisplay(summary.bestFortune, true)}</dd></div><div><dt>Record de renommée</dt><dd>${recordDisplay(summary.bestRenown, true)}</dd></div><div><dt>Plus grand équipage</dt><dd>${recordDisplay(summary.largestCrew)}</dd></div><div><dt>Titres maximum dans une run</dt><dd>${recordDisplay(summary.mostTitles)}</dd></div><div><dt>Compagnons maximum</dt><dd>${recordDisplay(summary.mostCompanions)}</dd></div><div><dt>Fruits découverts</dt><dd>${summary.fruitsDiscovered}</dd></div></dl></section>`;
+    renderPlayerIdentity(document.getElementById("profile-identity-display"), profile);
   }
 
   function updateShopScreen() {
@@ -8343,16 +8410,34 @@
     toast.className = "achievement-toast";
     toast.dataset.rarity = rarity;
     toast.setAttribute("role", "status");
+    toast.setAttribute("tabindex", "0");
+    toast.setAttribute("aria-label", `Succès débloqué : ${achievement.name}. Cliquer pour fermer.`);
     toast.innerHTML = `
       <span class="achievement-toast-icon" aria-hidden="true">${escapeHtml(achievement.icon || "🏆")}</span>
       <span><small>🏆 Succès débloqué</small><strong>${escapeHtml(achievement.name)}</strong></span>
     `;
     document.body.append(toast);
-    window.setTimeout(() => {
+    let dismissed = false;
+    const dismiss = (event) => {
+      if (dismissed) return;
+      dismissed = true;
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      window.clearTimeout(autoDismissTimer);
       toast.remove();
       achievementNotificationActive = false;
       showNextAchievementNotification();
-    }, document.body.classList.contains("reduced-motion") ? 1800 : 3200);
+    };
+    toast.addEventListener("click", dismiss);
+    toast.addEventListener("keydown", (event) => {
+      if (["Enter", " ", "Escape"].includes(event.key)) dismiss(event);
+    });
+    const autoDismissTimer = window.setTimeout(
+      dismiss,
+      document.body.classList.contains("reduced-motion") ? 1800 : 3200,
+    );
   }
 
   function unlockAchievement(
@@ -8938,7 +9023,7 @@
     state.game = null;
 
     openScreen(
-      SCREEN.PAST_LIFE,
+      SCREEN.PANTHEON,
       {
         save: false,
       },
@@ -8948,6 +9033,9 @@
     void window.BlueLegacyLeaderboard?.submitCareer({
       playerFirstName: profile.playerIdentity?.firstName,
       playerLastName: profile.playerIdentity?.lastName,
+      playerDCosmetic:
+        profile.profileCosmetics?.ownsCosmeticD === true &&
+        profile.profileCosmetics?.showD === true,
       characterName: pantheonEntry.name,
       characterTitle: getCompatibleFinalTitle(
         pantheonEntry.finalTitle,
@@ -9258,6 +9346,7 @@
         save: false,
       },
     );
+    showWelcomeIdentityIfNeeded();
 
     return true;
   }
@@ -11055,6 +11144,7 @@
   }
 
   function bindEvents() {
+    dom.welcomeIdentityForm?.addEventListener("submit", saveWelcomeIdentity);
     dom.openGameMenu?.setAttribute("aria-label", "Ouvrir le menu");
     dom.openGameMenu?.setAttribute("aria-expanded", "false");
     dom.openGameMenu?.addEventListener("click", (event) => {
@@ -12765,6 +12855,7 @@
     getProfileCosmetics,
     calculateProfileStatistics,
     formatPlayerIdentity,
+    renderPlayerIdentity,
     formatProfileIdentity,
     runProfileStatisticsAudit,
     purchaseProfileCosmetic,
@@ -12796,7 +12887,11 @@
 
   function initializeApplication() {
     collectDom();
-    window.BlueLegacyLeaderboard?.initialize({ getProfile, formatIdentity: formatPlayerIdentity });
+    window.BlueLegacyLeaderboard?.initialize({
+      getProfile,
+      formatIdentity: formatPlayerIdentity,
+      renderIdentity: renderPlayerIdentity,
+    });
     setGameStatsExpanded(readGameStatsExpandedPreference(), { persist: false });
     setGameDetailsExpanded(readGameDetailsExpandedPreference(), { persist: false });
     createGameMenu();

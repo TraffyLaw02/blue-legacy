@@ -1345,11 +1345,13 @@ body.has-game-credit #home-screen {
 .legend-card[data-background="legendary"], [data-background="legendary"].cosmetic-preview, [data-background="legendary"].background-choice { background: linear-gradient(145deg, #fff9d9, #efc55e); }
 .legend-card[data-background="mythic"], [data-background="mythic"].cosmetic-preview, [data-background="mythic"].background-choice { background: linear-gradient(135deg, #ffe8de, #fff3ba 28%, #d9f2e5 52%, #dcecff 74%, #efe1ff); }
 .legend-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.legend-card-identity { min-width: 0; }
 .legend-card-header p, .legend-card-header h3 { margin: 0; }
 .legend-card-header p { font-size: .7rem; font-weight: 900; letter-spacing: .14em; }
 .legend-card-header h3 { font-size: clamp(1.45rem, 5vw, 2.25rem); overflow-wrap: anywhere; }
 .legend-card-header img { width: clamp(46px, 9vw, 68px); aspect-ratio: 1; object-fit: contain; border-radius: 14px; }
-.statistics-edit-button { position: absolute; top: 88px; right: 24px; padding: 5px 9px; color: inherit; background: rgba(255,255,255,.55); border: 1px solid currentColor; border-radius: 999px; }
+.legend-card-header-actions { display: grid; flex: 0 0 auto; justify-items: end; gap: 8px; }
+.statistics-edit-button { position: static; min-height: 36px; padding: 5px 11px; color: inherit; background: rgba(255,255,255,.55); border: 1px solid currentColor; border-radius: 999px; }
 .profile-identity-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; background: rgba(255,255,255,.45); border-radius: 14px; }
 .profile-identity-form label { display: grid; gap: 4px; font-size: .8rem; font-weight: 800; }
 .profile-identity-form div { grid-column: 1 / -1; display: flex; gap: 8px; }
@@ -4874,8 +4876,6 @@ body.shake #app,
   .legend-record:last-child { grid-column: 1 / -1; }
   .profile-identity-form, .detailed-statistics dl { grid-template-columns: 1fr; }
   .profile-identity-form div { grid-column: 1; flex-wrap: wrap; }
-  .statistics-edit-button { top: 80px; right: 16px; }
-
   .button,
   .menu-button,
   .back-button,
@@ -5440,8 +5440,33 @@ h4,
   border: 2px solid var(--rarity-color);
   border-radius: var(--radius-medium);
   box-shadow: 0 5px 0 var(--rarity-dark), var(--shadow-large);
+  cursor: pointer;
+  touch-action: manipulation;
   animation: achievement-toast-in var(--transition-normal) both;
 }
+
+.achievement-toast:focus-visible {
+  outline: 3px solid var(--sun);
+  outline-offset: 3px;
+}
+
+.player-identity-d {
+  color: #b88a3b;
+  font-weight: 950;
+  text-shadow:
+    -1px 0 rgba(20, 13, 9, .72),
+    0 1px rgba(20, 13, 9, .72),
+    1px 0 rgba(20, 13, 9, .72),
+    0 -1px rgba(20, 13, 9, .72);
+}
+
+.welcome-identity-form { display: grid; gap: 14px; width: min(100%, 540px); }
+.welcome-identity-form > div h2,
+.welcome-identity-form > div p,
+.welcome-identity-form > p { margin: 0; }
+.welcome-identity-form label { display: grid; gap: 5px; font-weight: 800; }
+.welcome-identity-note { color: var(--muted); font-size: .84rem; line-height: 1.5; }
+.welcome-identity-error { min-height: 1.3em; color: var(--negative); font-size: .82rem; font-weight: 800; }
 
 .achievement-toast-icon {
   font-size: 1.6rem;

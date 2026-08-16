@@ -594,6 +594,21 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
   <a href="https://x.com/BlueLegacyFR" target="_blank" rel="noopener noreferrer">@BlueLegacyFR</a>
 </p>
 </footer>
+<!-- IDENTITÉ AU PREMIER LANCEMENT -->
+<dialog aria-labelledby="welcome-identity-title" aria-modal="true" class="modal welcome-identity-modal" id="welcome-identity-modal">
+<form class="modal-content welcome-identity-form" id="welcome-identity-form">
+<div>
+<p class="eyebrow">Votre légende commence ici</p>
+<h2 id="welcome-identity-title">Bienvenue dans Blue Legacy</h2>
+</div>
+<p>Avant de prendre la mer, renseignez votre nom et votre prénom.</p>
+<p class="welcome-identity-note">Cette identité apparaît dans votre carte Statistiques et dans le leaderboard. Vous pourrez la modifier plus tard depuis Statistiques.</p>
+<label>Nom<input name="lastName" maxlength="40" autocomplete="family-name" required></label>
+<label>Prénom<input name="firstName" maxlength="40" autocomplete="given-name" required></label>
+<p class="welcome-identity-error" id="welcome-identity-error" aria-live="polite"></p>
+<button class="button button-primary" type="submit">Valider</button>
+</form>
+</dialog>
 <!-- CONFIRMATION D’ABANDON -->
 <dialog aria-labelledby="abandon-modal-title" class="modal" id="abandon-modal">
 <form class="modal-content" method="dialog">
