@@ -1229,7 +1229,7 @@
     const last = profile.playerIdentity?.lastName || "";
     if (!first && !last) return "Aventurier inconnu";
     const d = profile.profileCosmetics?.ownsCosmeticD && profile.profileCosmetics?.showD ? "D." : "";
-    return [first, d, last].filter(Boolean).join(" ");
+    return [last, d, first].filter(Boolean).join(" ");
   }
 
   function runProfileStatisticsAudit() {

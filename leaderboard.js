@@ -146,12 +146,33 @@
   function clear(element) { while (element?.firstChild) element.removeChild(element.firstChild); }
   function text(tag, className, value) { const node = document.createElement(tag); if (className) node.className = className; node.textContent = value; return node; }
 
+  function formatPlayerIdentity(entry) {
+    const profile = profileProvider() || {};
+    const isCurrentPlayer = Boolean(entry.userId && entry.userId === readAuth()?.user?.id);
+    const identityProfile = {
+      playerIdentity: { firstName: entry.playerFirstName, lastName: entry.playerLastName },
+      profileCosmetics: isCurrentPlayer ? profile.profileCosmetics : {},
+    };
+    if (typeof window.formatProfileIdentity === "function") {
+      return window.formatProfileIdentity(identityProfile);
+    }
+    return [entry.playerLastName, entry.playerFirstName].filter(Boolean).join(" ") || "Joueur anonyme";
+  }
+
+  function getRankTierClass(rank) {
+    if (rank === 1) return "leaderboard-rank-mythic";
+    if (rank >= 2 && rank <= 5) return "leaderboard-rank-gold";
+    if (rank >= 6 && rank <= 15) return "leaderboard-rank-silver";
+    if (rank >= 16 && rank <= 50) return "leaderboard-rank-bronze";
+    return "";
+  }
+
   function createRow(entry, rank, full = false) {
     const row = document.createElement("article");
-    row.className = `leaderboard-entry leaderboard-entry--rank-${rank}${rank <= 3 ? " leaderboard-entry--podium" : ""}`;
+    row.className = `leaderboard-entry ${getRankTierClass(rank)}`.trim();
     const rankNode = text("strong", "leaderboard-entry__rank", `#${rank}`);
     const names = document.createElement("div"); names.className = "leaderboard-entry__names";
-    names.append(text("strong", "leaderboard-entry__player", `${entry.playerFirstName} ${entry.playerLastName}`.trim() || "Joueur anonyme"));
+    names.append(text("strong", "leaderboard-entry__player", formatPlayerIdentity(entry)));
     names.append(text("span", "leaderboard-entry__character", entry.characterName));
     const score = text("strong", "leaderboard-entry__score", full ? `${entry.score} Popularité` : String(entry.score));
     row.append(rankNode, names, score);

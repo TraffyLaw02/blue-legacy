@@ -1101,11 +1101,13 @@ body.has-game-credit #home-screen {
   margin: 0 auto 16px;
   padding: clamp(14px, 3vw, 20px);
   overflow: hidden;
-  color: var(--ink);
-  background: linear-gradient(145deg, rgba(255, 249, 236, .98), rgba(224, 244, 250, .95));
-  border: 2px solid var(--ocean-deep);
+  color: #f8edd8;
+  background:
+    linear-gradient(90deg, rgba(255, 228, 174, .025) 50%, transparent 50%) 0 0 / 34px 100%,
+    linear-gradient(145deg, #3a251b, #241610 72%, #1c110d);
+  border: 2px solid #9b743d;
   border-radius: var(--radius-medium);
-  box-shadow: 0 5px 0 var(--ocean-deep), 0 12px 28px rgba(23, 107, 156, .16);
+  box-shadow: 0 5px 0 #17100d, 0 12px 28px rgba(35, 20, 13, .24);
 }
 
 .monthly-leaderboard-card__header,
@@ -1121,7 +1123,8 @@ body.has-game-credit #home-screen {
 .leaderboard-panel-heading h3,
 .leaderboard-personal-panel h3 { margin: 0; }
 .monthly-leaderboard-card__header h2 { font-size: clamp(1.2rem, 4vw, 1.55rem); }
-.monthly-leaderboard-card__header time { flex: 0 0 auto; color: var(--ocean-deep); font-size: .85rem; font-weight: 800; }
+.monthly-leaderboard-card__header .eyebrow { color: #d9b879; }
+.monthly-leaderboard-card__header time { flex: 0 0 auto; color: #e2c994; font-size: .85rem; font-weight: 800; }
 
 .monthly-leaderboard-list { display: grid; gap: 8px; min-width: 0; margin-top: 14px; }
 .leaderboard-entry {
@@ -1131,6 +1134,7 @@ body.has-game-credit #home-screen {
   gap: 10px;
   min-width: 0;
   padding: 10px 12px;
+  color: var(--ink);
   background: rgba(255, 255, 255, .62);
   border: 1px solid rgba(23, 107, 156, .22);
   border-radius: 10px;
@@ -1142,24 +1146,63 @@ body.has-game-credit #home-screen {
 .leaderboard-entry__player { font-size: .92rem; }
 .leaderboard-entry__character { color: var(--text-secondary); font-size: .8rem; font-style: italic; }
 .leaderboard-entry__score { color: var(--ocean-deep); font-size: .88rem; text-align: right; white-space: nowrap; }
-.leaderboard-entry--rank-1 { background: linear-gradient(90deg, rgba(255, 221, 92, .28), rgba(255,255,255,.68)); border-color: #c89b24; }
-.leaderboard-entry--rank-1 .leaderboard-entry__rank { color: #9b6b00; }
-.leaderboard-entry--rank-2 { border-color: #9aa5ae; }
-.leaderboard-entry--rank-2 .leaderboard-entry__rank { color: #697782; }
-.leaderboard-entry--rank-3 { border-color: #b87948; }
-.leaderboard-entry--rank-3 .leaderboard-entry__rank { color: #96552d; }
-.leaderboard-entry--podium { box-shadow: 0 2px 8px rgba(38, 48, 56, .08); }
-.monthly-leaderboard-open { width: 100%; margin-top: 12px; color: var(--ocean-deep); background: rgba(255,255,255,.72); border-color: var(--ocean-deep); }
+.leaderboard-rank-mythic {
+  color: #26364f;
+  background: var(--dream-supreme-gradient);
+  background-size: 220% 220%;
+  border-color: rgba(255, 255, 255, .78);
+  box-shadow: 0 0 0 1px rgba(105, 126, 190, .34), 0 5px 16px var(--dream-supreme-shadow);
+  animation: leaderboard-mythic-shimmer 14s ease-in-out infinite alternate;
+}
+.leaderboard-rank-mythic .leaderboard-entry__rank,
+.leaderboard-rank-mythic .leaderboard-entry__score { color: #26364f; text-shadow: 0 1px 0 rgba(255,255,255,.72); }
+.leaderboard-rank-mythic .leaderboard-entry__player { text-shadow: 0 1px 0 rgba(255,255,255,.62); }
+.leaderboard-rank-mythic .leaderboard-entry__character { color: #3f4d65; }
+
+.leaderboard-rank-gold {
+  background: linear-gradient(115deg, #9b6a16, #e4bd55 42%, #fff0a7 68%, #b77a18);
+  border-color: #f3d878;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 3px 10px rgba(93, 58, 8, .24);
+}
+.leaderboard-rank-gold .leaderboard-entry__rank,
+.leaderboard-rank-gold .leaderboard-entry__score { color: #4e3105; }
+.leaderboard-rank-gold .leaderboard-entry__character { color: #634817; }
+
+.leaderboard-rank-silver {
+  background: linear-gradient(115deg, #87939f, #dce3e8 44%, #f8fbfc 67%, #9ba8b4);
+  border-color: #dce5ec;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72), 0 3px 9px rgba(49, 65, 78, .2);
+}
+.leaderboard-rank-silver .leaderboard-entry__rank,
+.leaderboard-rank-silver .leaderboard-entry__score { color: #344652; }
+.leaderboard-rank-silver .leaderboard-entry__character { color: #50616c; }
+
+.leaderboard-rank-bronze {
+  background: linear-gradient(115deg, #8c4d2d, #cf8757 43%, #edb17c 67%, #9a5732);
+  border-color: #e1a272;
+  box-shadow: inset 0 1px 0 rgba(255,234,211,.42), 0 3px 9px rgba(77, 37, 19, .22);
+}
+.leaderboard-rank-bronze .leaderboard-entry__rank,
+.leaderboard-rank-bronze .leaderboard-entry__score { color: #3f2114; }
+.leaderboard-rank-bronze .leaderboard-entry__character { color: #553326; }
+
+@keyframes leaderboard-mythic-shimmer {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+.reduced-motion .leaderboard-rank-mythic { animation: none; }
+.monthly-leaderboard-open { width: 100%; margin-top: 12px; color: #fff4df; background: #593a29; border-color: #b68b4e; box-shadow: 0 3px 0 #20130e; }
+.monthly-leaderboard-open:hover { color: #fff8e9; background: #6b4731; border-color: #d0a861; box-shadow: 0 5px 0 #20130e; }
 
 .leaderboard-full-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .42fr); align-items: start; gap: 18px; }
 .leaderboard-ranking-panel,
-.leaderboard-personal-panel { padding: clamp(14px, 3vw, 22px); background: var(--panel); border: 2px solid var(--line); border-radius: var(--radius-medium); }
-.leaderboard-personal-panel { position: sticky; top: 16px; border-color: var(--ocean-deep); }
-.leaderboard-personal-rank { display: block; margin: 14px 0 8px; color: var(--ocean-deep); font-size: 1.15rem; }
+.leaderboard-personal-panel { padding: clamp(14px, 3vw, 22px); color: #f8edd8; background: linear-gradient(145deg, #3a251b, #21140f); border: 2px solid #9b743d; border-radius: var(--radius-medium); box-shadow: 0 5px 0 #17100d, 0 12px 26px rgba(35, 20, 13, .18); }
+.leaderboard-personal-panel { position: sticky; top: 16px; border-color: #b68b4e; }
+.leaderboard-personal-rank { display: block; margin: 14px 0 8px; color: #e8ca8e; font-size: 1.15rem; }
 .leaderboard-personal-message { margin: 12px 0 5px; line-height: 1.5; }
-.monthly-leaderboard-status { margin: 8px 0; color: var(--text-secondary); text-align: center; }
+.monthly-leaderboard-status { margin: 8px 0; color: #dfcdb2; text-align: center; }
 .monthly-leaderboard-empty,
-.monthly-leaderboard-error { display: grid; justify-items: center; gap: 6px; padding: 18px 10px; color: var(--text-secondary); text-align: center; }
+.monthly-leaderboard-error { display: grid; justify-items: center; gap: 6px; padding: 18px 10px; color: #dfcdb2; text-align: center; }
 .monthly-leaderboard-empty p { margin: 0; }
 .monthly-leaderboard-error .leaderboard-retry { margin-top: 7px; }
 
