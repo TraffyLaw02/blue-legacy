@@ -547,15 +547,6 @@
     return values.some((value) => value < 0) ? "failure" : "mixed";
   }
 
-  function getChoiceProgressStat(choice, event, fallback) {
-    const weights = choice.resolutionWeights || {};
-    const dominant = Object.entries(weights).sort((a, b) => Number(b[1]) - Number(a[1]))[0]?.[0];
-    if (dominant === "renown") return "charisma";
-    return ["health", "combat", "haki", "intelligence", "charisma"].includes(dominant)
-      ? dominant
-      : fallback;
-  }
-
   function balanceOutcome(outcome, event, choice) {
     BALANCE_LEDGER.outcomesAnalyzed += 1;
     const before = JSON.stringify(outcome.effects || {});
@@ -568,16 +559,12 @@
       delete effects.health;
       BALANCE_LEDGER.statisticCoherenceCorrections += 1;
     }
-    const numericKeys = Object.keys(effects).filter((key) => Number.isFinite(Number(effects[key])));
     const hasMajorChange = Boolean(
       outcome.ending || outcome.devilFruit || outcome.crewMember || outcome.combatStyle ||
       outcome.dreamProgress || outcome.callback || outcome.relationship ||
       outcome.addTraits?.length || outcome.titles?.length,
     );
-    if (!numericKeys.length && !hasMajorChange) {
-      BALANCE_LEDGER.emptyOutcomesBefore += 1;
-      effects[event.resolutionCategory === "social" ? "intelligence" : "health"] = tier === "failure" ? -1 : 1;
-    }
+    if (!Object.keys(effects).length && !hasMajorChange) BALANCE_LEDGER.emptyOutcomesBefore += 1;
 
     const coreCap = event.eventType === "ordinary" ? 4 : event.eventType === "risk" ? 5 : 9;
     Object.entries(effects).forEach(([stat, raw]) => {
@@ -594,23 +581,6 @@
         effects[stat] = Math.max(-12000, Math.min(18000, value));
       }
     });
-
-    const values = Object.values(effects).map(Number).filter(Number.isFinite);
-    const bestPositive = Math.max(0, ...values);
-    if (["success", "exceptional_success"].includes(tier) && !hasMajorChange) {
-      const rewardStat = getChoiceProgressStat(
-        choice, event, event.resolutionCategory === "social" ? "charisma" : "combat",
-      );
-      const minimumGain = event.eventType === "ordinary" ? 3 : event.eventType === "risk" ? 5 : 6;
-      if (bestPositive < minimumGain) effects[rewardStat] = Math.max(minimumGain, Number(effects[rewardStat]) || 0);
-    }
-    if (tier === "mixed" && !hasMajorChange) {
-      const progressStat = getChoiceProgressStat(
-        choice, event, event.resolutionCategory === "social" ? "intelligence" : "haki",
-      );
-      const minimumGain = event.eventType === "ordinary" ? 2 : 1;
-      if (bestPositive < minimumGain) effects[progressStat] = Math.max(minimumGain, Number(effects[progressStat]) || 0);
-    }
 
     if (JSON.stringify(effects) !== before) BALANCE_LEDGER.outcomesCorrected += 1;
     return { ...outcome, outcomeTier: tier, effects };
@@ -5558,7 +5528,7 @@ const COMMON_EVENTS = [
         weights: { health: 0.15, combat: 0.10, haki: 0.45, intelligence: 0.30 },
         title: HAKI_TITLE_IDS.observation,
         success: "Tu perçois l’intention hostile avant le mouvement et guides les tiens à travers l’unique ouverture.",
-        mixed: "Ton instinct s’éveille dans le tumulte : la route reste coûteuse, mais le danger ne te surprend plus.",
+        mixed: "Tu cherches à lire l’intention hostile, mais le tumulte brouille encore tes sens. Aucun nouvel éveil ne répond à l’urgence.",
         failure: "Les intentions se confondent avec le chaos. Tu sauves l’essentiel, au prix d’une retraite éprouvante.",
         reward: { intelligence: 2, bounty: 160000 }, penalty: { health: -4, popularity: -1 },
       },
@@ -5567,7 +5537,7 @@ const COMMON_EVENTS = [
         weights: { health: 0.30, combat: 0.30, haki: 0.40 },
         title: HAKI_TITLE_IDS.armament,
         success: "Ta garde se durcit au point d’arrêter l’impact et maintient tous ceux qui comptent hors de portée.",
-        mixed: "Ta volonté renforce ton corps au moment critique. Tu plies, mais la ligne derrière toi ne rompt pas.",
+        mixed: "Tu tiens aussi longtemps que possible, mais ta garde finit par céder. Aucune force nouvelle ne s’éveille dans l’impact.",
         failure: "L’impact traverse ta garde. La mission continue, mais chaque mouvement rappelle le prix payé.",
         reward: { combat: 2, bounty: 170000 }, penalty: { health: -6, haki: -2 },
       },
@@ -5590,13 +5560,12 @@ const COMMON_EVENTS = [
     const outcomes = route.id === "sovereign"
       ? [
           createDecisiveOutcome(`${eventId}-${route.id}-awakened`, route.success, route.reward, { outcomeTier: "success", weight: 1, chance: 1, titles: [route.title], flags: { ...commonFlags, awakenedHakiKings: true, firstDecisiveHakiType: "conquerors", conquerorsHakiAwakenedAtFirstDecisive: true } }),
-          createDecisiveOutcome(`${eventId}-${route.id}-held`, route.noTitle, { charisma: 1, bounty: 120000 }, { outcomeTier: "success", weight: 1, flags: { ...commonFlags, firstDecisiveHakiType: "none", resistedKingsAwakening: true } }),
-          createDecisiveOutcome(`${eventId}-${route.id}-uncertain`, "La pression retombe sans révéler de pouvoir souverain. Les tiens restent debout, mais ta volonté doit encore trouver sa véritable portée.", { charisma: 1 }, { outcomeTier: "mixed", flags: { ...commonFlags, firstDecisiveHakiType: "none", resistedKingsAwakening: true } }),
+          createDecisiveOutcome(`${eventId}-${route.id}-uncertain`, route.noTitle, { health: -2, charisma: -1 }, { outcomeTier: "mixed", flags: { ...commonFlags, firstDecisiveHakiType: "none", resistedKingsAwakening: true } }),
           createDecisiveOutcome(`${eventId}-${route.id}-failed`, route.failure, route.penalty, { outcomeTier: "failure", fallback: true, flags: { ...commonFlags, firstDecisiveHakiType: "none", failedKingsAwakening: true } }),
         ]
       : [
           createDecisiveOutcome(`${eventId}-${route.id}-awakened`, route.success, route.reward, { outcomeTier: "success", titles: [route.title], flags: { ...commonFlags, firstDecisiveHakiType: route.id === "perception" ? "observation" : "armament", [`awakened_${route.title}`]: true } }),
-          createDecisiveOutcome(`${eventId}-${route.id}-emerging`, route.mixed, { [route.id === "perception" ? "intelligence" : "haki"]: 1, bounty: 100000 }, { outcomeTier: "mixed", titles: [route.title], flags: { ...commonFlags, firstDecisiveHakiType: route.id === "perception" ? "observation" : "armament", [`awakened_${route.title}`]: true } }),
+          createDecisiveOutcome(`${eventId}-${route.id}-emerging`, route.mixed, { health: -2, haki: -1 }, { outcomeTier: "mixed", flags: { ...commonFlags, firstDecisiveHakiType: "none", hakiAwakeningSetback: true } }),
           createDecisiveOutcome(`${eventId}-${route.id}-failed`, route.failure, route.penalty, { outcomeTier: "failure", fallback: true, flags: { ...commonFlags, firstDecisiveHakiType: "none", hakiAwakeningSetback: true } }),
         ];
     return { id: `${eventId}-${route.id}`, text, choiceTag: route.tag, resolutionWeights: route.weights, outcomes };
@@ -5615,7 +5584,7 @@ const COMMON_EVENTS = [
       outcomes: [
         createDecisiveOutcome(`${eventId}-${route.id}-mastery`, "Ta volonté souveraine cesse d’être un éclat incontrôlé : elle traverse la confrontation avec précision et protège ceux que tu as choisis.", { health: 1, combat: 1, haki: 1, charisma: 1, bounty: 520000 }, { outcomeTier: "success", titles: [HAKI_TITLE_IDS.kingsMastery], flags: { ...completed, masteredHakiKings: true }, condition: ({ game }) => game?.flags?.firstDecisiveHakiType === "conquerors" && game?.flags?.secondDecisiveHakiBranch === "mastery" }),
         createDecisiveOutcome(`${eventId}-${route.id}-awakened`, "Face à la pression, ton Haki des Rois s’éveille pour la première fois : une onde renverse les plus faibles et ouvre la voie sans prétendre vaincre la puissance adverse.", { charisma: 3, haki: 2, bounty: 420000 }, { outcomeTier: "success", titles: [HAKI_TITLE_IDS.kings], flags: { ...completed, awakenedHakiKings: true, conquerorsHakiAwakenedAtSecondDecisive: true }, condition: ({ game }) => ["observation", "armament", "none"].includes(game?.flags?.firstDecisiveHakiType) && game?.flags?.secondDecisiveHakiBranch === "base-conquerors" }),
-        createDecisiveOutcome(`${eventId}-${route.id}-resisted`, "Tu empêches la confrontation de devenir un désastre, mais la pression adverse ne déclenche aucun nouvel éveil. La route reste ouverte au prix d’un effort considérable.", { health: 1, bounty: 180000 }, { outcomeTier: "mixed", flags: { ...completed, resistedHakiConfrontation: true } }),
+        createDecisiveOutcome(`${eventId}-${route.id}-resisted`, "Tu empêches la confrontation de devenir un désastre immédiat, mais la pression adverse étouffe ta tentative. Aucun nouvel éveil ne répond cette fois-ci.", { haki: -1 }, { outcomeTier: "mixed", flags: { ...completed, resistedHakiConfrontation: true } }),
         createDecisiveOutcome(`${eventId}-${route.id}-failed`, "La pression brise ta tentative et force une retraite coûteuse. La volonté déjà acquise demeure, mais cette confrontation laisse une marque réelle.", route.penalty, { outcomeTier: "failure", fallback: true, flags: { ...completed, hakiConfrontationSetback: true } }),
       ],
     };

@@ -250,6 +250,10 @@ Repères généraux :
 95 et plus : carrière exceptionnelle
 
 Calibration statistique 0.9.3 : sur 120 000 carrières simulées, une stratégie cohérente produit une moyenne de 80,89 et une médiane de 81 ; les quatre factions restent à moins de 2,5 points de moyenne. Le rapport et les exports reproductibles se trouvent dans `tests/popularity-audit-report.md` et `tests/popularity-balance-results.*`.
+
+Audit final de développement
+
+Depuis la console locale, `runBalanceAudit({ runsPerFaction: 2500, seed: 16082026 })` produit un rapport structuré sur les événements, références et callbacks, Titres, Succès, compagnons, Fruits, rêves, flags et 10 000 carrières simulées. Une valeur plus faible de `runsPerFaction` permet un contrôle rapide. Cet outil n'altère ni la sauvegarde ni les probabilités de la partie en cours.
 Fortune et berrys
 
 La Fortune appartient uniquement à la run en cours.
@@ -663,6 +667,13 @@ Le code original, l’interface et les systèmes propres à Blue Legacy restent 
 
 Crédits
 
-Projet imaginé et développé par @Traffy02Law , avec l’aide d’outils d’intelligence artificielle pour la conception, l’écriture, l’équilibrage et le développement.
+Projet imaginé et développé par Léo Robert, avec l’aide d’outils d’intelligence artificielle pour la conception, l’écriture, l’équilibrage et le développement.
 
 Blue Legacy — Version 0.9.3
+Blue Legacy 0.9.3 - Profil Statistiques
+----------------------------------------
+L'accueil propose désormais une page Statistiques permanente : Carte de légende,
+identité de profil, records reconstruits depuis le Panthéon et progression globale.
+Les fonds de carte et le D. cosmétique s'achètent dans la Boutique, puis se
+sélectionnent exclusivement depuis Statistiques. Ils n'ont aucun effet en aventure
+et ne comptent pas dans la limite des deux objets de gameplay.

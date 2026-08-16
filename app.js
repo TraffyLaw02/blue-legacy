@@ -54,6 +54,7 @@
     REWARD_REVEAL: "rewardReveal",
     ACHIEVEMENTS: "achievements",
     SHOP: "shop",
+    STATISTICS: "statistics",
     TITLES: "titles",
     PANTHEON: "pantheon",
     PAST_LIFE: "pastLife",
@@ -71,6 +72,7 @@
     [SCREEN.REWARD_REVEAL]: "reward-reveal-screen",
     [SCREEN.ACHIEVEMENTS]: "achievements-screen",
     [SCREEN.SHOP]: "shop-screen",
+    [SCREEN.STATISTICS]: "statistics-screen",
     [SCREEN.TITLES]: "titles-screen",
     [SCREEN.PANTHEON]: "pantheon-screen",
     [SCREEN.PAST_LIFE]: "past-life-screen",
@@ -336,6 +338,9 @@
     gameStatsExpanded: false,
     gameDetailsExpanded: false,
     pendingShopPurchaseId: null,
+    pendingCosmeticPurchaseId: null,
+    statisticsIdentityEditing: false,
+    statisticsAppearanceOpen: false,
     isResolvingEvent: false,
     isContinuingResult: false,
     isResettingProfile: false,
@@ -369,6 +374,8 @@
     dom.shopEquippedCount = byId("shop-equipped-count");
     dom.shopEquippedItems = byId("shop-equipped-items");
     dom.shopItems = byId("shop-items");
+    dom.shopCosmetics = byId("shop-cosmetics");
+    dom.statisticsContent = byId("statistics-content");
     dom.shopCurrentRunNote = byId("shop-current-run-note");
 
     dom.creationPrevious = byId("creation-previous-btn");
@@ -530,6 +537,13 @@
       ownedShopItems: [],
       equippedShopItems: [],
       rewardedAchievementIds: [],
+      playerIdentity: { firstName: "", lastName: "" },
+      profileCosmetics: {
+        ownedBackgrounds: ["classic"],
+        selectedBackground: "classic",
+        ownsCosmeticD: false,
+        showD: false,
+      },
       settings: {
         reducedMotion: false,
         confirmAbandon: true,
@@ -537,6 +551,8 @@
         volume: 100,
       },
       statistics: {
+        startedAdventures: 0,
+        abandonedAdventures: 0,
         completedAdventures: 0,
         successfulAdventures: 0,
       },
@@ -672,6 +688,14 @@
     const equippedShopItems = uniqueArray(profile.equippedShopItems)
       .filter((id) => knownShopIds.has(id) && ownedSet.has(id))
       .slice(0, 2);
+    const knownBackgrounds = new Set(getProfileCosmetics().filter((item) => item.type === "background").map((item) => item.id));
+    const ownedBackgrounds = uniqueArray(profile.profileCosmetics?.ownedBackgrounds || ["classic"])
+      .filter((id) => knownBackgrounds.has(id));
+    if (!ownedBackgrounds.includes("classic")) ownedBackgrounds.unshift("classic");
+    const selectedBackground = ownedBackgrounds.includes(profile.profileCosmetics?.selectedBackground)
+      ? profile.profileCosmetics.selectedBackground : "classic";
+    const completedKnown = pantheon.filter(Boolean).length;
+    const rawStatistics = profile.statistics || {};
 
     return {
       ...defaults,
@@ -692,9 +716,22 @@
         ...defaults.settings,
         ...(profile.settings || {}),
       },
+      playerIdentity: {
+        firstName: String(profile.playerIdentity?.firstName || "").trim().slice(0, 40),
+        lastName: String(profile.playerIdentity?.lastName || "").trim().slice(0, 40),
+      },
+      profileCosmetics: {
+        ownedBackgrounds,
+        selectedBackground,
+        ownsCosmeticD: profile.profileCosmetics?.ownsCosmeticD === true,
+        showD: profile.profileCosmetics?.ownsCosmeticD === true && profile.profileCosmetics?.showD === true,
+      },
       statistics: {
         ...defaults.statistics,
-        ...(profile.statistics || {}),
+        ...rawStatistics,
+        startedAdventures: Math.max(completedKnown, Math.floor(Number(rawStatistics.startedAdventures) || 0)),
+        abandonedAdventures: Math.max(0, Math.floor(Number(rawStatistics.abandonedAdventures) || 0)),
+        completedAdventures: Math.max(completedKnown, Math.floor(Number(rawStatistics.completedAdventures) || 0)),
       },
     };
   }
@@ -744,6 +781,14 @@
     return Array.isArray(window.BLUE_LEGACY_SHOP_ITEMS)
       ? window.BLUE_LEGACY_SHOP_ITEMS
       : [];
+  }
+
+  function getProfileCosmetics() {
+    return Array.isArray(window.BLUE_LEGACY_PROFILE_COSMETICS) ? window.BLUE_LEGACY_PROFILE_COSMETICS : [];
+  }
+
+  function findProfileCosmetic(itemId) {
+    return getProfileCosmetics().find((item) => item.id === itemId) || null;
   }
 
   function findShopItem(itemId) {
@@ -1013,6 +1058,22 @@
       screen.hidden = !active;
       screen.classList.toggle("active", active);
     });
+
+    const credit = document.getElementById("game-credit");
+    if (credit) {
+      const creditScreens = new Set([
+        SCREEN_IDS[SCREEN.HOME],
+        SCREEN_IDS[SCREEN.SHOP],
+        SCREEN_IDS[SCREEN.STATISTICS],
+        SCREEN_IDS[SCREEN.ACHIEVEMENTS],
+        SCREEN_IDS[SCREEN.TITLES],
+        SCREEN_IDS[SCREEN.PANTHEON],
+        SCREEN_IDS[SCREEN.SETTINGS],
+      ]);
+      const visible = creditScreens.has(screenId);
+      credit.hidden = !visible;
+      document.body.classList.toggle("has-game-credit", visible);
+    }
   }
 
   function openScreen(screenName, options = {}) {
@@ -1083,6 +1144,7 @@
       [SCREEN.REWARD_REVEAL]: updateRewardRevealScreen,
       [SCREEN.ACHIEVEMENTS]: updateAchievementsScreen,
       [SCREEN.SHOP]: updateShopScreen,
+      [SCREEN.STATISTICS]: updateStatisticsScreen,
       [SCREEN.TITLES]: updateTitlesScreen,
       [SCREEN.PANTHEON]: updatePantheonScreen,
       [SCREEN.PAST_LIFE]: updatePastLifeScreen,
@@ -1116,6 +1178,86 @@
     return `<span class="shop-equipped-badge" data-rarity="${escapeAttribute(item.rarity)}">
       <span aria-hidden="true">${escapeHtml(item.icon)}</span>${escapeHtml(item.name)}
     </span>`;
+  }
+
+  function finiteRecord(values) {
+    const valid = values.map(Number).filter(Number.isFinite);
+    return valid.length ? Math.max(...valid) : null;
+  }
+
+  function calculateProfileStatistics(profile = getProfile()) {
+    const runs = (profile.pantheon || []).filter(Boolean);
+    const value = (run, key) => Number(run.finalStats?.[key] ?? run.stats?.[key]);
+    const coreRecords = Object.fromEntries(["health", "combat", "haki", "intelligence", "charisma"]
+      .map((key) => [key, finiteRecord(runs.map((run) => value(run, key)))]));
+    const popularity = finiteRecord(runs.map((run) => Number(run.popularityScore ?? value(run, "popularity"))));
+    const factionCounts = runs.reduce((counts, run) => {
+      const id = getDataId(run.faction); if (FACTION_META[id]) counts[id] = (counts[id] || 0) + 1; return counts;
+    }, {});
+    const maxFaction = finiteRecord(Object.values(factionCounts)) || 0;
+    const favorites = Object.keys(factionCounts).filter((id) => factionCounts[id] === maxFaction);
+    const fruitIds = new Set(runs.map((run) => getDataId(run.devilFruit)).filter(Boolean));
+    return {
+      started: Math.max(runs.length, Number(profile.statistics?.startedAdventures) || 0),
+      completed: runs.length,
+      abandoned: Math.max(0, Number(profile.statistics?.abandonedAdventures) || 0),
+      dreamsCompleted: runs.filter((run) => run.dreamCompleted === true).length,
+      exceptionalRuns: runs.filter((run) => Number(run.popularityScore ?? value(run, "popularity")) >= 95).length,
+      popularity, coreRecords,
+      bestFortune: finiteRecord(runs.map((run) => value(run, "fortune"))),
+      bestRenown: finiteRecord(runs.map((run) => value(run, "bounty"))),
+      largestCrew: finiteRecord(runs.map((run) => Math.max(Number(value(run, "crew")) || 0, run.crewMembers?.length || 0))),
+      mostTitles: finiteRecord(runs.map((run) => run.runTitles?.length || 0)),
+      mostCompanions: finiteRecord(runs.map((run) => run.crewMembers?.length || 0)),
+      favoriteFaction: favorites.length === 1 ? FACTION_META[favorites[0]].label : "Équilibre",
+      fruitsDiscovered: fruitIds.size,
+    };
+  }
+
+  function formatProfileIdentity(profile) {
+    const first = profile.playerIdentity?.firstName || "";
+    const last = profile.playerIdentity?.lastName || "";
+    if (!first && !last) return "Aventurier inconnu";
+    const d = profile.profileCosmetics?.ownsCosmeticD && profile.profileCosmetics?.showD ? "D." : "";
+    return [first, d, last].filter(Boolean).join(" ");
+  }
+
+  function runProfileStatisticsAudit() {
+    const base = createDefaultProfile();
+    base.pantheon = [
+      { faction: "pirate", popularityScore: 79, dreamCompleted: false, stats: { popularity: 79, health: 82, combat: 50 } },
+      { faction: "marine", popularityScore: 92, dreamCompleted: true, stats: { popularity: 92, combat: 83, intelligence: 88 } },
+      { faction: "pirate", popularityScore: 97, dreamCompleted: true, stats: { popularity: 97, health: 91, combat: 71, intelligence: 95 } },
+    ];
+    const result = calculateProfileStatistics(base);
+    const checks = {
+      completed: result.completed === 3,
+      exceptionalRuns: result.exceptionalRuns === 1,
+      popularity: result.popularity === 97,
+      health: result.coreRecords.health === 91,
+      combat: result.coreRecords.combat === 83,
+      intelligence: result.coreRecords.intelligence === 95,
+    };
+    return { pass: Object.values(checks).every(Boolean), checks, result };
+  }
+
+  function recordDisplay(value, money = false) {
+    return value === null || !Number.isFinite(Number(value)) ? "—" : money ? `${formatBerryAmount(value)} berrys` : String(Math.floor(Number(value)));
+  }
+
+  function updateStatisticsScreen() {
+    if (!dom.statisticsContent) return;
+    const profile = getProfile();
+    const summary = calculateProfileStatistics(profile);
+    const identityDefined = Boolean(profile.playerIdentity.firstName || profile.playerIdentity.lastName);
+    const editing = state.statisticsIdentityEditing || !identityDefined;
+    const ownedBackgrounds = getProfileCosmetics().filter((item) => item.type === "background" && profile.profileCosmetics.ownedBackgrounds.includes(item.id));
+    const recordCells = [["health", "❤️"], ["combat", "⚔️"], ["haki", "🛡️"], ["intelligence", "🧠"], ["charisma", "✨"]]
+      .map(([key, icon]) => `<div class="legend-record"><span aria-hidden="true">${icon}</span><small>${escapeHtml(STATS[key].label)}</small><strong>${recordDisplay(summary.coreRecords[key])}</strong></div>`).join("");
+    const identityHtml = editing ? `<form class="profile-identity-form" id="profile-identity-form"><label>Prénom<input name="firstName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.firstName)}" autocomplete="given-name"></label><label>Nom<input name="lastName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.lastName)}" autocomplete="family-name"></label><div><button class="button button-primary" data-statistics-save-identity type="button">Enregistrer</button>${identityDefined ? '<button class="button" data-statistics-cancel-identity type="button">Annuler</button>' : ""}</div></form>` : `<button class="statistics-edit-button" data-statistics-edit-identity type="button">Modifier</button>`;
+    const backgroundsHtml = state.statisticsAppearanceOpen ? `<div class="background-selector" aria-label="Fonds possédés">${ownedBackgrounds.map((item) => `<button type="button" class="background-choice" data-statistics-background="${escapeAttribute(item.id)}" data-background="${escapeAttribute(item.id)}" aria-pressed="${item.id === profile.profileCosmetics.selectedBackground}"><span>${escapeHtml(item.name)}</span><small>${item.id === profile.profileCosmetics.selectedBackground ? "Actif" : "Sélectionner"}</small></button>`).join("")}</div>` : "";
+    const dControl = profile.profileCosmetics.ownsCosmeticD ? `<label class="cosmetic-d-toggle"><input type="checkbox" data-statistics-cosmetic-d ${profile.profileCosmetics.showD ? "checked" : ""}> Afficher le D.</label>` : '<p class="locked-cosmetic">🔒 D. cosmétique · À débloquer dans la Boutique</p>';
+    dom.statisticsContent.innerHTML = `<article class="legend-card" data-background="${escapeAttribute(profile.profileCosmetics.selectedBackground)}"><header class="legend-card-header"><div><p>CARTE DE LÉGENDE</p><h3>${escapeHtml(formatProfileIdentity(profile))}</h3></div><img src="assets/icone.png" alt="Emblème Blue Legacy"></header>${identityHtml}<p class="legend-popularity">⭐ Record de Popularité : <strong>${recordDisplay(summary.popularity)}${summary.popularity === null ? "" : " / 100"}</strong></p><div class="legend-highlights"><span>🌊 Aventures <strong>${summary.started}</strong></span><span>✨ Rêves accomplis <strong>${summary.dreamsCompleted}</strong></span><span>👑 Runs exceptionnelles <strong>${summary.exceptionalRuns}</strong></span></div><section><h4>Records</h4><div class="legend-records">${recordCells}</div></section><div class="legend-collections"><span>🏆 Succès ${profile.achievements.length}/${getAllAchievements().length}</span><span>🎖️ Titres ${profile.titles.length}/${getAllTitles().length}</span><span>🎒 Objets ${profile.ownedShopItems.length}/${getShopItems().length}</span></div><p class="legend-faction">Voie favorite : <strong>${escapeHtml(summary.favoriteFaction)}</strong></p></article><section class="card-customization"><div><h3>Personnaliser la carte</h3><p>Utilise uniquement les cosmétiques déjà possédés.</p></div><button class="button" data-statistics-toggle-appearance type="button" aria-expanded="${state.statisticsAppearanceOpen}">🎨 Changer le fond</button>${backgroundsHtml}${dControl}</section><section class="detailed-statistics"><h3>Statistiques détaillées</h3><dl><div><dt>Aventures lancées</dt><dd>${summary.started}</dd></div><div><dt>Aventures terminées</dt><dd>${summary.completed}</dd></div><div><dt>Abandons connus</dt><dd>${summary.abandoned}</dd></div><div><dt>Meilleure Fortune</dt><dd>${recordDisplay(summary.bestFortune, true)}</dd></div><div><dt>Record de renommée</dt><dd>${recordDisplay(summary.bestRenown, true)}</dd></div><div><dt>Plus grand équipage</dt><dd>${recordDisplay(summary.largestCrew)}</dd></div><div><dt>Titres maximum dans une run</dt><dd>${recordDisplay(summary.mostTitles)}</dd></div><div><dt>Compagnons maximum</dt><dd>${recordDisplay(summary.mostCompanions)}</dd></div><div><dt>Fruits découverts</dt><dd>${summary.fruitsDiscovered}</dd></div></dl></section>`;
   }
 
   function updateShopScreen() {
@@ -1153,6 +1295,16 @@
         <footer><span class="shop-item-status">${escapeHtml(status)}</span><strong class="shop-item-price">💰 ${formatBerryAmount(item.price)}</strong>${action}</footer>
       </article>`;
     }).join("");
+    if (dom.shopCosmetics) {
+      dom.shopCosmetics.innerHTML = getProfileCosmetics().map((item) => {
+        const isBackground = item.type === "background";
+        const isOwned = isBackground ? profile.profileCosmetics.ownedBackgrounds.includes(item.id) : profile.profileCosmetics.ownsCosmeticD;
+        const missing = Math.max(0, item.price - profile.berries);
+        const preview = isBackground ? `<span class="cosmetic-preview" data-background="${escapeAttribute(item.id)}" aria-hidden="true"></span>` : '<span class="cosmetic-preview cosmetic-d-preview" aria-hidden="true">D.</span>';
+        const action = isOwned ? '<span class="shop-cosmetic-owned">Possédé · À utiliser depuis Statistiques</span>' : missing ? `<button class="button" disabled>Il manque ${formatBerryAmount(missing)} berrys</button>` : `<button class="button button-primary" data-cosmetic-buy="${escapeAttribute(item.id)}" type="button">Acheter pour ${formatBerryAmount(item.price)} berrys</button>`;
+        return `<article class="shop-item-card cosmetic-shop-card" data-rarity="${escapeAttribute(item.rarity)}"><header class="shop-item-heading">${preview}<div><span class="shop-item-rarity">${escapeHtml(getRarityLabel(item.rarity))}</span><h3>${escapeHtml(item.name)}</h3></div></header><p>${escapeHtml(item.description)}</p><footer><strong class="shop-item-price">${item.price ? `💰 ${formatBerryAmount(item.price)}` : "Gratuit"}</strong>${action}</footer></article>`;
+      }).join("");
+    }
   }
 
   function requestShopPurchase(itemId) {
@@ -1162,6 +1314,20 @@
     state.pendingShopPurchaseId = itemId;
     if (dom.shopPurchaseModalText) dom.shopPurchaseModalText.textContent = `Acheter ${item.name} pour ${formatBerryAmount(item.price)} berrys ?`;
     openDialog(dom.shopPurchaseModal);
+    return true;
+  }
+
+  function purchaseProfileCosmetic(itemId) {
+    const item = findProfileCosmetic(itemId);
+    const profile = getProfile();
+    if (!item || item.id === "classic" || profile.berries < item.price) return false;
+    const owned = item.type === "background" ? profile.profileCosmetics.ownedBackgrounds.includes(item.id) : profile.profileCosmetics.ownsCosmeticD;
+    if (owned) return false;
+    profile.berries -= item.price;
+    if (item.type === "background") profile.profileCosmetics.ownedBackgrounds.push(item.id);
+    else profile.profileCosmetics.ownsCosmeticD = true;
+    saveProfile(profile);
+    updateShopScreen(); updateHomeScreen();
     return true;
   }
 
@@ -3079,6 +3245,14 @@
       return false;
     }
 
+    if (!state.game.profileStartCounted) {
+      const profile = getProfile();
+      profile.statistics.startedAdventures = Math.max(profile.pantheon.length, Number(profile.statistics.startedAdventures) || 0) + 1;
+      state.game.profileStartCounted = true;
+      saveProfile(profile);
+      saveGame();
+    }
+
     if (!state.game.route.length) {
       state.game.route = generateRoute(state.game.character);
       synchronizeRouteMetadata(state.game);
@@ -4073,14 +4247,16 @@
     "maitrise-haki-des-rois-plus",
   ]);
 
-  function queueHakiFailureConclusion(event, rewards, resolutionId, game = state.game) {
+  function queueHakiFailureConclusion(event, outcome, rewards, resolutionId, game = state.game) {
     const stage = Number(event?.decisiveStage);
     const zone = getCurrentZone(game);
     if (!game || !zone || !event?.tags?.includes("haki-awakening") || ![1, 2].includes(stage)) return false;
     const gainedHaki = (rewards || []).some((reward) =>
       reward?.type === "title" && HAKI_TITLE_REWARD_IDS.includes(getDataId(reward.data || reward.title || reward)),
     );
-    if (gainedHaki) return false;
+    const tier = outcome?.resolvedOutcomeTier || outcome?.outcomeTier || inferOutcomeTier(outcome || {});
+    const failedAwakening = ["mixed", "failure", "severe_failure"].includes(tier);
+    if (gainedHaki || !failedAwakening) return false;
     if (game.pendingZoneTransition?.reason === "haki-conclusion" &&
         game.pendingZoneTransition.resolutionId === resolutionId) return false;
 
@@ -4250,7 +4426,7 @@
     if (tier === 2 && boss.tags?.includes("haki-awakening")) {
       // Verrouillé avant l'affichage et avant toute récompense de l'étape 2.
       game.flags.secondDecisiveHakiBranch =
-        game.flags.firstDecisiveHakiType === "conquerors"
+        getFirstDecisiveHakiType(game) === "conquerors"
           ? "mastery"
           : "base-conquerors";
     }
@@ -4568,6 +4744,87 @@
     );
   }
 
+  const FIRST_DECISIVE_HAKI_TYPES = Object.freeze([
+    "observation", "armament", "conquerors", "none",
+  ]);
+
+  function getFirstDecisiveHakiType(game = state.game) {
+    const value = game?.flags?.firstDecisiveHakiType;
+    if (FIRST_DECISIVE_HAKI_TYPES.includes(value)) return value;
+    return game?.flags?.completedDecisiveStage1 === true ? "none" : null;
+  }
+
+  function isSecondDecisiveHakiEvent(event = state.game?.currentEvent) {
+    return Number(event?.decisiveStage) === 2 && event?.tags?.includes("haki-awakening");
+  }
+
+  function secureHakiDecisiveOutcome(selectedOutcome, event, game = state.game) {
+    if (!selectedOutcome || !isSecondDecisiveHakiEvent(event)) return selectedOutcome;
+    const firstHaki = getFirstDecisiveHakiType(game);
+    const requestsMastery = (selectedOutcome.titles || [])
+      .some((title) => getDataId(title) === "maitrise-haki-des-rois-plus");
+    if (!requestsMastery || firstHaki === "conquerors") return selectedOutcome;
+    console.error("[Blue Legacy] Issue Haki interdite corrigée : Maîtrise+ exige le Haki des Rois au premier décisif.", {
+      outcomeId: selectedOutcome.id,
+      firstDecisiveHakiType: firstHaki,
+    });
+    const secured = cloneData(selectedOutcome);
+    secured.titles = (secured.titles || []).map((title) =>
+      getDataId(title) === "maitrise-haki-des-rois-plus" ? "haki-des-rois" : title);
+    secured.flags ||= {};
+    delete secured.flags.masteredHakiKings;
+    secured.flags.awakenedHakiKings = true;
+    secured.flags.conquerorsHakiAwakenedAtSecondDecisive = true;
+    return secured;
+  }
+
+  function secureHakiOutcomeCoherence(selectedOutcome, choice, event, game = state.game) {
+    if (!selectedOutcome || !event?.tags?.includes("haki-awakening")) return selectedOutcome;
+    const tier = selectedOutcome.resolvedOutcomeTier || selectedOutcome.outcomeTier || inferOutcomeTier(selectedOutcome);
+    const positive = ["success", "exceptional_success"].includes(tier);
+    const hasHakiTitle = (selectedOutcome.titles || []).some((title) =>
+      HAKI_TITLE_REWARD_IDS.includes(getDataId(title)));
+    if (positive && hasHakiTitle) return selectedOutcome;
+
+    if (positive) {
+      const replacement = getCompatibleOutcomes(choice, game, event).find((outcome) =>
+        ["success", "exceptional_success"].includes(outcome.outcomeTier || inferOutcomeTier(outcome)) &&
+        (outcome.titles || []).some((title) => HAKI_TITLE_REWARD_IDS.includes(getDataId(title))));
+      console.error("[Blue Legacy] Résultat Haki incohérent : une réussite positive doit provoquer un éveil.", {
+        eventId: event.id,
+        outcomeId: selectedOutcome.id,
+        replacementId: replacement?.id || null,
+      });
+      if (replacement) {
+        return {
+          ...cloneData(replacement),
+          outcomeTier: replacement.outcomeTier || "success",
+          resolvedOutcomeTier: tier,
+        };
+      }
+    }
+
+    const secured = cloneData(selectedOutcome);
+    secured.outcomeTier = positive ? "failure" : tier;
+    secured.resolvedOutcomeTier = secured.outcomeTier;
+    secured.titles = (secured.titles || []).filter((title) =>
+      !HAKI_TITLE_REWARD_IDS.includes(getDataId(title)));
+    secured.effects = Object.fromEntries(Object.entries(secured.effects || {})
+      .filter(([, value]) => Number(value) <= 0));
+    if (!Object.values(secured.effects).some((value) => Number(value) < 0)) {
+      secured.effects.health = -1;
+    }
+    secured.flags ||= {};
+    if (Number(event.decisiveStage) === 1) {
+      secured.flags.firstDecisiveHakiType = "none";
+      secured.flags.conquerorsHakiAwakenedAtFirstDecisive = false;
+    }
+    delete secured.flags.awakenedHakiKings;
+    delete secured.flags.masteredHakiKings;
+    delete secured.flags.conquerorsHakiAwakenedAtSecondDecisive;
+    return secured;
+  }
+
   function getRenownResolutionValue(game = state.game) {
     const value = Math.max(0, Number(game?.stats?.bounty) || 0);
     return Math.min(100, Math.log10(1 + value / 25000) * 32);
@@ -4674,8 +4931,7 @@
 
   function selectOutcome(choice, game = state.game, event = null) {
     const compatible = getCompatibleOutcomes(choice, game, event);
-    const outcomes = choice?.outcomes || [];
-    const pool = compatible.length ? compatible : outcomes;
+    const pool = compatible;
     if (!pool.length) {
       const progressStat = event?.resolutionCategory === "social" ? "intelligence" : "health";
       return normalizeOutcome({
@@ -5552,7 +5808,16 @@
       isResolving: state.isResolvingEvent,
     });
 
-    const outcome = secureFinalDreamOutcome(selectOutcome(choice, game, event), event, game);
+    const outcome = secureHakiOutcomeCoherence(
+      secureHakiDecisiveOutcome(
+        secureFinalDreamOutcome(selectOutcome(choice, game, event), event, game),
+        event,
+        game,
+      ),
+      choice,
+      event,
+      game,
+    );
     if (event.legendaryArc && event.legendaryStep === 3 &&
         ["success", "exceptional_success"].includes(outcome.resolvedOutcomeTier || outcome.outcomeTier)) {
       const arcId = event.legendaryArc;
@@ -5580,7 +5845,7 @@
         ignoreDiminishingReturns: Boolean(outcome.ignoreDiminishingReturns),
       },
     );
-    applyChoiceFlags(outcome, game);
+    applyChoiceFlags(outcome, game, { event });
     if (
       (outcome.resolvedOutcomeTier || outcome.outcomeTier) === "severe_failure" ||
       outcome.criticalFailure === true
@@ -5589,7 +5854,7 @@
     }
     const rewards = applyOutcomeMajorRewards(outcome, game);
     queueRewardReveals(rewards, game, { resolutionId, eventId: event.id });
-    queueHakiFailureConclusion(event, rewards, resolutionId, game);
+    queueHakiFailureConclusion(event, outcome, rewards, resolutionId, game);
 
     const dreamProgress = getOutcomeDreamProgress(outcome, game);
     if (dreamProgress) {
@@ -5797,9 +6062,20 @@
     return effects;
   }
 
-  function applyChoiceFlags(choice, game) {
+  function applyChoiceFlags(choice, game, { event = game?.currentEvent } = {}) {
+    const firstDecisiveWasCompleted = game.flags.completedDecisiveStage1 === true;
     Object.entries(choice.flags || {}).forEach(
       ([flagId, value]) => {
+        if (flagId === "firstDecisiveHakiType") {
+          if (firstDecisiveWasCompleted || Number(event?.decisiveStage) !== 1) {
+            console.error("[Blue Legacy] Réécriture interdite de l’historique du premier décisif Haki.", {
+              attemptedValue: value,
+              eventId: event?.id,
+            });
+            return;
+          }
+          if (!FIRST_DECISIVE_HAKI_TYPES.includes(value)) value = "none";
+        }
         game.flags[flagId] = value;
       },
     );
@@ -5870,7 +6146,19 @@
       }
     }
 
-    const newTitles = outcome.titles.filter((title) =>
+    const protectedTitles = (outcome.titles || []).map((title) => {
+      const id = getDataId(title);
+      if (id !== "maitrise-haki-des-rois-plus" ||
+          getFirstDecisiveHakiType(game) === "conquerors") return title;
+      console.error("[Blue Legacy] Récompense Maîtrise+ interdite par l’historique du premier décisif.", {
+        outcomeId: outcome.id,
+        firstDecisiveHakiType: getFirstDecisiveHakiType(game),
+      });
+      return isSecondDecisiveHakiEvent(game.currentEvent)
+        ? "haki-des-rois"
+        : null;
+    }).filter(Boolean);
+    const newTitles = protectedTitles.filter((title) =>
       !game.runTitles.some((current) => getDataId(current) === getDataId(title)),
     );
     const titles = outcome.allowMultipleTitles
@@ -7682,6 +7970,13 @@
     }
 
     if (titleId === "maitrise-haki-des-rois-plus") {
+      if (getFirstDecisiveHakiType(game) !== "conquerors") {
+        console.error("[Blue Legacy] Attribution interdite de Maîtrise du Haki des Rois+ : le Haki des Rois n’a pas été éveillé au premier événement décisif.", {
+          firstDecisiveHakiType: getFirstDecisiveHakiType(game),
+          eventId: game.currentEvent?.id,
+        });
+        return false;
+      }
       game.runTitles = game.runTitles.filter(
         (title) => getDataId(title) !== "haki-des-rois",
       );
@@ -7800,6 +8095,19 @@
     ];
   }
 
+  const ACHIEVEMENT_CONDITION_TYPES = new Set([
+    "all-of", "runs-completed", "final-month", "zone-visited", "origins-played",
+    "factions-played", "special-zones-visited", "faction-stat",
+    "faction-dream-completed", "dreams-completed", "unique-dreams-completed",
+    "has-d", "stat-at-least", "max-stat-at-least", "finished-stat-at-most",
+    "zone-with-stat-at-most", "telemetry-at-least", "has-fruit",
+    "finished-with-fruit", "unique-fruits", "zone-without-fruit",
+    "d-and-dream-completed", "titles-unlocked", "has-title", "has-any-title",
+    "legendary-companion-recruited", "shop-items-owned", "finished-with-shop-items",
+    "finished-popularity", "legendary-arc-encountered", "legendary-arc-title",
+    "both-legendary-arcs", "three-legendary-arcs",
+  ]);
+
   function getAchievementProgress(achievement, profile = getProfile(), game = state.game) {
     const condition = achievement?.condition || {};
     const runs = getAchievementRuns(profile, game);
@@ -7815,6 +8123,14 @@
     let target = Number(condition.target) || 1;
 
     switch (condition.type) {
+      case "all-of": {
+        const conditions = Array.isArray(condition.conditions) ? condition.conditions : [];
+        const results = conditions.map((nestedCondition) =>
+          getAchievementProgress({ condition: nestedCondition }, profile, game));
+        current = results.filter((result) => result.unlocked).length;
+        target = conditions.length || 1;
+        break;
+      }
       case "runs-completed":
         current = (profile.pantheon?.length || 0) +
           (game?.isFinished && !profile.pantheon?.some((entry) => entry.id === game.id) ? 1 : 0);
@@ -8098,19 +8414,36 @@
     const validRarities = new Set(Object.keys(TITLE_RARITIES));
     const seen = new Set();
     const warnings = [];
+    const validateCondition = (condition, achievementId, path = "condition") => {
+      if (!condition?.type) {
+        warnings.push(`Condition manquante : ${achievementId}/${path}`);
+        return;
+      }
+      if (!ACHIEVEMENT_CONDITION_TYPES.has(condition.type)) {
+        warnings.push(`Type de condition inconnu : ${achievementId}/${path}/${condition.type}`);
+      }
+      if (condition.type === "all-of") {
+        if (!Array.isArray(condition.conditions) || condition.conditions.length < 2) {
+          warnings.push(`Condition all-of invalide : ${achievementId}/${path}`);
+          return;
+        }
+        condition.conditions.forEach((nested, index) =>
+          validateCondition(nested, achievementId, `${path}.conditions[${index}]`));
+      }
+      if (condition.stat && !validStats.has(condition.stat)) warnings.push(`Statistique inconnue : ${achievementId}/${path}`);
+      if ("target" in condition && Number(condition.target) <= 0) warnings.push(`Cible invalide : ${achievementId}/${path}`);
+    };
     achievements.forEach((achievement) => {
       const id = getDataId(achievement);
       if (!id || seen.has(id)) warnings.push(`Identifiant de Succès invalide ou dupliqué : ${id || "(vide)"}`);
       seen.add(id);
       if (!categories[achievement.category]) warnings.push(`Catégorie inconnue : ${id}`);
       if (!validRarities.has(normalizeRarity(achievement.rarity))) warnings.push(`Rareté inconnue : ${id}`);
-      if (!achievement.condition?.type) warnings.push(`Condition manquante : ${id}`);
+      validateCondition(achievement.condition, id);
       if (!achievement.description) warnings.push(`Description manquante : ${id}`);
       if (!achievement.unlockHint) warnings.push(`Moyen d’obtention manquant : ${id}`);
       if (achievement.secret && achievement.unlockHint !== "Condition secrète") warnings.push(`Secret révélant sa condition : ${id}`);
       if (achievement.effects || achievement.boost || achievement.rewards) warnings.push(`Effet interdit sur un Succès : ${id}`);
-      if (achievement.condition?.stat && !validStats.has(achievement.condition.stat)) warnings.push(`Statistique inconnue : ${id}`);
-      if ("target" in (achievement.condition || {}) && Number(achievement.condition.target) <= 0) warnings.push(`Cible invalide : ${id}`);
     });
     if (achievements.length < 25) warnings.push("Le catalogue contient moins de 25 Succès.");
     const titles = getAllTitles();
@@ -8145,6 +8478,69 @@
     if (!dom.gameActiveTitles) warnings.push("Section des Titres actifs absente du panneau de statistiques.");
     warnings.forEach((warning) => console.warn(`[Blue Legacy] ${warning}`));
     return warnings;
+  }
+
+  function runDivelcaAchievementAudit() {
+    const achievement = findAchievementData("divelca");
+    const makeProfile = (runCount, dreamCount) => {
+      const profile = createDefaultProfile();
+      profile.pantheon = Array.from({ length: runCount }, (_, index) => ({
+        id: `divelca-audit-${index}`,
+        finishedAt: "2026-01-01T00:00:00.000Z",
+        dreamCompleted: index < dreamCount,
+        stats: {},
+      }));
+      return profile;
+    };
+    const cases = [
+      [0, 0, false], [24, 1, false], [25, 0, false], [25, 1, true],
+      [25, 8, true], [40, 0, false], [40, 1, true], [27, 3, true],
+    ];
+    const checks = Object.fromEntries(cases.map(([runs, dreams, expected]) => {
+      const unlocked = getAchievementProgress(achievement, makeProfile(runs, dreams), null).unlocked;
+      return [`${runs}-runs-${dreams}-dreams`, unlocked === expected];
+    }));
+    const liveProfile = makeProfile(24, 1);
+    const liveGame = { id: "divelca-live-25", isFinished: true, dreamCompleted: false, stats: {} };
+    checks["25th-run-counted-immediately"] = getAchievementProgress(achievement, liveProfile, liveGame).unlocked;
+    const firstDreamProfile = makeProfile(25, 0);
+    const firstDreamGame = { id: "divelca-live-26", isFinished: true, dreamCompleted: true, stats: {} };
+    checks["first-dream-after-25"] = getAchievementProgress(achievement, firstDreamProfile, firstDreamGame).unlocked;
+    checks["catalog-valid"] = !validateAchievementCatalog().some((warning) => warning.includes("divelca"));
+    checks["secret-hint"] = achievement?.secret === true && achievement?.unlockHint === "Condition secrète";
+    checks["mythic-reward"] = getAchievementBerryReward(achievement) === 300;
+    return { pass: Object.values(checks).every(Boolean), checks };
+  }
+
+  function runDivelcaPersistenceAudit() {
+    const originalProfile = localStorage.getItem(CONFIG.profileKey);
+    try {
+      const profile = createDefaultProfile();
+      profile.pantheon = Array.from({ length: 27 }, (_, index) => ({
+        id: `divelca-retroactive-${index}`,
+        finishedAt: "2026-01-01T00:00:00.000Z",
+        dreamCompleted: index < 3,
+        stats: {},
+      }));
+      localStorage.setItem(CONFIG.profileKey, JSON.stringify(profile));
+      const firstUnlocks = checkAchievements(null, { retroactive: true });
+      const afterFirst = getProfile();
+      const firstBerries = afterFirst.berries;
+      const secondUnlocks = checkAchievements(null, { retroactive: true });
+      const afterSecond = getProfile();
+      const divelcaRecords = afterSecond.achievements.filter((record) => getDataId(record) === "divelca").length;
+      const rewardRecords = afterSecond.rewardedAchievementIds.filter((id) => id === "divelca").length;
+      const checks = {
+        "retroactive-unlock-once": firstUnlocks.includes("divelca") && !secondUnlocks.includes("divelca"),
+        "single-achievement-record": divelcaRecords === 1,
+        "single-reward-record": rewardRecords === 1,
+        "no-second-payment": afterSecond.berries === firstBerries,
+      };
+      return { pass: Object.values(checks).every(Boolean), checks };
+    } finally {
+      if (originalProfile === null) localStorage.removeItem(CONFIG.profileKey);
+      else localStorage.setItem(CONFIG.profileKey, originalProfile);
+    }
   }
 
   /* ========================================================
@@ -8809,6 +9205,11 @@
   }
 
   function abandonAdventure() {
+    if (state.game?.profileStartCounted && !state.game?.isFinished) {
+      const profile = getProfile();
+      profile.statistics.abandonedAdventures = (Number(profile.statistics.abandonedAdventures) || 0) + 1;
+      saveProfile(profile);
+    }
     deleteSave();
 
     state.game = null;
@@ -10896,6 +11297,34 @@
       requestShopPurchase(target.dataset.shopBuy);
       return;
     }
+    if (target.dataset.cosmeticBuy) {
+      event.preventDefault();
+      purchaseProfileCosmetic(target.dataset.cosmeticBuy);
+      return;
+    }
+    if (target.hasAttribute("data-statistics-edit-identity")) {
+      state.statisticsIdentityEditing = true; updateStatisticsScreen(); return;
+    }
+    if (target.hasAttribute("data-statistics-cancel-identity")) {
+      state.statisticsIdentityEditing = false; updateStatisticsScreen(); return;
+    }
+    if (target.hasAttribute("data-statistics-save-identity")) {
+      const form = document.getElementById("profile-identity-form");
+      const profile = getProfile();
+      profile.playerIdentity.firstName = String(form?.elements.firstName?.value || "").trim().slice(0, 40);
+      profile.playerIdentity.lastName = String(form?.elements.lastName?.value || "").trim().slice(0, 40);
+      saveProfile(profile); state.statisticsIdentityEditing = false; updateStatisticsScreen(); return;
+    }
+    if (target.hasAttribute("data-statistics-toggle-appearance")) {
+      state.statisticsAppearanceOpen = !state.statisticsAppearanceOpen; updateStatisticsScreen(); return;
+    }
+    if (target.dataset.statisticsBackground) {
+      const profile = getProfile();
+      if (profile.profileCosmetics.ownedBackgrounds.includes(target.dataset.statisticsBackground)) {
+        profile.profileCosmetics.selectedBackground = target.dataset.statisticsBackground; saveProfile(profile); updateStatisticsScreen();
+      }
+      return;
+    }
     if (target.dataset.shopEquip) {
       event.preventDefault();
       equipShopItem(target.dataset.shopEquip);
@@ -11008,6 +11437,14 @@
 
   function handleDocumentChange(event) {
     const target = event.target;
+
+    if (target.matches("[data-statistics-cosmetic-d]")) {
+      const profile = getProfile();
+      if (profile.profileCosmetics.ownsCosmeticD) {
+        profile.profileCosmetics.showD = target.checked; saveProfile(profile); updateStatisticsScreen();
+      }
+      return;
+    }
 
     const settingId =
       target.dataset?.settingId;
@@ -11407,7 +11844,7 @@
         count: items.length,
         uniqueIds: new Set(items.map((item) => item.id)).size === 5,
         totalPrice: items.reduce((sum, item) => sum + item.price, 0),
-        exactPrices: JSON.stringify(items.map((item) => item.price)) === JSON.stringify([200, 300, 375, 450, 700]),
+        exactPrices: JSON.stringify(items.map((item) => item.price)) === JSON.stringify([250, 375, 475, 625, 900]),
       };
 
       const invalid = normalizeProfile({
@@ -11433,7 +11870,7 @@
         idempotent: !migratedTwice && rewardProfile.berries === afterFirst,
       };
 
-      saveProfile({ ...createDefaultProfile(), berries: 200 });
+      saveProfile({ ...createDefaultProfile(), berries: 250 });
       const bought = purchaseShopItem("treasure-map");
       const doubleBuy = purchaseShopItem("treasure-map");
       const afterPurchase = getProfile();
@@ -11446,7 +11883,7 @@
       results.purchase = {
         bought,
         doubleBuyBlocked: !doubleBuy,
-        exactBalance: purchaseBalance === 50,
+        exactBalance: purchaseBalance === 0,
         owned: afterPurchase.ownedShopItems.includes("treasure-map"),
         thirdEquipBlocked: !thirdEquip,
       };
@@ -11529,9 +11966,9 @@
       updateHomeScreen();
     }
     results.pass = results.catalog.count === 5 && results.catalog.uniqueIds &&
-      results.catalog.totalPrice === 2025 && results.catalog.exactPrices &&
+      results.catalog.totalPrice === 2625 && results.catalog.exactPrices &&
       results.normalization.berries === 0 && results.normalization.owned.length === 1 &&
-      results.normalization.equipped.length === 1 && results.achievements.total === 925 &&
+      results.normalization.equipped.length === 1 && results.achievements.total === 810 &&
       results.achievements.claimed === 6 && results.achievements.idempotent &&
       results.purchase.bought && results.purchase.doubleBuyBlocked && results.purchase.exactBalance &&
       results.purchase.owned && results.purchase.thirdEquipBlocked &&
@@ -11849,6 +12286,179 @@
     return report;
   }
 
+  function runHakiDecisiveAudit() {
+    const factions = ["pirate", "marine", "bounty-hunter", "revolutionary"];
+    const firstTypes = ["none", "observation", "armament", "conquerors"];
+    const cases = [];
+    const coherenceCases = getBossEvents()
+      .filter((event) => [1, 2].includes(Number(event.decisiveStage)) && event.tags?.includes("haki-awakening"))
+      .flatMap((event) => event.choices.flatMap((choice) => choice.outcomes.map((outcome) => {
+        const positive = ["success", "exceptional_success"].includes(outcome.outcomeTier);
+        const hasHakiTitle = (outcome.titles || []).some((title) =>
+          HAKI_TITLE_REWARD_IDS.includes(getDataId(title)));
+        const hasPositiveEffect = Object.values(outcome.effects || {}).some((value) => Number(value) > 0);
+        return {
+          eventId: event.id,
+          choice: choice.choiceTag || choice.id,
+          outcomeId: outcome.id,
+          tier: outcome.outcomeTier,
+          hasHakiTitle,
+          hasPositiveEffect,
+          pass: positive ? hasHakiTitle : !hasHakiTitle && !hasPositiveEffect,
+        };
+      })));
+    const makeGame = (faction, firstType) => {
+      const game = createDefaultGameState({
+        name: "Audit Haki", faction, dream: faction === "marine" ? "admiral" : "one-piece",
+        origin: "east-blue", traits: [],
+      });
+      game.flags.completedDecisiveStage1 = true;
+      game.flags.firstDecisiveHakiType = firstType;
+      game.flags.conquerorsHakiAwakenedAtFirstDecisive = firstType === "conquerors";
+      game.flags.secondDecisiveHakiBranch = firstType === "conquerors" ? "mastery" : "base-conquerors";
+      const initialTitle = {
+        observation: "haki-observation",
+        armament: "haki-armement",
+        conquerors: "haki-des-rois",
+      }[firstType];
+      if (initialTitle) unlockTitle(initialTitle, findTitleData(initialTitle), game, false);
+      return game;
+    };
+
+    factions.forEach((faction) => {
+      const event = getBossEvents().find((candidate) =>
+        candidate.id === `haki-confrontation-${faction}`);
+      (event?.choices || []).forEach((choice) => {
+        firstTypes.forEach((firstType) => {
+          const game = makeGame(faction, firstType);
+          game.currentEvent = event;
+          const expectedTitle = firstType === "conquerors"
+            ? "maitrise-haki-des-rois-plus"
+            : "haki-des-rois";
+          const compatible = getCompatibleOutcomes(choice, game, event);
+          const success = compatible.find((outcome) =>
+            (outcome.titles || []).some((title) => getDataId(title) === expectedTitle));
+          const selected = success
+            ? selectOutcome({ ...choice, outcomes: [success] }, game, event)
+            : null;
+          const secured = secureHakiDecisiveOutcome(selected, event, game);
+          if (secured) {
+            applyChoiceFlags(secured, game, { event });
+            applyOutcomeMajorRewards(secured, game);
+          }
+          const titleIds = game.runTitles.map(getDataId);
+          const retainedFirstTitle = {
+            observation: "haki-observation",
+            armament: "haki-armement",
+          }[firstType];
+          const forbidden = firstType === "conquerors"
+            ? "haki-des-rois"
+            : "maitrise-haki-des-rois-plus";
+          cases.push({
+            faction,
+            choice: choice.choiceTag || choice.id,
+            firstHaki: firstType,
+            branch: game.flags.secondDecisiveHakiBranch,
+            compatibleOutcomeIds: compatible.map((outcome) => outcome.id),
+            selectedOutcomeId: selected?.id || null,
+            expectedTitle,
+            actualTitles: titleIds,
+            pass: Boolean(success) && titleIds.includes(expectedTitle) &&
+              !titleIds.includes(forbidden) &&
+              (!retainedFirstTitle || titleIds.includes(retainedFirstTitle)) &&
+              game.flags.firstDecisiveHakiType === firstType,
+          });
+        });
+      });
+    });
+
+    const directBlockedGame = makeGame("pirate", "none");
+    const directBlocked = unlockTitle(
+      "maitrise-haki-des-rois-plus",
+      findTitleData("maitrise-haki-des-rois-plus"),
+      directBlockedGame,
+      false,
+    ) === false && !directBlockedGame.appliedTitleEffects.includes("maitrise-haki-des-rois-plus");
+    const directAllowedGame = makeGame("pirate", "conquerors");
+    const directAllowed = unlockTitle(
+      "maitrise-haki-des-rois-plus",
+      findTitleData("maitrise-haki-des-rois-plus"),
+      directAllowedGame,
+      false,
+    ) === true;
+    const corruptedGame = makeGame("pirate", "none");
+    const corruptedEvent = getBossEvents().find((event) => event.id === "haki-confrontation-pirate");
+    corruptedGame.currentEvent = corruptedEvent;
+    const corrupted = secureHakiDecisiveOutcome(normalizeOutcome({
+      id: "corrupted-mastery",
+      outcomeTier: "success",
+      titles: ["maitrise-haki-des-rois-plus"],
+      flags: { masteredHakiKings: true },
+    }), corruptedEvent, corruptedGame);
+    applyChoiceFlags(corrupted, corruptedGame, { event: corruptedEvent });
+    applyOutcomeMajorRewards(corrupted, corruptedGame);
+    const corruptedRecovered = corruptedGame.runTitles.some((title) => getDataId(title) === "haki-des-rois") &&
+      !corruptedGame.runTitles.some((title) => getDataId(title) === "maitrise-haki-des-rois-plus") &&
+      corruptedGame.flags.firstDecisiveHakiType === "none";
+    const reloadedNone = normalizeGame(cloneData(makeGame("pirate", "none")));
+    const reloadedObservation = normalizeGame(cloneData(makeGame("pirate", "observation")));
+    const reloadStable = reloadedNone.flags.firstDecisiveHakiType === "none" &&
+      reloadedNone.flags.secondDecisiveHakiBranch === "base-conquerors" &&
+      reloadedObservation.flags.firstDecisiveHakiType === "observation" &&
+      reloadedObservation.flags.secondDecisiveHakiBranch === "base-conquerors";
+    const resolveReloadedSuccess = (game) => {
+      const event = getBossEvents().find((candidate) => candidate.id === "haki-confrontation-pirate");
+      game.currentEvent = event;
+      const success = getCompatibleOutcomes(event.choices[0], game, event).find((outcome) =>
+        (outcome.titles || []).some((title) => getDataId(title) === "haki-des-rois"));
+      applyChoiceFlags(success, game, { event });
+      applyOutcomeMajorRewards(success, game);
+      return game.runTitles.map(getDataId);
+    };
+    const noneAfterReload = resolveReloadedSuccess(reloadedNone);
+    const observationAfterReload = resolveReloadedSuccess(reloadedObservation);
+    const reloadThenSuccess = noneAfterReload.includes("haki-des-rois") &&
+      !noneAfterReload.includes("maitrise-haki-des-rois-plus") &&
+      observationAfterReload.includes("haki-observation") &&
+      observationAfterReload.includes("haki-des-rois") &&
+      !observationAfterReload.includes("maitrise-haki-des-rois-plus");
+    const profile = createDefaultProfile();
+    const sovereignAchievement = getAllAchievements().find((item) => item.id === "awaken-kings-haki");
+    const masteryAchievement = getAllAchievements().find((item) => item.id === "master-kings-haki");
+    const baseAchievementGame = makeGame("pirate", "none");
+    unlockTitle("haki-des-rois", findTitleData("haki-des-rois"), baseAchievementGame, false);
+    const achievementsCorrect =
+      getAchievementProgress(sovereignAchievement, profile, baseAchievementGame).unlocked &&
+      !getAchievementProgress(masteryAchievement, profile, baseAchievementGame).unlocked &&
+      getAchievementProgress(masteryAchievement, profile, directAllowedGame).unlocked;
+    const incoherentGame = makeGame("pirate", "none");
+    const incoherentEvent = getBossEvents().find((event) => event.id === "haki-confrontation-pirate");
+    const incoherentChoice = incoherentEvent.choices[0];
+    const validAwakening = getCompatibleOutcomes(incoherentChoice, incoherentGame, incoherentEvent)
+      .find((outcome) => outcome.id.endsWith("-awakened"));
+    const repairedPositive = secureHakiOutcomeCoherence(
+      { ...cloneData(validAwakening), id: "positive-without-haki", titles: [] },
+      incoherentChoice,
+      incoherentEvent,
+      incoherentGame,
+    );
+    const positiveWithoutHakiRepaired = (repairedPositive.titles || [])
+      .some((title) => getDataId(title) === "haki-des-rois");
+    const report = {
+      pass: cases.length === 48 && cases.every((test) => test.pass) &&
+        coherenceCases.length === 84 && coherenceCases.every((test) => test.pass) &&
+        directBlocked && directAllowed && corruptedRecovered && reloadStable &&
+        reloadThenSuccess && achievementsCorrect && positiveWithoutHakiRepaired,
+      cases,
+      coherenceCases,
+      safeguards: {
+        directBlocked, directAllowed, corruptedRecovered, reloadStable,
+        reloadThenSuccess, achievementsCorrect, positiveWithoutHakiRepaired,
+      },
+    };
+    return report;
+  }
+
   function runCollectionCatalogAudit() {
     const achievements = getAllAchievements();
     const titles = getAllTitles();
@@ -12084,6 +12694,7 @@
     simulateWillOfD,
     runWillOfDAudit,
     runCharacterNameAudit,
+    runHakiDecisiveAudit,
     validateRunRewards,
     normalizeRarity,
     getFactionRenownMeta,
@@ -12094,6 +12705,7 @@
     runBlueLegacyEventAudit,
     runBlueLegacySelectionSimulations,
     runBalanceSimulation,
+    runBalanceAudit,
     runBigNewsEditorialAudit,
     getRarityLabel,
     getRarityIcon,
@@ -12119,15 +12731,23 @@
     updateSetting,
     getSetting,
     getShopItems,
+    getProfileCosmetics,
+    calculateProfileStatistics,
+    formatProfileIdentity,
+    runProfileStatisticsAudit,
+    purchaseProfileCosmetic,
     purchaseShopItem,
     equipShopItem,
     unequipShopItem,
     calculateCompletionBerries,
     runShopSystemAudit,
     runCollectionCatalogAudit,
+    runDivelcaAchievementAudit,
+    runDivelcaPersistenceAudit,
   });
   window.BLUE_LEGACY_DEV = Object.freeze({
     runBalanceSimulation,
+    runBalanceAudit,
     runBalanceValidation: runBlueLegacyEventAudit,
     getOutcomeTierProbabilities,
     runCareerFinalTitleAudit,
@@ -12135,6 +12755,7 @@
     simulateWillOfD,
     runWillOfDAudit,
     runCharacterNameAudit,
+    runHakiDecisiveAudit,
   });
 
   /* ========================================================
@@ -12833,11 +13454,14 @@
       runs: runs.length,
       completionRate: mean(runs.map((run) => run.completed ? 1 : 0)),
       popularityMean: mean(sorted), median: percentile(0.5), p10: percentile(0.1), p25: percentile(0.25),
-      p75: percentile(0.75), p90: percentile(0.9),
-      under60: mean(runs.map((run) => run.popularity < 60 ? 1 : 0)),
-      from60to74: mean(runs.map((run) => run.popularity >= 60 && run.popularity <= 74 ? 1 : 0)),
+      p75: percentile(0.75), p90: percentile(0.9), p95: percentile(0.95), p99: percentile(0.99),
+      under70: mean(runs.map((run) => run.popularity < 70 ? 1 : 0)),
+      from70to74: mean(runs.map((run) => run.popularity >= 70 && run.popularity <= 74 ? 1 : 0)),
       from75to82: mean(runs.map((run) => run.popularity >= 75 && run.popularity <= 82 ? 1 : 0)),
       from83to89: mean(runs.map((run) => run.popularity >= 83 && run.popularity <= 89 ? 1 : 0)),
+      from90to94: mean(runs.map((run) => run.popularity >= 90 && run.popularity <= 94 ? 1 : 0)),
+      from95to99: mean(runs.map((run) => run.popularity >= 95 && run.popularity <= 99 ? 1 : 0)),
+      exactly100: mean(runs.map((run) => run.popularity === 100 ? 1 : 0)),
       atLeast90: mean(runs.map((run) => run.popularity >= 90 ? 1 : 0)),
       atLeast95: mean(runs.map((run) => run.popularity >= 95 ? 1 : 0)),
       dreamCompletionRate: mean(runs.map((run) => run.dreamCompleted ? 1 : 0)),
@@ -12882,6 +13506,97 @@
       byStrategy: Object.fromEntries(BALANCE_SIMULATION_STRATEGIES.map((strategy) => [strategy, group("strategy", strategy)])),
     };
     console.warn("[Blue Legacy] BALANCE_SIMULATION", report);
+    return report;
+  }
+
+  function runBalanceAudit(options = {}) {
+    const events = [...getAllEvents(), ...getBossEvents()];
+    const eventIds = new Set(events.map((event) => event.id));
+    const titleIds = new Set(getAllTitles().map((title) => title.id));
+    const writtenFlags = new Set(events.flatMap((event) => event.choices.flatMap((choice) =>
+      choice.outcomes.flatMap((outcome) => Object.keys(outcome.flags || {})))));
+    const readFlags = new Set(events.flatMap((event) => Object.keys(event.requiredFlags || {})));
+    const invalidReferences = [];
+    events.forEach((event) => {
+      (event.requiredEvents || []).forEach((id) => {
+        if (!eventIds.has(id)) invalidReferences.push({ eventId: event.id, kind: "requiredEvent", id });
+      });
+      event.choices.forEach((choice) => choice.outcomes.forEach((outcome) =>
+        (outcome.titles || []).map(getDataId).forEach((id) => {
+          if (id && !titleIds.has(id)) invalidReferences.push({ eventId: event.id, kind: "title", id });
+        })));
+    });
+    const accessibility = events.map((event) => {
+      const faction = event.factions?.[0] || "pirate";
+      const dreams = window.GAME_DATA?.dreams?.[faction] || [];
+      const character = {
+        name: "Audit", faction, dream: event.dreamIds?.[0] || dreams[0]?.id,
+        origin: "east-blue", hasD: true, traits: cloneData(event.requiredTraits || []),
+        combatStyle: event.styles?.[0] || null,
+        devilFruit: { id: "audit-fruit", name: "Fruit d'audit", rarity: "legendary" },
+      };
+      const game = createDefaultGameState(character);
+      const zoneId = event.zones?.[0] || "grand-line";
+      const zone = cloneData(getZoneCatalog().find((item) => item.id === zoneId) || { id: zoneId, routeStage: 3 });
+      game.route = Array.from({ length: 6 }, (_, index) => ({ ...zone, routeIndex: index, routeStage: index + 1 }));
+      game.month = Math.max(1, Number(event.minMonth) || 12);
+      game.currentZoneIndex = getZoneIndexForMonth(game.month);
+      game.stats = normalizeStats({ health: 100, combat: 100, haki: 100, intelligence: 100,
+        charisma: 100, bounty: 20000000, fortune: 1000000, crew: 10, popularity: 100 });
+      game.flags = { ...game.flags, ...(event.requiredFlags || {}) };
+      game.seenEvents = cloneData(event.requiredEvents || []);
+      let compatible = false;
+      let error = null;
+      try { compatible = isEventCompatible(event, game); } catch (caught) { error = String(caught?.message || caught); }
+      return { id: event.id, compatible, error };
+    });
+    const catalog = runCollectionCatalogAudit();
+    const eventAudit = runBlueLegacyEventAudit();
+    const runsPerFaction = Math.max(1, Math.floor(Number(options.runsPerFaction) || 250));
+    const report = {
+      generatedAt: new Date().toISOString(),
+      events: {
+        total: events.length,
+        accessible: accessibility.filter((row) => row.compatible).length,
+        inaccessible: accessibility.filter((row) => !row.compatible),
+        invalidReferences,
+        callbacksBroken: invalidReferences.filter((row) => row.kind === "requiredEvent"),
+        editorialWarnings: eventAudit.balance?.warnings || [],
+        rarityCounts: events.reduce((counts, event) => {
+          counts[event.rarity] = (counts[event.rarity] || 0) + 1; return counts;
+        }, {}),
+      },
+      titles: {
+        total: catalog.titles.count,
+        obtainable: catalog.titles.conditionRows.filter((row) => row.positive).length +
+          catalog.titles.eventSourceRows.filter((row) => row.eventSource).length,
+        potentiallyImpossible: [
+          ...catalog.titles.conditionRows.filter((row) => !row.positive),
+          ...catalog.titles.eventSourceRows.filter((row) => !row.eventSource),
+        ],
+      },
+      achievements: {
+        total: catalog.achievements.count,
+        obtainable: catalog.achievements.rows.filter((row) => row.positive).length,
+        impossible: catalog.achievements.rows.filter((row) => !row.positive),
+      },
+      companions: {
+        total: (window.GAME_DATA?.crewRecruitments?.length || 0) + (window.GAME_DATA?.marineRecruitments?.length || 0),
+        regular: window.GAME_DATA?.crewRecruitments?.length || 0,
+        marine: window.GAME_DATA?.marineRecruitments?.length || 0,
+      },
+      devilFruits: { total: window.GAME_DATA?.devilFruits?.length || 0 },
+      dreams: { total: Object.values(window.GAME_DATA?.dreams || {}).flat().length },
+      flags: {
+        written: writtenFlags.size, read: readFlags.size,
+        readButNeverWrittenInCatalog: [...readFlags].filter((id) => !writtenFlags.has(id)),
+        writtenButNeverReadByEvent: [...writtenFlags].filter((id) => !readFlags.has(id)),
+      },
+      simulations: runBalanceSimulation({ runsPerFaction, seed: options.seed || 16082026 }),
+    };
+    report.pass = !report.events.inaccessible.length && !invalidReferences.length &&
+      !report.titles.potentiallyImpossible.length && !report.achievements.impossible.length;
+    console.warn("[Blue Legacy] BALANCE_AUDIT", report);
     return report;
   }
 

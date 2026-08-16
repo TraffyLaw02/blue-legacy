@@ -25,11 +25,11 @@
   ]);
 
   const achievementBerryRewards = Object.freeze({
-    common: 50,
-    uncommon: 75,
-    rare: 110,
-    epic: 160,
-    legendary: 230,
+    common: 30,
+    uncommon: 50,
+    rare: 85,
+    epic: 135,
+    legendary: 210,
     mythic: 300,
   });
 
@@ -46,6 +46,13 @@
   const achievements = [
     achievement("complete-first-run", "Premier voyage", "Une première aventure a rejoint ton histoire.", "adventure", "common", "🌊", "Terminer une aventure.", { type: "runs-completed", target: 1 }, { progressLabel: "Aventures terminées" }),
     achievement("complete-five-runs", "Le monde se souvient", "Plusieurs vies ont laissé leur trace sur les mers.", "adventure", "epic", "📚", "Enregistrer cinq anciennes vies dans le Panthéon.", { type: "runs-completed", target: 5 }, { progressLabel: "Anciennes vies" }),
+    achievement("divelca", "Divelca", "Le roi des bêta-testeurs.", "adventure", "mythic", "👑", "Condition secrète", {
+      type: "all-of",
+      conditions: [
+        { type: "runs-completed", target: 25 },
+        { type: "dreams-completed", target: 1 },
+      ],
+    }, { secret: true }),
     achievement("reach-final-month", "Jusqu’au dernier mois", "Cette aventure a tenu jusqu’au terme prévu.", "adventure", "uncommon", "📅", "Atteindre le vingt-quatrième mois d’une aventure.", { type: "final-month", target: 24 }),
 
     achievement("cross-reverse-mountain", "À contre-courant", "Reverse Mountain n’est plus une frontière.", "exploration", "common", "⛰️", "Franchir Reverse Mountain.", { type: "zone-visited", zoneId: "reverse-mountain" }),

@@ -5,6 +5,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <meta content="Blue Legacy, une aventure narrative sur les mers." name="description"/>
 <title>Blue Legacy — 0.9.3</title>
+<link href="assets/icone.png" rel="icon" type="image/png"/>
+<link href="assets/icone.png" rel="shortcut icon" type="image/png"/>
+<link href="assets/icone.png" rel="apple-touch-icon"/>
 <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
@@ -35,9 +38,10 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 </div>
 <nav aria-label="Menu principal" class="home-menu">
 <button class="menu-button home-secondary-button" data-screen-target="shop-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🛍️</span><span class="home-secondary-button__label">Boutique</span></button>
-<button class="menu-button home-secondary-button" data-screen-target="achievements-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🏆</span><span class="home-secondary-button__label">Succès</span></button>
 <button class="menu-button home-secondary-button" data-screen-target="pantheon-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">👑</span><span class="home-secondary-button__label">Panthéon</span></button>
+<button class="menu-button home-secondary-button" data-screen-target="achievements-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🏆</span><span class="home-secondary-button__label">Succès</span></button>
 <button class="menu-button home-secondary-button" data-screen-target="titles-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🎖️</span><span class="home-secondary-button__label">Titres</span></button>
+<button class="menu-button home-secondary-button statistics-menu-button" data-screen-target="statistics-screen" type="button"><img class="menu-button-icon menu-button-custom-icon" src="assets/icone.png" alt=""/><span class="home-secondary-button__label">Statistiques</span></button>
 <button aria-label="Réinitialiser entièrement le profil joueur" class="menu-button home-secondary-button home-reset-button" id="reset-profile-btn" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">↺</span><span class="home-secondary-button__label">Réinitialiser le profil</span></button>
 </nav>
 <p class="home-reset-status" id="reset-profile-status" aria-live="polite"></p>
@@ -61,7 +65,13 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h3 id="shop-equipped-title">Objets actuellement équipés</h3>
 <div id="shop-equipped-items"></div>
 </section>
-<div class="shop-grid" id="shop-items"></div>
+<section class="shop-catalog-section" aria-labelledby="shop-adventure-items-title"><h3 id="shop-adventure-items-title">Objets d'aventure</h3><div class="shop-grid" id="shop-items"></div></section>
+<section class="shop-catalog-section" aria-labelledby="shop-cosmetics-title"><h3 id="shop-cosmetics-title">Cosmétiques</h3><p>Achète ici, puis personnalise ta carte depuis Statistiques.</p><div class="shop-grid" id="shop-cosmetics"></div></section>
+</section>
+<!-- PROFIL ET STATISTIQUES PERMANENTES -->
+<section aria-labelledby="statistics-title" class="screen layout-wide statistics-screen" hidden="" id="statistics-screen">
+<header class="screen-header"><button class="back-button" data-screen-target="home-screen" type="button">⌂ Accueil</button><div><p class="eyebrow">Profil permanent</p><h2 id="statistics-title">Statistiques</h2><p class="screen-subtitle">Ton identité, tes records et ta progression sur toutes les mers.</p></div></header>
+<div id="statistics-content"></div>
 </section>
 <!-- CRÉATION DU PERSONNAGE -->
 <section aria-labelledby="creation-title" class="screen layout-wide" hidden="" id="creation-screen">
@@ -547,6 +557,16 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <div class="settings-content" id="settings-content"></div>
 </section>
 </main>
+<footer class="game-credit" id="game-credit" hidden>
+<p>
+  <span class="game-credit__brand">BLUE LEGACY</span>
+  <span aria-hidden="true"> · </span>Écrivez votre légende sur les mers
+  <span aria-hidden="true"> · </span>créé par
+  <a href="https://x.com/TraffyMakes" target="_blank" rel="noopener noreferrer">@TraffyMakes</a>
+  <span aria-hidden="true"> · </span>suivez
+  <a href="https://x.com/BlueLegacyFR" target="_blank" rel="noopener noreferrer">@BlueLegacyFR</a>
+</p>
+</footer>
 <!-- CONFIRMATION D’ABANDON -->
 <dialog aria-labelledby="abandon-modal-title" class="modal" id="abandon-modal">
 <form class="modal-content" method="dialog">
