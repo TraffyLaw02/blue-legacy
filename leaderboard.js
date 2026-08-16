@@ -12,6 +12,10 @@
   const AUTH_STORAGE_KEY = "blueLegacySupabaseAuth";
   const MONTH_FORMATTER = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
   let profileProvider = () => ({ playerIdentity: {} });
+  let identityFormatter = ({ playerIdentity = {}, profileCosmetics = {} }) => {
+    const d = profileCosmetics.ownsCosmeticD && profileCosmetics.showD ? "D." : "";
+    return [playerIdentity.lastName, d, playerIdentity.firstName].filter(Boolean).join(" ") || "Joueur anonyme";
+  };
   let homeRequest = 0;
   let fullRequest = 0;
 
@@ -88,6 +92,8 @@
       playerFirstName: String(row?.player_first_name || row?.first_name || "").trim(),
       playerLastName: String(row?.player_last_name || row?.last_name || "").trim(),
       characterName: String(row?.character_name || "Légende sans nom").trim(),
+      characterTitle: String(row?.character_title || "").trim(),
+      dreamCompleted: row?.dream_completed === true,
       score: Math.max(0, Number(row?.score) || 0),
       updatedAt: String(row?.updated_at || ""),
     };
@@ -95,7 +101,7 @@
 
   async function getMonthlyTop(limit = 5) {
     const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 5)));
-    const select = "user_id,player_first_name,player_last_name,character_name,score,updated_at";
+    const select = "user_id,player_first_name,player_last_name,character_name,character_title,dream_completed,score,updated_at";
     const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, order: "score.desc,updated_at.asc", limit: String(safeLimit) });
     const result = await request(`/rest/v1/${CONFIG.table}?${query}`);
     return (result.data || []).map(normalizeEntry);
@@ -103,7 +109,7 @@
 
   async function getCurrentPlayerMonthlyEntry() {
     const session = await ensureAnonymousAuth();
-    const query = new URLSearchParams({ select: "user_id,player_first_name,player_last_name,character_name,score,updated_at", month_key: `eq.${monthKey()}`, user_id: `eq.${session.user.id}`, limit: "1" });
+    const query = new URLSearchParams({ select: "user_id,player_first_name,player_last_name,character_name,character_title,dream_completed,score,updated_at", month_key: `eq.${monthKey()}`, user_id: `eq.${session.user.id}`, limit: "1" });
     const result = await request(`/rest/v1/${CONFIG.table}?${query}`, { auth: true });
     return result.data?.[0] ? normalizeEntry(result.data[0]) : null;
   }
@@ -124,14 +130,16 @@
     return higher + earlierTie + 1;
   }
 
-  async function submitCareer({ playerFirstName, playerLastName, characterName, score }) {
+  async function submitCareer({ playerFirstName, playerLastName, characterName, characterTitle = null, dreamCompleted = false, score, finishedAt }) {
     if (!String(playerFirstName || "").trim() || !String(playerLastName || "").trim()) return { skipped: "missing-identity" };
     const payload = {
-      p_month_key: monthKey(),
+      p_month_key: monthKey(new Date(finishedAt || Date.now())),
       p_player_first_name: String(playerFirstName).trim().slice(0, 40),
       p_player_last_name: String(playerLastName).trim().slice(0, 40),
       p_character_name: String(characterName || "Légende sans nom").trim().slice(0, 100),
-      p_score: Math.max(0, Math.round(Number(score) || 0)),
+      p_character_title: String(characterTitle || "").trim().slice(0, 120) || null,
+      p_dream_completed: dreamCompleted === true,
+      p_score: Math.min(100, Math.max(1, Math.round(Number(score) || 1))),
     };
     try {
       await request(`/rest/v1/rpc/${CONFIG.submitRpc}`, { method: "POST", body: payload, auth: true });
@@ -146,17 +154,14 @@
   function clear(element) { while (element?.firstChild) element.removeChild(element.firstChild); }
   function text(tag, className, value) { const node = document.createElement(tag); if (className) node.className = className; node.textContent = value; return node; }
 
-  function formatPlayerIdentity(entry) {
+  function formatLeaderboardIdentity(entry) {
     const profile = profileProvider() || {};
     const isCurrentPlayer = Boolean(entry.userId && entry.userId === readAuth()?.user?.id);
     const identityProfile = {
       playerIdentity: { firstName: entry.playerFirstName, lastName: entry.playerLastName },
       profileCosmetics: isCurrentPlayer ? profile.profileCosmetics : {},
     };
-    if (typeof window.formatProfileIdentity === "function") {
-      return window.formatProfileIdentity(identityProfile);
-    }
-    return [entry.playerLastName, entry.playerFirstName].filter(Boolean).join(" ") || "Joueur anonyme";
+    return identityFormatter(identityProfile);
   }
 
   function getRankTierClass(rank) {
@@ -172,10 +177,13 @@
     row.className = `leaderboard-entry ${getRankTierClass(rank)}`.trim();
     const rankNode = text("strong", "leaderboard-entry__rank", `#${rank}`);
     const names = document.createElement("div"); names.className = "leaderboard-entry__names";
-    names.append(text("strong", "leaderboard-entry__player", formatPlayerIdentity(entry)));
+    names.append(text("strong", "leaderboard-entry__player", formatLeaderboardIdentity(entry)));
     names.append(text("span", "leaderboard-entry__character", entry.characterName));
-    const score = text("strong", "leaderboard-entry__score", full ? `${entry.score} Popularité` : String(entry.score));
-    row.append(rankNode, names, score);
+    if (entry.characterTitle) names.append(text("span", "leaderboard-entry__title", entry.characterTitle));
+    const meta = document.createElement("div"); meta.className = "leaderboard-entry__meta";
+    meta.append(text("strong", "leaderboard-entry__score", `${entry.score} Popularité`));
+    if (entry.dreamCompleted) meta.append(text("span", "leaderboard-entry__dream", "Rêve accompli"));
+    row.append(rankNode, names, meta);
     return row;
   }
 
@@ -240,8 +248,9 @@
     ["monthly-leaderboard-home-month", "monthly-leaderboard-full-month"].forEach((id) => { const node = document.getElementById(id); if (node) { node.textContent = monthLabel(); node.setAttribute("datetime", monthKey()); } });
   }
 
-  function initialize({ getProfile } = {}) {
+  function initialize({ getProfile, formatIdentity } = {}) {
     if (typeof getProfile === "function") profileProvider = getProfile;
+    if (typeof formatIdentity === "function") identityFormatter = formatIdentity;
     setMonthLabels();
     document.addEventListener("click", (event) => {
       if (event.target.closest("[data-leaderboard-retry]")) {

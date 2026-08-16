@@ -1224,12 +1224,18 @@
     };
   }
 
-  function formatProfileIdentity(profile) {
-    const first = profile.playerIdentity?.firstName || "";
-    const last = profile.playerIdentity?.lastName || "";
+  function formatPlayerIdentity(profileOrIdentity = {}) {
+    const identity = profileOrIdentity.playerIdentity || profileOrIdentity;
+    const first = String(identity.firstName || "").trim();
+    const last = String(identity.lastName || "").trim();
     if (!first && !last) return "Aventurier inconnu";
-    const d = profile.profileCosmetics?.ownsCosmeticD && profile.profileCosmetics?.showD ? "D." : "";
+    const cosmetics = profileOrIdentity.profileCosmetics || {};
+    const d = cosmetics.ownsCosmeticD && cosmetics.showD ? "D." : "";
     return [last, d, first].filter(Boolean).join(" ");
+  }
+
+  function formatProfileIdentity(profile) {
+    return formatPlayerIdentity(profile);
   }
 
   function runProfileStatisticsAudit() {
@@ -8943,7 +8949,14 @@
       playerFirstName: profile.playerIdentity?.firstName,
       playerLastName: profile.playerIdentity?.lastName,
       characterName: pantheonEntry.name,
-      score: frozenPopularity,
+      characterTitle: getCompatibleFinalTitle(
+        pantheonEntry.finalTitle,
+        pantheonEntry.faction,
+        pantheonEntry,
+      )?.name || null,
+      dreamCompleted: pantheonEntry.dreamCompleted === true,
+      score: pantheonEntry.popularityScore,
+      finishedAt: pantheonEntry.finishedAt,
     });
 
     return true;
@@ -12751,6 +12764,7 @@
     getShopItems,
     getProfileCosmetics,
     calculateProfileStatistics,
+    formatPlayerIdentity,
     formatProfileIdentity,
     runProfileStatisticsAudit,
     purchaseProfileCosmetic,
@@ -12782,7 +12796,7 @@
 
   function initializeApplication() {
     collectDom();
-    window.BlueLegacyLeaderboard?.initialize({ getProfile });
+    window.BlueLegacyLeaderboard?.initialize({ getProfile, formatIdentity: formatPlayerIdentity });
     setGameStatsExpanded(readGameStatsExpandedPreference(), { persist: false });
     setGameDetailsExpanded(readGameDetailsExpandedPreference(), { persist: false });
     createGameMenu();

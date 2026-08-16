@@ -1147,10 +1147,14 @@ body.has-game-credit #home-screen {
 .leaderboard-entry__rank { color: var(--ocean-deep); font-size: 1.05rem; }
 .leaderboard-entry__names { display: grid; min-width: 0; line-height: 1.25; }
 .leaderboard-entry__player,
-.leaderboard-entry__character { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboard-entry__character,
+.leaderboard-entry__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-entry__player { font-size: .92rem; }
 .leaderboard-entry__character { color: var(--text-secondary); font-size: .8rem; font-style: italic; }
+.leaderboard-entry__title { color: #6c5125; font-size: .72rem; font-weight: 700; }
+.leaderboard-entry__meta { display: grid; justify-items: end; gap: 3px; min-width: 0; }
 .leaderboard-entry__score { color: var(--ocean-deep); font-size: .88rem; text-align: right; white-space: nowrap; }
+.leaderboard-entry__dream { padding: 2px 6px; overflow: hidden; color: #244d32; font-size: .62rem; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; background: rgba(225, 249, 224, .82); border: 1px solid rgba(43, 108, 58, .42); border-radius: 999px; }
 .leaderboard-rank-mythic {
   color: #26364f;
   background: var(--dream-supreme-gradient);
@@ -1163,6 +1167,7 @@ body.has-game-credit #home-screen {
 .leaderboard-rank-mythic .leaderboard-entry__score { color: #26364f; text-shadow: 0 1px 0 rgba(255,255,255,.72); }
 .leaderboard-rank-mythic .leaderboard-entry__player { text-shadow: 0 1px 0 rgba(255,255,255,.62); }
 .leaderboard-rank-mythic .leaderboard-entry__character { color: #3f4d65; }
+.leaderboard-rank-mythic .leaderboard-entry__title { color: #354862; }
 
 .leaderboard-rank-gold {
   background: linear-gradient(115deg, #9b6a16, #e4bd55 42%, #fff0a7 68%, #b77a18);
@@ -1172,6 +1177,7 @@ body.has-game-credit #home-screen {
 .leaderboard-rank-gold .leaderboard-entry__rank,
 .leaderboard-rank-gold .leaderboard-entry__score { color: #4e3105; }
 .leaderboard-rank-gold .leaderboard-entry__character { color: #634817; }
+.leaderboard-rank-gold .leaderboard-entry__title { color: #563905; }
 
 .leaderboard-rank-silver {
   background: linear-gradient(115deg, #87939f, #dce3e8 44%, #f8fbfc 67%, #9ba8b4);
@@ -1181,6 +1187,7 @@ body.has-game-credit #home-screen {
 .leaderboard-rank-silver .leaderboard-entry__rank,
 .leaderboard-rank-silver .leaderboard-entry__score { color: #344652; }
 .leaderboard-rank-silver .leaderboard-entry__character { color: #50616c; }
+.leaderboard-rank-silver .leaderboard-entry__title { color: #3d515d; }
 
 .leaderboard-rank-bronze {
   background: linear-gradient(115deg, #8c4d2d, #cf8757 43%, #edb17c 67%, #9a5732);
@@ -1190,6 +1197,7 @@ body.has-game-credit #home-screen {
 .leaderboard-rank-bronze .leaderboard-entry__rank,
 .leaderboard-rank-bronze .leaderboard-entry__score { color: #3f2114; }
 .leaderboard-rank-bronze .leaderboard-entry__character { color: #553326; }
+.leaderboard-rank-bronze .leaderboard-entry__title { color: #49271a; }
 
 @keyframes leaderboard-mythic-shimmer {
   from { background-position: 0% 50%; }
@@ -1221,6 +1229,7 @@ body.has-game-credit #home-screen {
   .monthly-leaderboard-card__header { align-items: flex-start; }
   .leaderboard-entry { grid-template-columns: 36px minmax(0, 1fr) minmax(42px, auto); gap: 7px; padding: 9px 8px; }
   .leaderboard-entry__score { font-size: .78rem; }
+  .leaderboard-entry__dream { max-width: 74px; }
   .monthly-leaderboard-list--compact .leaderboard-entry__character { white-space: normal; }
 }
 
