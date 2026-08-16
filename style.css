@@ -1094,7 +1094,7 @@ body.has-game-credit #home-screen {
 }
 
 /* =========================================================
-   22. LA LÉGENDE DU MOIS
+   22. LES LÉGENDES DU MOIS
 ========================================================= */
 .monthly-leaderboard-card {
   width: min(100%, 680px);
@@ -1102,9 +1102,7 @@ body.has-game-credit #home-screen {
   padding: clamp(14px, 3vw, 20px);
   overflow: hidden;
   color: #f8edd8;
-  background:
-    linear-gradient(90deg, rgba(255, 228, 174, .025) 50%, transparent 50%) 0 0 / 34px 100%,
-    linear-gradient(145deg, #3a251b, #241610 72%, #1c110d);
+  background: #2b1b14;
   border: 2px solid #9b743d;
   border-radius: var(--radius-medium);
   box-shadow: 0 5px 0 #17100d, 0 12px 28px rgba(35, 20, 13, .24);
@@ -1122,6 +1120,13 @@ body.has-game-credit #home-screen {
 .monthly-leaderboard-card__header p,
 .leaderboard-panel-heading h3,
 .leaderboard-personal-panel h3 { margin: 0; }
+.monthly-leaderboard-card__header h2,
+.leaderboard-screen #leaderboard-title,
+.leaderboard-panel-heading h3,
+.leaderboard-personal-panel h3 {
+  color: #b88a3b;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .35);
+}
 .monthly-leaderboard-card__header h2 { font-size: clamp(1.2rem, 4vw, 1.55rem); }
 .monthly-leaderboard-card__header .eyebrow { color: #d9b879; }
 .monthly-leaderboard-card__header time { flex: 0 0 auto; color: #e2c994; font-size: .85rem; font-weight: 800; }
@@ -1196,7 +1201,7 @@ body.has-game-credit #home-screen {
 
 .leaderboard-full-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .42fr); align-items: start; gap: 18px; }
 .leaderboard-ranking-panel,
-.leaderboard-personal-panel { padding: clamp(14px, 3vw, 22px); color: #f8edd8; background: linear-gradient(145deg, #3a251b, #21140f); border: 2px solid #9b743d; border-radius: var(--radius-medium); box-shadow: 0 5px 0 #17100d, 0 12px 26px rgba(35, 20, 13, .18); }
+.leaderboard-personal-panel { padding: clamp(14px, 3vw, 22px); color: #f8edd8; background: #2b1b14; border: 2px solid #9b743d; border-radius: var(--radius-medium); box-shadow: 0 5px 0 #17100d, 0 12px 26px rgba(35, 20, 13, .18); }
 .leaderboard-personal-panel { position: sticky; top: 16px; border-color: #b68b4e; }
 .leaderboard-personal-rank { display: block; margin: 14px 0 8px; color: #e8ca8e; font-size: 1.15rem; }
 .leaderboard-personal-message { margin: 12px 0 5px; line-height: 1.5; }
