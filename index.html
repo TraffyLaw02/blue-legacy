@@ -36,6 +36,16 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
             🗑️ Abandonner l’aventure
           </button>
 </div>
+<section class="monthly-leaderboard-card" aria-labelledby="monthly-leaderboard-home-title">
+<header class="monthly-leaderboard-card__header">
+<div><p class="eyebrow">Classement mensuel</p><h2 id="monthly-leaderboard-home-title">La légende du mois</h2></div>
+<time id="monthly-leaderboard-home-month"></time>
+</header>
+<div class="monthly-leaderboard-list monthly-leaderboard-list--compact" id="monthly-leaderboard-top-five" aria-live="polite">
+<p class="monthly-leaderboard-status">Chargement des légendes…</p>
+</div>
+<button class="button monthly-leaderboard-open" data-screen-target="leaderboard-screen" type="button">Voir le Top 50</button>
+</section>
 <nav aria-label="Menu principal" class="home-menu">
 <button class="menu-button home-secondary-button" data-screen-target="shop-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🛍️</span><span class="home-secondary-button__label">Boutique</span></button>
 <button class="menu-button home-secondary-button" data-screen-target="pantheon-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">👑</span><span class="home-secondary-button__label">Panthéon</span></button>
@@ -45,6 +55,23 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <button aria-label="Réinitialiser entièrement le profil joueur" class="menu-button home-secondary-button home-reset-button" id="reset-profile-btn" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">↺</span><span class="home-secondary-button__label">Réinitialiser le profil</span></button>
 </nav>
 <p class="home-reset-status" id="reset-profile-status" aria-live="polite"></p>
+</section>
+<!-- CLASSEMENT MENSUEL -->
+<section aria-labelledby="leaderboard-title" class="screen layout-wide leaderboard-screen" hidden="" id="leaderboard-screen">
+<header class="screen-header">
+<button class="back-button" data-screen-target="home-screen" type="button">⌂ Accueil</button>
+<div><p class="eyebrow">Classement mensuel</p><h2 id="leaderboard-title">La légende du mois</h2><p class="screen-subtitle" id="monthly-leaderboard-full-month"></p></div>
+</header>
+<div class="leaderboard-full-layout">
+<section class="leaderboard-ranking-panel" aria-labelledby="leaderboard-top-title">
+<div class="leaderboard-panel-heading"><h3 id="leaderboard-top-title">Top 50</h3><button class="button leaderboard-retry" data-leaderboard-retry type="button" hidden>Réessayer</button></div>
+<div class="monthly-leaderboard-list" id="monthly-leaderboard-top-fifty" aria-live="polite"><p class="monthly-leaderboard-status">Chargement des légendes…</p></div>
+</section>
+<aside class="leaderboard-personal-panel" aria-labelledby="leaderboard-personal-title">
+<h3 id="leaderboard-personal-title">Votre classement</h3>
+<div id="monthly-leaderboard-personal" aria-live="polite"><p class="monthly-leaderboard-status">Chargement…</p></div>
+</aside>
+</div>
 </section>
 <!-- BOUTIQUE PERMANENTE -->
 <section aria-labelledby="shop-title" class="screen layout-wide shop-screen" hidden="" id="shop-screen">
@@ -635,6 +662,7 @@ window.addEventListener("error", function (event) {
 <script src="achievements.js"></script>
 <script src="shop.js"></script>
 <script src="assets/vendor/html2canvas.min.js"></script>
+<script src="leaderboard.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

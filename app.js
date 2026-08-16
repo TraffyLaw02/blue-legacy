@@ -55,6 +55,7 @@
     ACHIEVEMENTS: "achievements",
     SHOP: "shop",
     STATISTICS: "statistics",
+    LEADERBOARD: "leaderboard",
     TITLES: "titles",
     PANTHEON: "pantheon",
     PAST_LIFE: "pastLife",
@@ -73,6 +74,7 @@
     [SCREEN.ACHIEVEMENTS]: "achievements-screen",
     [SCREEN.SHOP]: "shop-screen",
     [SCREEN.STATISTICS]: "statistics-screen",
+    [SCREEN.LEADERBOARD]: "leaderboard-screen",
     [SCREEN.TITLES]: "titles-screen",
     [SCREEN.PANTHEON]: "pantheon-screen",
     [SCREEN.PAST_LIFE]: "past-life-screen",
@@ -1145,6 +1147,7 @@
       [SCREEN.ACHIEVEMENTS]: updateAchievementsScreen,
       [SCREEN.SHOP]: updateShopScreen,
       [SCREEN.STATISTICS]: updateStatisticsScreen,
+      [SCREEN.LEADERBOARD]: updateLeaderboardScreen,
       [SCREEN.TITLES]: updateTitlesScreen,
       [SCREEN.PANTHEON]: updatePantheonScreen,
       [SCREEN.PAST_LIFE]: updatePastLifeScreen,
@@ -1168,6 +1171,13 @@
     if (dom.homeBerryBalance) {
       dom.homeBerryBalance.textContent = `💰 ${formatBerryAmount(profile.berries)} berrys`;
     }
+    if (state.screen === SCREEN.HOME) {
+      window.BlueLegacyLeaderboard?.refreshHome();
+    }
+  }
+
+  function updateLeaderboardScreen() {
+    window.BlueLegacyLeaderboard?.refreshFull();
   }
 
   function formatBerryAmount(value) {
@@ -8928,6 +8938,14 @@
       },
     );
 
+    // La carrière locale est déjà enregistrée et affichée avant tout accès réseau.
+    void window.BlueLegacyLeaderboard?.submitCareer({
+      playerFirstName: profile.playerIdentity?.firstName,
+      playerLastName: profile.playerIdentity?.lastName,
+      characterName: pantheonEntry.name,
+      score: frozenPopularity,
+    });
+
     return true;
   }
 
@@ -12764,6 +12782,7 @@
 
   function initializeApplication() {
     collectDom();
+    window.BlueLegacyLeaderboard?.initialize({ getProfile });
     setGameStatsExpanded(readGameStatsExpandedPreference(), { persist: false });
     setGameDetailsExpanded(readGameDetailsExpandedPreference(), { persist: false });
     createGameMenu();
