@@ -344,6 +344,8 @@
     pendingShopPurchaseId: null,
     pendingCosmeticPurchaseId: null,
     statisticsIdentityEditing: false,
+    statisticsIdentityError: "",
+    requiresPublicIdentityResolution: false,
     statisticsAppearanceOpen: false,
     isResolvingEvent: false,
     isContinuingResult: false,
@@ -799,6 +801,22 @@
     );
   }
 
+  function normalizePermanentIdentityPart(value) {
+    const normalize = window.BlueLegacyLeaderboard?.normalizePlayerNamePart;
+    return typeof normalize === "function"
+      ? normalize(value)
+      : String(value || "").trim().replace(/\s+/g, " ").slice(0, 40);
+  }
+
+  function getPublicIdentityPayload(profile, firstName, lastName) {
+    return {
+      firstName: normalizePermanentIdentityPart(firstName),
+      lastName: normalizePermanentIdentityPart(lastName),
+      dCosmetic: profile.profileCosmetics?.ownsCosmeticD === true &&
+        profile.profileCosmetics?.showD === true,
+    };
+  }
+
   function showWelcomeIdentityIfNeeded() {
     const profile = getProfile();
     if (!dom.welcomeIdentityModal || isPlayerIdentityValid(profile)) return false;
@@ -812,24 +830,58 @@
     return true;
   }
 
-  function saveWelcomeIdentity(event) {
+  async function saveWelcomeIdentity(event) {
     event.preventDefault();
     event.stopPropagation();
-    const lastName = String(dom.welcomeIdentityForm?.elements.lastName?.value || "").trim().slice(0, 40);
-    const firstName = String(dom.welcomeIdentityForm?.elements.firstName?.value || "").trim().slice(0, 40);
+    const lastName = normalizePermanentIdentityPart(dom.welcomeIdentityForm?.elements.lastName?.value);
+    const firstName = normalizePermanentIdentityPart(dom.welcomeIdentityForm?.elements.firstName?.value);
     if (!isPlayerIdentityValid({ playerIdentity: { lastName, firstName } })) {
       if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = "Le nom et le prénom sont obligatoires.";
       return false;
     }
     const profile = getProfile();
+    const submitButton = dom.welcomeIdentityForm?.querySelector('[type="submit"]');
+    if (submitButton) { submitButton.disabled = true; submitButton.textContent = "Vérification…"; }
+    if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = "";
+    const reservation = await window.BlueLegacyLeaderboard?.reservePlayerProfile(
+      getPublicIdentityPayload(profile, firstName, lastName),
+    );
+    if (!reservation?.ok) {
+      if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = reservation?.message ||
+        "Impossible de vérifier la disponibilité du nom pour le moment.";
+      if (submitButton) { submitButton.disabled = false; submitButton.textContent = "Réessayer"; }
+      return false;
+    }
     profile.playerIdentity.lastName = lastName;
     profile.playerIdentity.firstName = firstName;
     saveProfile(profile);
+    state.requiresPublicIdentityResolution = false;
     closeDialog(dom.welcomeIdentityModal);
     updateHomeScreen();
     if (state.screen === SCREEN.STATISTICS) updateStatisticsScreen();
     window.BlueLegacyLeaderboard?.refreshHome();
     return true;
+  }
+
+  async function synchronizeExistingPublicProfile() {
+    const profile = getProfile();
+    if (!isPlayerIdentityValid(profile)) return showWelcomeIdentityIfNeeded();
+    const result = await window.BlueLegacyLeaderboard?.reservePlayerProfile(
+      getPublicIdentityPayload(profile, profile.playerIdentity.firstName, profile.playerIdentity.lastName),
+    );
+    if (result?.ok || result?.reason === "unavailable") return Boolean(result?.ok);
+    if (result?.reason === "name-taken") {
+      state.requiresPublicIdentityResolution = true;
+      if (dom.welcomeIdentityForm) {
+        dom.welcomeIdentityForm.elements.lastName.value = profile.playerIdentity.lastName;
+        dom.welcomeIdentityForm.elements.firstName.value = profile.playerIdentity.firstName;
+      }
+      openDialog(dom.welcomeIdentityModal);
+      if (dom.welcomeIdentityError) {
+        dom.welcomeIdentityError.textContent = "Ce nom est déjà utilisé. Choisissez un autre nom pour continuer à apparaître dans le classement.";
+      }
+    }
+    return false;
   }
 
   function getShopItems() {
@@ -1022,6 +1074,7 @@
       state.returnScreen = SCREEN.HOME;
       state.resumeScreen = SCREEN.GAME;
       state.pendingShopPurchaseId = null;
+      state.requiresPublicIdentityResolution = false;
       state.isResolvingEvent = false;
       state.isContinuingResult = false;
       achievementNotificationQueue.length = 0;
@@ -1352,7 +1405,7 @@
     const ownedBackgrounds = getProfileCosmetics().filter((item) => item.type === "background" && profile.profileCosmetics.ownedBackgrounds.includes(item.id));
     const recordCells = [["health", "❤️"], ["combat", "⚔️"], ["haki", "🛡️"], ["intelligence", "🧠"], ["charisma", "✨"]]
       .map(([key, icon]) => `<div class="legend-record"><span aria-hidden="true">${icon}</span><small>${escapeHtml(STATS[key].label)}</small><strong>${recordDisplay(summary.coreRecords[key])}</strong></div>`).join("");
-    const identityFormHtml = editing ? `<form class="profile-identity-form" id="profile-identity-form"><label>Nom<input name="lastName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.lastName)}" autocomplete="family-name"></label><label>Prénom<input name="firstName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.firstName)}" autocomplete="given-name"></label><div><button class="button button-primary" data-statistics-save-identity type="button">Enregistrer</button>${identityDefined ? '<button class="button" data-statistics-cancel-identity type="button">Annuler</button>' : ""}</div></form>` : "";
+    const identityFormHtml = editing ? `<form class="profile-identity-form" id="profile-identity-form"><label>Nom<input name="lastName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.lastName)}" autocomplete="family-name"></label><label>Prénom<input name="firstName" maxlength="40" value="${escapeAttribute(profile.playerIdentity.firstName)}" autocomplete="given-name"></label><p class="profile-identity-error" aria-live="polite">${escapeHtml(state.statisticsIdentityError)}</p><div><button class="button button-primary" data-statistics-save-identity type="button">Enregistrer</button>${identityDefined ? '<button class="button" data-statistics-cancel-identity type="button">Annuler</button>' : ""}</div></form>` : "";
     const editIdentityButtonHtml = editing ? "" : `<button class="statistics-edit-button" data-statistics-edit-identity type="button">Modifier</button>`;
     const backgroundsHtml = state.statisticsAppearanceOpen ? `<div class="background-selector" aria-label="Fonds possédés">${ownedBackgrounds.map((item) => `<button type="button" class="background-choice" data-statistics-background="${escapeAttribute(item.id)}" data-background="${escapeAttribute(item.id)}" aria-pressed="${item.id === profile.profileCosmetics.selectedBackground}"><span>${escapeHtml(item.name)}</span><small>${item.id === profile.profileCosmetics.selectedBackground ? "Actif" : "Sélectionner"}</small></button>`).join("")}</div>` : "";
     const dControl = profile.profileCosmetics.ownsCosmeticD ? `<label class="cosmetic-d-toggle"><input type="checkbox" data-statistics-cosmetic-d ${profile.profileCosmetics.showD ? "checked" : ""}> Afficher le D.</label>` : '<p class="locked-cosmetic">🔒 D. cosmétique · À débloquer dans la Boutique</p>';
@@ -5060,13 +5113,64 @@
       (!markedDreamId || markedDreamId === dreamId);
   }
 
-  function secureFinalDreamOutcome(selectedOutcome, event, game = state.game) {
-    if (!selectedOutcome?.flags?.bossFinalDreamCompleted ||
-        isFinalDreamSuccess(selectedOutcome, event, game)) return selectedOutcome;
+  function getFinalDreamCareerReadiness(game = state.game, event = null, choice = null, outcome = null) {
+    const resolutionScore = getEventResolutionScore(game, event, choice);
+    const popularity = Number(game?.stats?.popularity) || 0;
+    const popularityBonus = Math.max(0, Math.min(5, (popularity - 75) * 0.25));
+    const accumulatedProgress = Number(game?.flags?.dreamProgress) || 0;
+    const finalProgress = getOutcomeDreamProgress(outcome, game);
+    const dreamProgressBonus = Math.max(0, Math.min(6, (accumulatedProgress + finalProgress) * 0.5));
+    const legendaryArcBonus = Math.min(4.5, Object.values(game?.legendaryArcs || {})
+      .filter((arc) => Boolean(arc?.titleId)).length * 1.5);
+    return {
+      score: resolutionScore + popularityBonus + dreamProgressBonus + legendaryArcBonus,
+      resolutionScore,
+      popularityBonus,
+      dreamProgressBonus,
+      legendaryArcBonus,
+      threshold: 82,
+    };
+  }
+
+  function secureFinalDreamOutcome(selectedOutcome, choice, event, game = state.game) {
+    if (!selectedOutcome || event?.eventType !== "decisive" || Number(event?.decisiveStage) !== 3) {
+      return selectedOutcome;
+    }
+
     const outcome = cloneData(selectedOutcome);
+    const actualTier = outcome.outcomeTier || inferOutcomeTier(outcome);
+    // Le palier affiché et sauvegardé doit décrire l'issue réellement choisie,
+    // pas le palier cible devenu incompatible pendant la sélection.
+    outcome.outcomeTier = actualTier;
+    outcome.resolvedOutcomeTier = actualTier;
+    outcome.flags ||= {};
+
+    if (actualTier === "success" && isFinalDreamSuccess(outcome, event, game)) {
+      outcome.finalDreamResolution = { type: "success", completed: true };
+      return outcome;
+    }
+
     delete outcome.flags.bossFinalDreamCompleted;
     delete outcome.flags.bossFinalDreamId;
+
+    if (actualTier === "mixed") {
+      const readiness = getFinalDreamCareerReadiness(game, event, choice, outcome);
+      const completionOutcome = getCompatibleOutcomes(choice, game, event).find((candidate) =>
+        (candidate.outcomeTier || inferOutcomeTier(candidate)) === "success" &&
+        candidate.flags?.bossFinalDreamCompleted === true &&
+        candidate.flags?.bossFinalDreamId === game?.character?.dream);
+      const completed = Boolean(completionOutcome && readiness.score >= readiness.threshold);
+      outcome.finalDreamResolution = { type: "mixed", completed, ...readiness };
+      if (completed) {
+        outcome.flags = { ...outcome.flags, ...cloneData(completionOutcome.flags) };
+        outcome.titles = uniqueArray([...(outcome.titles || []), ...(completionOutcome.titles || [])]);
+        outcome.result = `${completionOutcome.result} Toute ta carrière a fourni l'avantage nécessaire pour transformer cette issue disputée en accomplissement.`;
+      }
+      return outcome;
+    }
+
     outcome.titles = [];
+    outcome.finalDreamResolution = { type: actualTier, completed: false };
     return outcome;
   }
 
@@ -6183,7 +6287,7 @@
 
     const outcome = secureHakiOutcomeCoherence(
       secureHakiDecisiveOutcome(
-        secureFinalDreamOutcome(selectOutcome(choice, game, event), event, game),
+        secureFinalDreamOutcome(selectOutcome(choice, game, event), choice, event, game),
         event,
         game,
       ),
@@ -6246,6 +6350,8 @@
           dreamId: game.character?.dream || null,
           factionId: game.character?.faction || null,
           survived: Number(game.stats.health) > 0,
+          outcomeTier: outcome.outcomeTier || inferOutcomeTier(outcome),
+          careerReadiness: cloneData(outcome.finalDreamResolution || null),
         };
       }
     }
@@ -11428,7 +11534,7 @@
   function bindEvents() {
     dom.welcomeIdentityForm?.addEventListener("submit", saveWelcomeIdentity);
     dom.welcomeIdentityModal?.addEventListener("cancel", (event) => {
-      if (!isPlayerIdentityValid()) event.preventDefault();
+      if (!isPlayerIdentityValid() || state.requiresPublicIdentityResolution) event.preventDefault();
     });
     dom.openGameMenu?.setAttribute("aria-label", "Ouvrir le menu");
     dom.openGameMenu?.setAttribute("aria-expanded", "false");
@@ -11694,7 +11800,7 @@
     });
   }
 
-  function handleDocumentClick(event) {
+  async function handleDocumentClick(event) {
     if (event.target === dom.gameMenu) {
       closeGameMenu();
       return;
@@ -11718,17 +11824,31 @@
       return;
     }
     if (target.hasAttribute("data-statistics-edit-identity")) {
-      state.statisticsIdentityEditing = true; updateStatisticsScreen(); return;
+      state.statisticsIdentityError = ""; state.statisticsIdentityEditing = true; updateStatisticsScreen(); return;
     }
     if (target.hasAttribute("data-statistics-cancel-identity")) {
-      state.statisticsIdentityEditing = false; updateStatisticsScreen(); return;
+      state.statisticsIdentityError = ""; state.statisticsIdentityEditing = false; updateStatisticsScreen(); return;
     }
     if (target.hasAttribute("data-statistics-save-identity")) {
       const form = document.getElementById("profile-identity-form");
       const profile = getProfile();
-      profile.playerIdentity.firstName = String(form?.elements.firstName?.value || "").trim().slice(0, 40);
-      profile.playerIdentity.lastName = String(form?.elements.lastName?.value || "").trim().slice(0, 40);
-      saveProfile(profile); state.statisticsIdentityEditing = false; updateStatisticsScreen(); return;
+      const firstName = normalizePermanentIdentityPart(form?.elements.firstName?.value);
+      const lastName = normalizePermanentIdentityPart(form?.elements.lastName?.value);
+      if (!firstName || !lastName) {
+        state.statisticsIdentityError = "Le nom et le prénom sont obligatoires."; updateStatisticsScreen(); return;
+      }
+      target.disabled = true; target.textContent = "Vérification…";
+      const reservation = await window.BlueLegacyLeaderboard?.reservePlayerProfile(
+        getPublicIdentityPayload(profile, firstName, lastName),
+      );
+      if (!reservation?.ok) {
+        state.statisticsIdentityError = reservation?.message || "Impossible de vérifier la disponibilité du nom pour le moment.";
+        updateStatisticsScreen(); return;
+      }
+      profile.playerIdentity.firstName = firstName;
+      profile.playerIdentity.lastName = lastName;
+      saveProfile(profile); state.statisticsIdentityError = ""; state.statisticsIdentityEditing = false;
+      updateStatisticsScreen(); void window.BlueLegacyLeaderboard?.refreshOnline("full"); return;
     }
     if (target.hasAttribute("data-statistics-toggle-appearance")) {
       state.statisticsAppearanceOpen = !state.statisticsAppearanceOpen; updateStatisticsScreen(); return;
@@ -11857,6 +11977,11 @@
       const profile = getProfile();
       if (profile.profileCosmetics.ownsCosmeticD) {
         profile.profileCosmetics.showD = target.checked; saveProfile(profile); updateStatisticsScreen();
+        void window.BlueLegacyLeaderboard?.syncPlayerDCosmetic(target.checked).then((result) => {
+          if (result?.ok) {
+            void window.BlueLegacyLeaderboard?.refreshHome({ force: true, preserveOnFailure: true });
+          }
+        });
       }
       return;
     }
@@ -12927,6 +13052,85 @@
     return report;
   }
 
+  function runFinalDreamResolutionAudit() {
+    const makeGame = ({ intelligence, popularity, progress = 0, arcTitles = 0 }) => {
+      const game = createDefaultGameState({
+        name: "Audit Rêve", firstName: "Audit", lastName: "Rêve",
+        faction: "pirate", dream: "forgotten-history", origin: "east-blue", traits: [],
+      });
+      game.stats = normalizeStats({
+        ...game.stats, health: intelligence, combat: intelligence, haki: intelligence,
+        intelligence, charisma: intelligence, popularity,
+      });
+      game.flags.dreamProgress = progress;
+      ["talent", "marineford", "emperor"].slice(0, arcTitles).forEach((arcId) => {
+        game.legendaryArcs[arcId].titleId = `audit-${arcId}`;
+      });
+      return game;
+    };
+    const event = normalizeEvent({
+      id: "audit-final-dream", title: "Audit final", description: "Audit.",
+      eventType: "decisive", resolutionCategory: "social", decisiveStage: 3,
+      dreamIds: ["forgotten-history"], paths: ["pirate"], zones: [],
+      choices: [],
+    });
+    const success = normalizeOutcome({
+      id: "audit-success", result: "Le rêve est accompli.", outcomeTier: "success",
+      effects: { popularity: 2 }, minimumStats: { intelligence: 50 },
+      flags: { bossFinalDreamCompleted: true, bossFinalDreamId: "forgotten-history" },
+      titles: ["gardien-histoire-oubliee"],
+    });
+    const mixed = normalizeOutcome({
+      id: "audit-mixed", result: "Le résultat reste disputé.", outcomeTier: "mixed",
+      effects: { popularity: 1 }, minimumStats: { intelligence: 50 },
+      dreamProgressByDream: { "forgotten-history": 8 },
+      flags: { bossFinalDreamPartial: true },
+    });
+    const failure = normalizeOutcome({
+      id: "audit-failure", result: "L'épreuve échoue.", outcomeTier: "failure",
+      effects: { popularity: -1 }, fallback: true,
+      flags: { bossFinalDreamFailed: true },
+    });
+    const choice = { resolutionWeights: { intelligence: 1 }, outcomes: [success, mixed, failure] };
+    event.choices = [choice];
+    const strong = makeGame({ intelligence: 95, popularity: 92, progress: 4, arcTitles: 2 });
+    const average = makeGame({ intelligence: 55, popularity: 78 });
+    const strongSuccess = secureFinalDreamOutcome(cloneData(success), choice, event, strong);
+    const strongMixed = secureFinalDreamOutcome(cloneData(mixed), choice, event, strong);
+    const averageMixed = secureFinalDreamOutcome(cloneData(mixed), choice, event, average);
+    const strongFailure = secureFinalDreamOutcome(cloneData(failure), choice, event, strong);
+    const averageSuccess = secureFinalDreamOutcome(cloneData(success), choice, event, average);
+    const structurallyBlockedChoice = {
+      ...choice,
+      outcomes: [{ ...cloneData(success), minimumStats: { intelligence: 100 } }, mixed, failure],
+    };
+    const structurallyBlocked = secureFinalDreamOutcome(
+      cloneData(mixed), structurallyBlockedChoice, event, average,
+    );
+    const ending = { type: "dreamCompleted", success: true, dreamCompleted: true, destiny: "Audit" };
+    const pantheonEntry = createPantheonEntry(ending, null, strong);
+    strong.bossProgress.finalOutcome = {
+      dreamCompleted: isFinalDreamSuccess(strongMixed, event, strong),
+      outcomeTier: strongMixed.outcomeTier,
+      careerReadiness: cloneData(strongMixed.finalDreamResolution),
+    };
+    const reloaded = normalizeGame(cloneData(strong));
+    const cases = {
+      A_successCompletes: isFinalDreamSuccess(strongSuccess, event, strong),
+      B_mixedUsesCareer: isFinalDreamSuccess(strongMixed, event, strong) &&
+        !isFinalDreamSuccess(averageMixed, event, average),
+      C_failureFails: !isFinalDreamSuccess(strongFailure, event, strong),
+      D_popularityAloneInsufficient: !isFinalDreamSuccess(strongFailure, event, strong),
+      E_averageCareerSuccessCompletes: isFinalDreamSuccess(averageSuccess, event, average),
+      F_missingStructureCannotFakeSuccess: !isFinalDreamSuccess(structurallyBlocked, event, average) &&
+        structurallyBlocked.result === mixed.result,
+      G_pantheonAndLeaderboardBoolean: pantheonEntry.dreamCompleted === true,
+      H_reloadDoesNotReroll: JSON.stringify(reloaded.bossProgress.finalOutcome) ===
+        JSON.stringify(strong.bossProgress.finalOutcome),
+    };
+    return { pass: Object.values(cases).every(Boolean), cases };
+  }
+
   function runCollectionCatalogAudit() {
     const achievements = getAllAchievements();
     const titles = getAllTitles();
@@ -13165,6 +13369,7 @@
     runCharacterNameAudit,
     runHakiDecisiveAudit,
     runArcPerformanceAudit,
+    runFinalDreamResolutionAudit,
     validateRunRewards,
     normalizeRarity,
     getFactionRenownMeta,
@@ -13229,6 +13434,7 @@
     runCharacterNameAudit,
     runHakiDecisiveAudit,
     runArcPerformanceAudit,
+    runFinalDreamResolutionAudit,
   });
 
   /* ========================================================
@@ -13284,7 +13490,7 @@
         save: false,
       },
     );
-    showWelcomeIdentityIfNeeded();
+    void synchronizeExistingPublicProfile();
     if (developmentQuery.has("shopPreview")) {
       openScreen(SCREEN.SHOP, { save: false });
       requestAnimationFrame(() => {
@@ -13806,7 +14012,7 @@
     const choiceIndex = chooseSimulationChoice(event, game, strategy);
     const choice = event.choices[choiceIndex] || event.choices[0];
     if (!choice) return null;
-    const outcome = secureFinalDreamOutcome(selectOutcome(choice, game, event), event, game);
+    const outcome = secureFinalDreamOutcome(selectOutcome(choice, game, event), choice, event, game);
     const tier = outcome.resolvedOutcomeTier || outcome.outcomeTier || inferOutcomeTier(outcome);
     applyStatChanges(
       getDifficultyAdjustedEffects(getNarrativelyCoherentEffects(event, outcome), game),

@@ -39,7 +39,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <section class="monthly-leaderboard-card" aria-labelledby="monthly-leaderboard-home-title">
 <header class="monthly-leaderboard-card__header">
 <div><p class="eyebrow">Classement mensuel</p><h2 id="monthly-leaderboard-home-title">Les légendes du mois</h2></div>
-<time id="monthly-leaderboard-home-month"></time>
+<div class="monthly-leaderboard-card__tools"><time id="monthly-leaderboard-home-month"></time><button class="leaderboard-refresh-button" data-leaderboard-refresh="home" type="button">Actualiser</button></div>
 </header>
 <div class="monthly-leaderboard-list monthly-leaderboard-list--compact" id="monthly-leaderboard-top-five" aria-live="polite">
 <p class="monthly-leaderboard-status">Chargement des légendes…</p>
@@ -64,7 +64,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 </header>
 <div class="leaderboard-full-layout">
 <section class="leaderboard-ranking-panel" aria-labelledby="leaderboard-top-title">
-<div class="leaderboard-panel-heading"><h3 id="leaderboard-top-title">Top 50</h3><button class="button leaderboard-retry" data-leaderboard-retry type="button" hidden>Réessayer</button></div>
+<div class="leaderboard-panel-heading"><h3 id="leaderboard-top-title">Top 50</h3><button class="leaderboard-refresh-button" data-leaderboard-refresh="full" type="button">Actualiser</button></div>
 <div class="monthly-leaderboard-list" id="monthly-leaderboard-top-fifty" aria-live="polite"><p class="monthly-leaderboard-status">Chargement des légendes…</p></div>
 </section>
 <aside class="leaderboard-personal-panel" aria-labelledby="leaderboard-personal-title">

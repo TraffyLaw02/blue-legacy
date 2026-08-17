@@ -11,6 +11,8 @@
   });
   const AUTH_STORAGE_KEY = "blueLegacySupabaseAuth";
   const CACHE_STORAGE_KEY = "blueLegacyLeaderboardCache";
+  const PROFILE_RPC = "upsert_player_profile";
+  const PROFILE_D_RPC = "set_player_profile_d_cosmetic";
   const READ_RETRY_DELAYS = Object.freeze([500, 1500]);
   const REQUEST_TIMEOUT_MS = 10000;
   const MONTH_FORMATTER = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
@@ -25,6 +27,7 @@
   let authPromise = null;
   let topFiveLoadPromise = null;
   let topFiftyLoadPromise = null;
+  let manualRefreshPromise = null;
 
   function monthKey(date = new Date()) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -100,6 +103,10 @@
     return authPromise;
   }
 
+  function logCurrentUserId(context, session) {
+    console.info(`${LOG_PREFIX} Current user id: ${session?.user?.id || "unavailable"}`, { context });
+  }
+
   function createRequestError(response, payload) {
     const error = new Error(payload?.message || `Supabase HTTP ${response.status}`);
     error.name = "SupabaseRequestError";
@@ -118,6 +125,60 @@
       details: error?.details || null,
       hint: error?.hint || null,
     };
+  }
+
+  function normalizePlayerNamePart(value) {
+    return String(value || "").trim().replace(/\s+/g, " ").slice(0, 40);
+  }
+
+  function isUniqueProfileConflict(error) {
+    return error?.code === "23505" || /unique|duplicate|player_profiles_normalized_name/i.test(
+      `${error?.message || ""} ${error?.details || ""}`,
+    );
+  }
+
+  function publicProfileFailure(error) {
+    console.error("[Blue Legacy Profile]", errorInfo(error));
+    return isUniqueProfileConflict(error)
+      ? { ok: false, reason: "name-taken", message: "Ce nom de joueur est déjà utilisé.", error }
+      : { ok: false, reason: "unavailable", message: "Impossible de vérifier la disponibilité du nom pour le moment.", error };
+  }
+
+  async function reservePlayerProfile({ firstName, lastName, dCosmetic = false } = {}) {
+    const normalizedFirstName = normalizePlayerNamePart(firstName);
+    const normalizedLastName = normalizePlayerNamePart(lastName);
+    if (!normalizedFirstName || !normalizedLastName) {
+      return { ok: false, reason: "invalid", message: "Le nom et le prénom sont obligatoires." };
+    }
+    try {
+      const session = await ensureAnonymousAuth();
+      logCurrentUserId("public-profile-upsert", session);
+      const result = await request(`/rest/v1/rpc/${PROFILE_RPC}`, {
+        method: "POST",
+        auth: true,
+        body: {
+          p_first_name: normalizedFirstName,
+          p_last_name: normalizedLastName,
+          p_d_cosmetic: dCosmetic === true,
+        },
+      });
+      return { ok: true, profile: result.data?.[0] || result.data || null, firstName: normalizedFirstName, lastName: normalizedLastName };
+    } catch (error) {
+      return publicProfileFailure(error);
+    }
+  }
+
+  async function syncPlayerDCosmetic(dCosmetic) {
+    try {
+      const result = await request(`/rest/v1/rpc/${PROFILE_D_RPC}`, {
+        method: "POST",
+        auth: true,
+        body: { p_d_cosmetic: dCosmetic === true },
+      });
+      return { ok: true, profile: result.data?.[0] || result.data || null };
+    } catch (error) {
+      return publicProfileFailure(error);
+    }
   }
 
   function logError(operation, error, attempt = null) {
@@ -221,7 +282,11 @@
   }
 
   function loadTopFive({ force = false } = {}) {
-    if (topFiveLoadPromise && !force) return topFiveLoadPromise;
+    if (topFiveLoadPromise) {
+      return force
+        ? topFiveLoadPromise.catch(() => null).then(() => loadTopFive({ force: true }))
+        : topFiveLoadPromise;
+    }
     const pending = retryRead("top5", () => getMonthlyTop(5))
       .then((entries) => {
         writeTopFiveCache(entries);
@@ -236,9 +301,16 @@
     return pending;
   }
 
-  function loadTopFifty() {
-    if (topFiftyLoadPromise) return topFiftyLoadPromise;
-    const pending = retryRead("top50", () => getMonthlyTop(50));
+  function loadTopFifty({ force = false } = {}) {
+    if (topFiftyLoadPromise) {
+      return force
+        ? topFiftyLoadPromise.catch(() => null).then(() => loadTopFifty({ force: true }))
+        : topFiftyLoadPromise;
+    }
+    const pending = retryRead("top50", () => getMonthlyTop(50)).then((entries) => {
+      writeTopFiveCache(entries.slice(0, 5));
+      return entries;
+    });
     topFiftyLoadPromise = pending;
     pending.then(() => {
       if (topFiftyLoadPromise === pending) topFiftyLoadPromise = null;
@@ -250,6 +322,7 @@
 
   async function getCurrentPlayerMonthlyEntry() {
     const session = await ensureAnonymousAuth();
+    logCurrentUserId("personal-entry", session);
     const query = new URLSearchParams({ select: "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,dream_completed,score,updated_at", month_key: `eq.${monthKey()}`, user_id: `eq.${session.user.id}`, limit: "1" });
     const result = await request(`/rest/v1/${CONFIG.table}?${query}`, { auth: true });
     return result.data?.[0] ? normalizeEntry(result.data[0]) : null;
@@ -284,11 +357,43 @@
       p_score: Math.min(100, Math.max(1, Math.round(Number(score) || 1))),
     };
     try {
-      await request(`/rest/v1/rpc/${CONFIG.submitRpc}`, { method: "POST", body: payload, auth: true });
-      refreshHome({ force: true });
-      return { submitted: true };
+      const session = await ensureAnonymousAuth();
+      logCurrentUserId("submission", session);
+      console.info(`${LOG_PREFIX} Submitting monthly score`, {
+        month_key: payload.p_month_key,
+        user_id: session.user.id,
+        player_last_name: payload.p_player_last_name,
+        player_first_name: payload.p_player_first_name,
+        character_name: payload.p_character_name,
+        score: payload.p_score,
+        character_title: payload.p_character_title,
+        dream_completed: payload.p_dream_completed,
+        player_d_cosmetic: payload.p_player_d_cosmetic,
+      });
+      const rpcResult = await request(`/rest/v1/rpc/${CONFIG.submitRpc}`, { method: "POST", body: payload, auth: true });
+      console.info(`${LOG_PREFIX} Score submission successful`, rpcResult.data);
+      let storedEntry = null;
+      try {
+        storedEntry = await getCurrentPlayerMonthlyEntry();
+        console.info(`${LOG_PREFIX} Stored monthly score after submission`, {
+          submitted_score: payload.p_score,
+          stored_score: storedEntry?.score ?? null,
+          row: storedEntry,
+        });
+        if (!storedEntry || storedEntry.score < payload.p_score) {
+          console.error(`${LOG_PREFIX} Score verification failed`, {
+            submitted_score: payload.p_score,
+            stored_score: storedEntry?.score ?? null,
+            diagnosis: "La RPC a répondu sans enregistrer le meilleur score attendu.",
+          });
+        }
+      } catch (verificationError) {
+        logError("post-submit-verification", verificationError);
+      }
+      await refreshHome({ force: true, preserveOnFailure: true });
+      return { submitted: true, rpcResult: rpcResult.data, storedEntry };
     } catch (error) {
-      logError("submit", error);
+      console.error(`${LOG_PREFIX} Score submission failed`, errorInfo(error));
       return { submitted: false, error };
     }
   }
@@ -376,16 +481,20 @@
     element.append(text("p", "leaderboard-personal-message", "Votre classement est temporairement indisponible."));
   }
 
-  async function refreshHome({ force = false } = {}) {
+  async function refreshHome({ force = false, preserveOnFailure = false } = {}) {
     const element = document.getElementById("monthly-leaderboard-top-five");
     if (!element) return;
     const requestId = ++homeRequest;
-    clear(element); element.append(text("p", "monthly-leaderboard-status", "Chargement des légendes…"));
+    const hadVisibleRanking = element.children.length > 0 && !element.querySelector(".monthly-leaderboard-status");
+    if (!preserveOnFailure || !hadVisibleRanking) {
+      clear(element); element.append(text("p", "monthly-leaderboard-status", "Chargement des légendes…"));
+    }
     try {
       const entries = await loadTopFive({ force });
       if (requestId === homeRequest) renderList(element, entries);
     } catch (error) {
       if (requestId !== homeRequest) return;
+      if (preserveOnFailure && hadVisibleRanking) return;
       const cache = readTopFiveCache();
       if (cache) renderCachedTopFive(element, cache);
       else renderError(element);
@@ -403,16 +512,16 @@
     element.append(text("strong", "leaderboard-personal-rank", `Vous êtes #${rank}`), createRow(entry, rank, false));
   }
 
-  async function loadAndRenderTopFifty(list, requestId) {
+  async function loadAndRenderTopFifty(list, requestId, { force = false, preserveOnFailure = false } = {}) {
     try {
-      const entries = await loadTopFifty();
+      const entries = await loadTopFifty({ force });
       if (requestId === fullRequest) renderList(list, entries, { full: true });
     } catch (error) {
-      if (requestId === fullRequest) renderError(list);
+      if (requestId === fullRequest && !preserveOnFailure) renderError(list);
     }
   }
 
-  async function loadAndRenderPersonal(personal, profile, requestId) {
+  async function loadAndRenderPersonal(personal, profile, requestId, { preserveOnFailure = false } = {}) {
     if (!hasIdentity(profile)) {
       if (requestId === fullRequest) renderPersonal(personal, profile, null, null);
       return;
@@ -423,20 +532,44 @@
       if (requestId === fullRequest) renderPersonal(personal, profile, personalEntry, rank);
     } catch (error) {
       logError("personal-rank", error);
-      if (requestId === fullRequest) renderPersonalUnavailable(personal);
+      if (requestId === fullRequest && !preserveOnFailure) renderPersonalUnavailable(personal);
     }
   }
 
-  function refreshFull() {
+  function refreshFull({ force = false, preserveOnFailure = false } = {}) {
     const list = document.getElementById("monthly-leaderboard-top-fifty");
     const personal = document.getElementById("monthly-leaderboard-personal");
     if (!list || !personal) return;
     const requestId = ++fullRequest;
-    clear(list); list.append(text("p", "monthly-leaderboard-status", "Chargement des légendes…"));
-    clear(personal); personal.append(text("p", "monthly-leaderboard-status", "Chargement…"));
+    if (!preserveOnFailure) {
+      clear(list); list.append(text("p", "monthly-leaderboard-status", "Chargement des légendes…"));
+      clear(personal); personal.append(text("p", "monthly-leaderboard-status", "Chargement…"));
+    }
     const profile = profileProvider() || {};
-    void loadAndRenderTopFifty(list, requestId);
-    void loadAndRenderPersonal(personal, profile, requestId);
+    return Promise.all([
+      loadAndRenderTopFifty(list, requestId, { force, preserveOnFailure }),
+      loadAndRenderPersonal(personal, profile, requestId, { preserveOnFailure }),
+    ]);
+  }
+
+  function setRefreshButtonsLoading(loading) {
+    document.querySelectorAll("[data-leaderboard-refresh]").forEach((button) => {
+      button.disabled = loading;
+      button.textContent = loading ? "Actualisation…" : "Actualiser";
+    });
+  }
+
+  function refreshOnline(scope = "home") {
+    if (manualRefreshPromise) return manualRefreshPromise;
+    setRefreshButtonsLoading(true);
+    const operation = scope === "full"
+      ? refreshFull({ force: true, preserveOnFailure: true })
+      : refreshHome({ force: true, preserveOnFailure: true });
+    manualRefreshPromise = Promise.resolve(operation).finally(() => {
+      manualRefreshPromise = null;
+      setRefreshButtonsLoading(false);
+    });
+    return manualRefreshPromise;
   }
 
   function setMonthLabels() {
@@ -452,8 +585,12 @@
       if (event.target.closest("[data-leaderboard-retry]")) {
         document.getElementById("leaderboard-screen")?.hidden ? refreshHome({ force: true }) : refreshFull();
       }
+      const refreshButton = event.target.closest("[data-leaderboard-refresh]");
+      if (refreshButton) void refreshOnline(refreshButton.dataset.leaderboardRefresh);
     });
+    const existingSession = readAuth();
+    if (existingSession) logCurrentUserId("leaderboard-initialize", existingSession);
   }
 
-  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, submitCareer, getMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
+  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, refreshOnline, submitCareer, reservePlayerProfile, syncPlayerDCosmetic, normalizePlayerNamePart, getMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
 })();

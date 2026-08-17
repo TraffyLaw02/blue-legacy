@@ -1130,6 +1130,10 @@ body.has-game-credit #home-screen {
 .monthly-leaderboard-card__header h2 { font-size: clamp(1.2rem, 4vw, 1.55rem); }
 .monthly-leaderboard-card__header .eyebrow { color: #d9b879; }
 .monthly-leaderboard-card__header time { flex: 0 0 auto; color: #e2c994; font-size: .85rem; font-weight: 800; }
+.monthly-leaderboard-card__tools { display: flex; flex: 0 0 auto; align-items: flex-end; gap: 7px; flex-direction: column; }
+.leaderboard-refresh-button { min-height: 30px; padding: 5px 10px; border: 1px solid #9d7540; border-radius: 999px; color: #f1dbad; background: #3a241a; font: inherit; font-size: .76rem; font-weight: 800; cursor: pointer; }
+.leaderboard-refresh-button:hover:not(:disabled) { color: #fff4d4; background: #4a3022; border-color: #c49a58; }
+.leaderboard-refresh-button:disabled { opacity: .68; cursor: wait; }
 
 .monthly-leaderboard-list { display: grid; gap: 8px; min-width: 0; margin-top: 14px; }
 .leaderboard-entry {
@@ -1229,6 +1233,7 @@ body.has-game-credit #home-screen {
 @media (max-width: 430px) {
   .monthly-leaderboard-card { padding: 13px 11px; }
   .monthly-leaderboard-card__header { align-items: flex-start; }
+  .monthly-leaderboard-card__tools { align-items: flex-end; max-width: 46%; }
   .leaderboard-entry { grid-template-columns: 36px minmax(0, 1fr) minmax(42px, auto); gap: 7px; padding: 9px 8px; }
   .leaderboard-entry__score { font-size: .78rem; }
   .leaderboard-entry__dream { max-width: 74px; }
@@ -1357,6 +1362,7 @@ body.has-game-credit #home-screen {
 .profile-identity-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; background: rgba(255,255,255,.45); border-radius: 14px; }
 .profile-identity-form label { display: grid; gap: 4px; font-size: .8rem; font-weight: 800; }
 .profile-identity-form div { grid-column: 1 / -1; display: flex; gap: 8px; }
+.profile-identity-error { grid-column: 1 / -1; min-height: 1.2em; margin: 0; color: var(--negative); font-size: .82rem; font-weight: 800; }
 .legend-popularity { margin: 0; padding: 12px; text-align: center; font-size: clamp(1rem, 3vw, 1.3rem); background: rgba(255,255,255,.52); border-radius: 14px; }
 .legend-highlights, .legend-collections { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 10px; }
 .legend-records { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }

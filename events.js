@@ -5484,7 +5484,6 @@ const COMMON_EVENTS = [
             { [approach.stat]: approach.stat === "bounty" ? masteryGain + 60000 : masteryGain + 3, [approach.secondary]: ["fortune", "bounty"].includes(approach.secondary) ? 30000 : 3, popularity: meta.popularity + 2 },
             {
               minimumStats: tier === 3 ? finalRequirement : { [approach.stat]: approach.stat === "bounty" ? masteryThreshold - 100000 : masteryThreshold - 6 },
-              requiresD: variantIndex === 2 ? true : null,
               dreamProgressByDream: { [profile.id]: meta.dream + 2 },
               flags: finalSuccessFlags,
               titles: [titleId],
