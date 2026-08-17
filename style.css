@@ -1218,6 +1218,8 @@ body.has-game-credit #home-screen {
 .monthly-leaderboard-error { display: grid; justify-items: center; gap: 6px; padding: 18px 10px; color: #dfcdb2; text-align: center; }
 .monthly-leaderboard-empty p { margin: 0; }
 .monthly-leaderboard-error .leaderboard-retry { margin-top: 7px; }
+.monthly-leaderboard-cache-notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; color: #dfcdb2; text-align: center; }
+.leaderboard-cache-retry { padding: 2px 0; color: #e8ca8e; font-size: .72rem; font-weight: 800; text-decoration: underline; background: transparent; border: 0; box-shadow: none; }
 
 @media (max-width: 720px) {
   .leaderboard-full-layout { grid-template-columns: 1fr; }
@@ -3142,6 +3144,90 @@ body.shake #app,
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* Dialogue bref précédant uniquement les rencontres narratives majeures. */
+.dialogue-screen {
+  --dialogue-ink: #f8edd8;
+  display: grid;
+  min-height: calc(100dvh - 72px);
+  padding: clamp(16px, 5vw, 42px);
+  place-items: center;
+  overflow: clip;
+  background: linear-gradient(145deg, #132f3d, #081821 72%);
+  border: 2px solid #1b5368;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.dialogue-screen.active { display: grid; }
+
+.dialogue-card {
+  width: min(100%, 620px);
+  padding: clamp(24px, 6vw, 46px);
+  color: var(--dialogue-ink);
+  text-align: center;
+  background: linear-gradient(155deg, rgba(31, 59, 69, 0.98), rgba(16, 31, 39, 0.99));
+  border: 2px solid #b88a3b;
+  border-radius: clamp(18px, 5vw, 28px);
+  box-shadow: 0 7px 0 #071117, 0 24px 48px rgba(0, 0, 0, 0.34);
+  animation: zone-transition-in 360ms ease-out both;
+}
+
+.dialogue-eyebrow,
+.dialogue-progress {
+  margin: 0;
+  color: #d2ad63;
+  font-size: clamp(0.68rem, 2.6vw, 0.8rem);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dialogue-card h2 {
+  margin: 8px 0 0;
+  color: #fff8e9;
+  font-size: clamp(1.75rem, 8vw, 3rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.dialogue-role {
+  margin: 7px 0 0;
+  color: #a9c7d1;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.dialogue-text {
+  max-width: 500px;
+  margin: clamp(20px, 5vw, 30px) auto 0;
+  padding: 0;
+  color: var(--dialogue-ink);
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  font-weight: 650;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.dialogue-progress { margin-top: 18px; }
+
+.dialogue-continue-button {
+  width: min(100%, 280px);
+  margin-top: 20px;
+  color: #21170c;
+  background: #d2ad63;
+  border-color: #765322;
+  box-shadow: 0 5px 0 #765322;
+}
+
+.reduced-motion .dialogue-card { animation: none; }
+
+@media (max-width: 430px) {
+  .dialogue-screen { padding: 14px; }
+  .dialogue-card { padding: 25px 18px; }
 }
 
 .reduced-motion .zone-transition-screen,

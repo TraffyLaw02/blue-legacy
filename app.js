@@ -51,6 +51,7 @@
     RESULT: "result",
     LOGBOOK: "logbook",
     ZONE_TRANSITION: "zoneTransition",
+    DIALOGUE: "dialogue",
     REWARD_REVEAL: "rewardReveal",
     ACHIEVEMENTS: "achievements",
     SHOP: "shop",
@@ -70,6 +71,7 @@
     [SCREEN.RESULT]: "result-screen",
     [SCREEN.LOGBOOK]: "logbook-screen",
     [SCREEN.ZONE_TRANSITION]: "zone-transition-screen",
+    [SCREEN.DIALOGUE]: "dialogue-screen",
     [SCREEN.REWARD_REVEAL]: "reward-reveal-screen",
     [SCREEN.ACHIEVEMENTS]: "achievements-screen",
     [SCREEN.SHOP]: "shop-screen",
@@ -455,6 +457,13 @@
     dom.zoneTransitionTitle = byId("zone-transition-title");
     dom.zoneTransitionDescription = byId("zone-transition-description");
     dom.continueZoneTransition = byId("continue-zone-transition-btn");
+    dom.dialogueScreen = byId("dialogue-screen");
+    dom.dialogueEyebrow = byId("dialogue-eyebrow");
+    dom.dialogueSpeaker = byId("dialogue-speaker");
+    dom.dialogueRole = byId("dialogue-role");
+    dom.dialogueText = byId("dialogue-text");
+    dom.dialogueProgress = byId("dialogue-progress");
+    dom.continueDialogue = byId("continue-dialogue-btn");
 
     dom.rewardRevealScreen = byId("reward-reveal-screen");
     dom.rewardRevealCard = byId("reward-reveal-card");
@@ -783,7 +792,7 @@
     return loadProfile();
   }
 
-  function hasPermanentPlayerIdentity(profile = getProfile()) {
+  function isPlayerIdentityValid(profile = getProfile()) {
     return Boolean(
       String(profile.playerIdentity?.lastName || "").trim() &&
       String(profile.playerIdentity?.firstName || "").trim()
@@ -791,8 +800,13 @@
   }
 
   function showWelcomeIdentityIfNeeded() {
-    if (!dom.welcomeIdentityModal || hasPermanentPlayerIdentity()) return false;
+    const profile = getProfile();
+    if (!dom.welcomeIdentityModal || isPlayerIdentityValid(profile)) return false;
     if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = "";
+    if (dom.welcomeIdentityForm) {
+      dom.welcomeIdentityForm.elements.lastName.value = profile.playerIdentity.lastName;
+      dom.welcomeIdentityForm.elements.firstName.value = profile.playerIdentity.firstName;
+    }
     openDialog(dom.welcomeIdentityModal);
     window.setTimeout(() => dom.welcomeIdentityForm?.elements.lastName?.focus(), 0);
     return true;
@@ -803,7 +817,7 @@
     event.stopPropagation();
     const lastName = String(dom.welcomeIdentityForm?.elements.lastName?.value || "").trim().slice(0, 40);
     const firstName = String(dom.welcomeIdentityForm?.elements.firstName?.value || "").trim().slice(0, 40);
-    if (!lastName || !firstName) {
+    if (!isPlayerIdentityValid({ playerIdentity: { lastName, firstName } })) {
       if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = "Le nom et le prénom sont obligatoires.";
       return false;
     }
@@ -1147,6 +1161,7 @@
       SCREEN.RESULT,
       SCREEN.LOGBOOK,
       SCREEN.ZONE_TRANSITION,
+      SCREEN.DIALOGUE,
       SCREEN.REWARD_REVEAL,
     ].includes(
       screenName,
@@ -1158,6 +1173,7 @@
     if (payload.result || payload.game?.pendingResult) return SCREEN.RESULT;
     if (payload.game?.pendingRewardReveals?.length) return SCREEN.REWARD_REVEAL;
     if (payload.game?.pendingZoneTransition) return SCREEN.ZONE_TRANSITION;
+    if (payload.game?.pendingDialogue) return SCREEN.DIALOGUE;
     if (payload.game?.currentEvent) return SCREEN.GAME;
     return payload.game?.month ? SCREEN.GAME : SCREEN.D_REVEAL;
   }
@@ -1182,6 +1198,7 @@
       [SCREEN.RESULT]: updateResultScreen,
       [SCREEN.LOGBOOK]: updateLogbookScreen,
       [SCREEN.ZONE_TRANSITION]: updateZoneTransitionScreen,
+      [SCREEN.DIALOGUE]: updateDialogueScreen,
       [SCREEN.REWARD_REVEAL]: updateRewardRevealScreen,
       [SCREEN.ACHIEVEMENTS]: updateAchievementsScreen,
       [SCREEN.SHOP]: updateShopScreen,
@@ -2725,6 +2742,35 @@
     "completed-no-title", "not-selected",
   ]);
 
+  const ARC_PERFORMANCE_POINTS = Object.freeze({
+    exceptional_success: 3,
+    success: 2,
+    mixed: 0.5,
+    failure: -1,
+    severe_failure: -2,
+  });
+
+  function normalizeArcPerformance(value = {}) {
+    const entries = Array.isArray(value?.entries)
+      ? value.entries.filter((entry) => entry && typeof entry === "object")
+          .slice(0, 3)
+          .map((entry) => ({
+            resolutionId: String(entry.resolutionId || ""),
+            step: Math.max(1, Math.min(3, Math.floor(Number(entry.step) || 1))),
+            tier: OUTCOME_TIER_ORDER.includes(entry.tier) ? entry.tier : "mixed",
+            points: Number.isFinite(Number(entry.points)) ? Number(entry.points) : 0,
+            statScore: Math.max(1, Math.min(100, Number(entry.statScore) || 50)),
+          }))
+      : [];
+    return {
+      entries,
+      score: entries.reduce((sum, entry) => sum + entry.points, 0),
+      finalChance: Number.isFinite(Number(value?.finalChance)) ? Number(value.finalChance) : null,
+      finalRoll: Number.isFinite(Number(value?.finalRoll)) ? Number(value.finalRoll) : null,
+      requiredConditionsMet: value?.requiredConditionsMet !== false,
+    };
+  }
+
   function normalizeLegendaryArcState(value = {}, defaults = {}) {
     return {
       ...defaults,
@@ -2735,6 +2781,7 @@
       roll: Number.isFinite(Number(value?.roll)) ? Number(value.roll) : null,
       chance: Number.isFinite(Number(value?.chance)) ? Number(value.chance) : null,
       titleId: value?.titleId || null,
+      performance: normalizeArcPerformance(value?.performance),
       conclusion: value?.conclusion && typeof value.conclusion === "object"
         ? { ...value.conclusion }
         : null,
@@ -2847,6 +2894,7 @@
       lastLogbookMonth: 0,
       pendingLogbookEntry: null,
       pendingZoneTransition: null,
+      pendingDialogue: null,
       pendingRewardReveals: [],
       legendaryArcs: {
         talent: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
@@ -2987,6 +3035,16 @@
         game.pendingZoneTransition &&
         typeof game.pendingZoneTransition === "object"
           ? { ...game.pendingZoneTransition }
+          : null,
+      pendingDialogue:
+        game.pendingDialogue && typeof game.pendingDialogue === "object"
+          ? {
+              eventId: String(game.pendingDialogue.eventId || ""),
+              index: Math.max(0, Math.floor(Number(game.pendingDialogue.index) || 0)),
+              slides: Array.isArray(game.pendingDialogue.slides)
+                ? game.pendingDialogue.slides.filter(Boolean).map((slide) => ({ ...slide }))
+                : [],
+            }
           : null,
       pendingRewardReveals: Array.isArray(game.pendingRewardReveals)
         ? game.pendingRewardReveals
@@ -3255,6 +3313,9 @@
         progress?.finalOutcome && typeof progress.finalOutcome === "object"
           ? { ...progress.finalOutcome }
           : null,
+      hakiPerformance: Array.isArray(progress?.hakiPerformance)
+        ? progress.hakiPerformance.filter(Boolean).slice(0, 2).map((entry) => ({ ...entry }))
+        : [],
     };
   }
 
@@ -3994,6 +4055,91 @@
     }
   }
 
+  function replaceDialogueTokens(value, tokens = {}) {
+    if (typeof value === "string") {
+      return Object.entries(tokens).reduce(
+        (text, [key, replacement]) => text.replaceAll(`{${key}}`, String(replacement || "")),
+        value,
+      );
+    }
+    if (Array.isArray(value)) return value.map((item) => replaceDialogueTokens(item, tokens));
+    if (value && typeof value === "object") {
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceDialogueTokens(item, tokens)]));
+    }
+    return value;
+  }
+
+  function getEventDialogueSlides(event, game = state.game) {
+    const source = event?.introDialogue;
+    if (!source) return [];
+    const faction = game?.character?.faction || "default";
+    const selected = Array.isArray(source) || source.text
+      ? source
+      : source[faction] || source.default || [];
+    const slides = Array.isArray(selected) ? selected : [selected];
+    const tokens = {
+      character: game?.character?.name || "toi",
+      zone: getCurrentZone(game)?.name || "cette mer",
+    };
+    return replaceDialogueTokens(slides, tokens)
+      .filter((slide) => slide && String(slide.text || "").trim())
+      .slice(0, 3)
+      .map((slide) => ({
+        eyebrow: String(slide.eyebrow || "Rencontre"),
+        speaker: String(slide.speaker || "Une voix"),
+        role: String(slide.role || ""),
+        text: String(slide.text || ""),
+      }));
+  }
+
+  function queueEventDialogue(event, game = state.game) {
+    if (!game || !event) return false;
+    const slides = getEventDialogueSlides(event, game);
+    game.pendingDialogue = slides.length ? { eventId: event.id, index: 0, slides } : null;
+    return Boolean(slides.length);
+  }
+
+  function updateDialogueScreen() {
+    const pending = state.game?.pendingDialogue;
+    if (!pending?.slides?.length || pending.eventId !== state.game?.currentEvent?.id) {
+      if (state.game) state.game.pendingDialogue = null;
+      openScreen(SCREEN.GAME, { save: false });
+      return;
+    }
+    const index = Math.min(pending.slides.length - 1, Math.max(0, pending.index || 0));
+    const slide = pending.slides[index];
+    if (dom.dialogueEyebrow) dom.dialogueEyebrow.textContent = slide.eyebrow;
+    if (dom.dialogueSpeaker) dom.dialogueSpeaker.textContent = slide.speaker;
+    if (dom.dialogueRole) {
+      dom.dialogueRole.textContent = slide.role;
+      dom.dialogueRole.hidden = !slide.role;
+    }
+    if (dom.dialogueText) dom.dialogueText.textContent = `« ${slide.text} »`;
+    if (dom.dialogueProgress) {
+      dom.dialogueProgress.textContent = pending.slides.length > 1 ? `${index + 1} / ${pending.slides.length}` : "";
+    }
+    if (dom.continueDialogue) {
+      dom.continueDialogue.disabled = false;
+      dom.continueDialogue.textContent = index + 1 < pending.slides.length ? "Suite" : "Faire face";
+    }
+  }
+
+  function continueAfterDialogue() {
+    const game = state.game;
+    const pending = game?.pendingDialogue;
+    if (!pending) return false;
+    if (pending.index + 1 < pending.slides.length) {
+      pending.index += 1;
+      saveGame();
+      updateDialogueScreen();
+      return true;
+    }
+    game.pendingDialogue = null;
+    saveGame();
+    openScreen(SCREEN.GAME, { save: false });
+    return true;
+  }
+
   function continueAfterZoneTransition() {
     const game = state.game;
     if (!game?.pendingZoneTransition) return false;
@@ -4020,7 +4166,7 @@
       }
       return startNextEvent();
     }
-    openScreen(SCREEN.GAME, { save: false });
+    openScreen(game.pendingDialogue ? SCREEN.DIALOGUE : SCREEN.GAME, { save: false });
     if (["boss-event", "legendary-arc"].includes(transitionReason)) {
       return true;
     }
@@ -4177,6 +4323,13 @@
     const emperor = LEGENDARY_EMPEROR_NAMES[emperorId] || "un Empereur";
     const objective = LEGENDARY_DREAM_OBJECTIVES[game?.character?.dream] || "un objectif capable de changer ta destinée";
     localized.description = String(localized.description || "").replaceAll("{emperor}", emperor).replaceAll("{objective}", objective);
+    if (localized.introDialogue?.emperorVariants) {
+      localized.introDialogue =
+        localized.introDialogue.emperorVariants[emperorId] ||
+        localized.introDialogue.emperorVariants.default ||
+        null;
+    }
+    if (localized.introDialogue) localized.introDialogue = replaceDialogueTokens(localized.introDialogue, { emperor, objective });
     localized.text = localized.description;
     localized.legendaryArc = localized.tags?.includes("legendary-talent")
       ? "talent"
@@ -4221,6 +4374,7 @@
     game.currentEventId = event.id;
     game.currentChoiceIndex = null;
     game.pendingResult = null;
+    queueEventDialogue(event, game);
     game.pendingZoneTransition = createZoneTransitionData(getCurrentZone(game), game.currentZoneIndex, "legendary-arc", game);
     checkAchievements(game);
     saveGame();
@@ -4256,22 +4410,145 @@
     return false;
   }
 
-  function finalizeLegendaryArc(arcId, game = state.game) {
+  const LEGENDARY_FINAL_CHANCES = Object.freeze({
+    talent: Object.freeze({ two: 0.84, one: 0.32 }),
+    marineford: Object.freeze({ two: 0.78, one: 0.24 }),
+    emperor: Object.freeze({ two: 0.70, one: 0.16 }),
+  });
+
+  function recordLegendaryArcPerformance(event, outcome, choice, resolutionId, game = state.game) {
+    const arcId = event?.legendaryArc;
+    const step = Number(event?.legendaryStep);
+    const arc = game?.legendaryArcs?.[arcId];
+    if (!arc || ![1, 2, 3].includes(step) || !resolutionId) return false;
+    arc.performance = normalizeArcPerformance(arc.performance);
+    if (arc.performance.entries.some((entry) => entry.resolutionId === resolutionId || entry.step === step)) {
+      return false;
+    }
+    const tier = outcome?.resolvedOutcomeTier || outcome?.outcomeTier || inferOutcomeTier(outcome || {});
+    const points = ARC_PERFORMANCE_POINTS[tier] ?? 0;
+    arc.performance.entries.push({
+      resolutionId,
+      step,
+      tier,
+      points,
+      statScore: getEventResolutionScore(game, event, choice),
+    });
+    arc.performance.entries.sort((a, b) => a.step - b.step);
+    arc.performance.score = arc.performance.entries.reduce((sum, entry) => sum + entry.points, 0);
+    debugResolution("legendary-performance", {
+      arcId,
+      step,
+      tier,
+      points,
+      score: arc.performance.score,
+      resolutionId,
+    });
+    return true;
+  }
+
+  function recordHakiDecisivePerformance(event, outcome, choice, resolutionId, game = state.game) {
+    const stage = Number(event?.decisiveStage);
+    if (!game || !event?.tags?.includes("haki-awakening") || ![1, 2].includes(stage) || !resolutionId) {
+      return false;
+    }
+    game.bossProgress.hakiPerformance ||= [];
+    if (game.bossProgress.hakiPerformance.some((entry) =>
+      entry.resolutionId === resolutionId || Number(entry.stage) === stage)) return false;
+    const tier = outcome?.resolvedOutcomeTier || outcome?.outcomeTier || inferOutcomeTier(outcome || {});
+    game.bossProgress.hakiPerformance.push({
+      resolutionId,
+      stage,
+      tier,
+      points: ARC_PERFORMANCE_POINTS[tier] ?? 0,
+      statScore: getEventResolutionScore(game, event, choice),
+      firstDecisiveHakiType: stage === 1 ? null : getFirstDecisiveHakiType(game),
+      branch: stage === 2 ? game.flags?.secondDecisiveHakiBranch || null : null,
+    });
+    debugResolution("haki-performance", cloneData(game.bossProgress.hakiPerformance.at(-1)));
+    return true;
+  }
+
+  function rebuildLegacyArcPerformance(arcId, game = state.game) {
+    const entries = [1, 2, 3].map((step) => {
+      const tier = game.flags?.[`legendary_${arcId}_${step}_success`] ? "success"
+        : game.flags?.[`legendary_${arcId}_${step}_mixed`] ? "mixed"
+        : game.flags?.[`legendary_${arcId}_${step}_failure`] ? "failure"
+        : null;
+      return tier ? {
+        resolutionId: `legacy:${arcId}:${step}`,
+        step,
+        tier,
+        points: ARC_PERFORMANCE_POINTS[tier],
+        statScore: 50,
+      } : null;
+    }).filter(Boolean);
+    return normalizeArcPerformance({ entries });
+  }
+
+  function calculateLegendaryFinalChance(arcId, performance) {
+    const entries = performance?.entries || [];
+    const successes = entries.filter((entry) =>
+      ["success", "exceptional_success"].includes(entry.tier)).length;
+    if (successes === 3) return 1;
+    if (successes === 0) return 0;
+    const averageStatScore = entries.length
+      ? entries.reduce((sum, entry) => sum + entry.statScore, 0) / entries.length
+      : 50;
+    const statModifier = Math.max(-0.08, Math.min(0.08, (averageStatScore - 50) * 0.004));
+    const qualityModifier = Math.max(-0.06, Math.min(0.06,
+      (Number(performance?.score) - (successes === 2 ? 3 : 0.5)) * 0.025));
+    const base = LEGENDARY_FINAL_CHANCES[arcId]?.[successes === 2 ? "two" : "one"] || 0;
+    return Math.max(0, Math.min(0.95, base + statModifier + qualityModifier));
+  }
+
+  function clearLegendaryPerformanceFlags(arcId, game = state.game) {
+    [1, 2, 3].forEach((step) => {
+      ["success", "mixed", "failure"].forEach((tier) => {
+        delete game.flags?.[`legendary_${arcId}_${step}_${tier}`];
+      });
+    });
+  }
+
+  function finalizeLegendaryArc(arcId, game = state.game, random = Math.random) {
     const arc = game?.legendaryArcs?.[arcId];
     if (!arc) return false;
-    const successes = [1, 2, 3].filter((step) => game.flags?.[`legendary_${arcId}_${step}_success`]).length;
-    const failures = [1, 2, 3].filter((step) => game.flags?.[`legendary_${arcId}_${step}_failure`]).length;
-    const earned = successes >= 2 && failures === 0 && Boolean(game.flags?.[`legendary_${arcId}_3_success`]);
-    if (earned) {
-      const titleId = getLegendaryArcTitleId(arcId, game);
-      if (titleId) { unlockTitle(titleId, null, game, false); arc.titleId = titleId; }
+    arc.performance = normalizeArcPerformance(arc.performance);
+    if (arc.performance.entries.length !== 3) {
+      arc.performance = rebuildLegacyArcPerformance(arcId, game);
+    }
+    const titleId = getLegendaryArcTitleId(arcId, game);
+    const requiredConditionsMet = Boolean(titleId);
+    const chance = requiredConditionsMet
+      ? calculateLegendaryFinalChance(arcId, arc.performance)
+      : 0;
+    const roll = arc.performance.finalRoll ?? random();
+    arc.performance.finalChance = chance;
+    arc.performance.finalRoll = roll;
+    arc.performance.requiredConditionsMet = requiredConditionsMet;
+    const earned = requiredConditionsMet && roll < chance;
+    if (earned && titleId) {
+      unlockTitle(titleId, null, game, false);
+      arc.titleId = titleId;
       arc.status = "succeeded";
     } else {
+      const failures = arc.performance.entries.filter((entry) =>
+        ["failure", "severe_failure"].includes(entry.tier)).length;
       arc.status = failures >= 2 ? "failed" : "completed-no-title";
     }
     arc.step = 3;
     arc.completedAtMonth = game.month;
-    arc.result = earned ? "title-earned" : failures >= 2 ? "failed" : "survived";
+    arc.result = earned ? "title-earned" : arc.status === "failed" ? "failed" : "survived";
+    debugResolution("legendary-final", {
+      arcId,
+      entries: cloneData(arc.performance.entries),
+      score: arc.performance.score,
+      chance,
+      roll,
+      requiredConditionsMet,
+      earned,
+    });
+    clearLegendaryPerformanceFlags(arcId, game);
     checkAchievements(game);
     return earned;
   }
@@ -4472,6 +4749,15 @@
     localized.decisiveStage = stage;
     localized.description = String(localized.description || "")
       .replaceAll("{zone}", zoneName);
+    if (localized.introDialogue?.zoneVariants) {
+      localized.introDialogue =
+        localized.introDialogue.zoneVariants[zone?.id] ||
+        localized.introDialogue.default ||
+        null;
+    }
+    if (localized.introDialogue) {
+      localized.introDialogue = replaceDialogueTokens(localized.introDialogue, { zone: zoneName });
+    }
     localized.choices?.forEach((choice) => {
       choice.outcomes?.forEach((outcome) => {
         outcome.result = String(outcome.result || "").replaceAll("{zone}", zoneName);
@@ -4519,8 +4805,9 @@
     game.pendingResult = null;
     game.bossProgress.activeBossId = boss.id;
     game.pendingZoneTransition = null;
+    queueEventDialogue(boss, game);
     saveGame();
-    openScreen(SCREEN.GAME, { save: false });
+    openScreen(game.pendingDialogue ? SCREEN.DIALOGUE : SCREEN.GAME, { save: false });
     return true;
   }
 
@@ -4646,6 +4933,7 @@
       loreCharacters: uniqueArray(event?.loreCharacters || []),
       decisiveKind: event?.decisiveKind || event?.bossType || "",
       intro: event?.intro || "",
+      introDialogue: cloneData(event?.introDialogue || null),
       rarity: event?.rarity || "common",
 
       priority: Number(event?.priority) || 0,
@@ -5580,11 +5868,12 @@
     game.currentEventId = localized.id;
     game.currentChoiceIndex = null;
     game.pendingResult = null;
+    queueEventDialogue(localized, game);
 
     state.result = null;
 
     saveGame();
-    openScreen(SCREEN.GAME, { save: false });
+    openScreen(game.pendingDialogue ? SCREEN.DIALOGUE : SCREEN.GAME, { save: false });
 
     return true;
   }
@@ -5720,8 +6009,9 @@
         if (nextEvent) {
           game.currentEvent = nextEvent;
           game.currentEventId = nextEvent.id;
+          queueEventDialogue(nextEvent, game);
           saveGame();
-          openScreen(SCREEN.GAME, { save: false });
+          openScreen(game.pendingDialogue ? SCREEN.DIALOGUE : SCREEN.GAME, { save: false });
           return true;
         }
       }
@@ -5901,16 +6191,8 @@
       event,
       game,
     );
-    if (event.legendaryArc && event.legendaryStep === 3 &&
-        ["success", "exceptional_success"].includes(outcome.resolvedOutcomeTier || outcome.outcomeTier)) {
-      const arcId = event.legendaryArc;
-      const priorSuccesses = [1, 2].filter((step) => game.flags?.[`legendary_${arcId}_${step}_success`]).length;
-      const priorFailures = [1, 2].filter((step) => game.flags?.[`legendary_${arcId}_${step}_failure`]).length;
-      if (priorSuccesses >= 1 && priorFailures === 0) {
-        const titleId = getLegendaryArcTitleId(arcId, game);
-        if (titleId) outcome.titles = uniqueArray([...(outcome.titles || []), titleId]);
-      }
-    }
+    recordLegendaryArcPerformance(event, outcome, choice, resolutionId, game);
+    recordHakiDecisivePerformance(event, outcome, choice, resolutionId, game);
     const outcomeNarrative = getOutcomeNarrative(outcome, choice, event);
     const statsBefore = getStatsSnapshot(game.stats);
     const flagsBefore = { ...game.flags };
@@ -11145,6 +11427,9 @@
 
   function bindEvents() {
     dom.welcomeIdentityForm?.addEventListener("submit", saveWelcomeIdentity);
+    dom.welcomeIdentityModal?.addEventListener("cancel", (event) => {
+      if (!isPlayerIdentityValid()) event.preventDefault();
+    });
     dom.openGameMenu?.setAttribute("aria-label", "Ouvrir le menu");
     dom.openGameMenu?.setAttribute("aria-expanded", "false");
     dom.openGameMenu?.addEventListener("click", (event) => {
@@ -11332,6 +11617,15 @@
         event.preventDefault();
         event.stopPropagation();
         continueAfterZoneTransition();
+      },
+    );
+
+    dom.continueDialogue?.addEventListener(
+      "click",
+      (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        continueAfterDialogue();
       },
     );
 
@@ -12580,6 +12874,59 @@
     return report;
   }
 
+  function runArcPerformanceAudit() {
+    const success = (tier = "success", statScore = 55, step = 1) => ({
+      resolutionId: `audit:${step}:${tier}`,
+      step,
+      tier,
+      points: ARC_PERFORMANCE_POINTS[tier],
+      statScore,
+    });
+    const performance = (...entries) => normalizeArcPerformance({ entries });
+    const threeSuccesses = performance(success("success", 55, 1), success("success", 55, 2), success("success", 55, 3));
+    const twoSuccesses = performance(success("success", 55, 1), success("failure", 55, 2), success("success", 55, 3));
+    const threeMixed = performance(success("mixed", 55, 1), success("mixed", 55, 2), success("mixed", 55, 3));
+    const threeFailures = performance(success("failure", 55, 1), success("failure", 55, 2), success("failure", 55, 3));
+    const guaranteed = Object.fromEntries(["talent", "marineford", "emperor"].map((arcId) =>
+      [arcId, calculateLegendaryFinalChance(arcId, threeSuccesses)]));
+    const twoSuccessChances = Object.fromEntries(["talent", "marineford", "emperor"].map((arcId) =>
+      [arcId, calculateLegendaryFinalChance(arcId, twoSuccesses)]));
+
+    const game = createDefaultGameState({
+      name: "Audit Arc", faction: "pirate", dream: "one-piece", origin: "east-blue", traits: [],
+    });
+    const event = {
+      id: "legendary-talent-pirate-1",
+      legendaryArc: "talent",
+      legendaryStep: 1,
+      eventType: "legendary",
+      resolutionCategory: "social",
+    };
+    const choice = { resolutionWeights: { charisma: 0.5, intelligence: 0.5 } };
+    const outcome = { outcomeTier: "success", resolvedOutcomeTier: "success" };
+    recordLegendaryArcPerformance(event, outcome, choice, "audit-resolution-1", game);
+    recordLegendaryArcPerformance(event, outcome, choice, "audit-resolution-1", game);
+    const reloaded = normalizeGame(cloneData(game));
+    const reloadEntries = reloaded.legendaryArcs.talent.performance.entries;
+
+    const hakiAudit = runHakiDecisiveAudit();
+    const report = {
+      guaranteed,
+      twoSuccessChances,
+      threeMixedChance: calculateLegendaryFinalChance("talent", threeMixed),
+      threeFailuresChance: calculateLegendaryFinalChance("talent", threeFailures),
+      reloadEntryCount: reloadEntries.length,
+      reloadScore: reloaded.legendaryArcs.talent.performance.score,
+      hakiPass: hakiAudit.pass,
+    };
+    report.pass = Object.values(guaranteed).every((chance) => chance === 1) &&
+      twoSuccessChances.talent >= 0.75 && twoSuccessChances.marineford >= 0.70 &&
+      twoSuccessChances.emperor >= 0.60 && report.threeMixedChance === 0 &&
+      report.threeFailuresChance === 0 && report.reloadEntryCount === 1 &&
+      report.reloadScore === ARC_PERFORMANCE_POINTS.success && report.hakiPass;
+    return report;
+  }
+
   function runCollectionCatalogAudit() {
     const achievements = getAllAchievements();
     const titles = getAllTitles();
@@ -12810,12 +13157,14 @@
     hasTrait,
     unlockTitle,
     normalizeProfile,
+    isPlayerIdentityValid,
     getWillOfDProbability,
     rollWillOfD,
     simulateWillOfD,
     runWillOfDAudit,
     runCharacterNameAudit,
     runHakiDecisiveAudit,
+    runArcPerformanceAudit,
     validateRunRewards,
     normalizeRarity,
     getFactionRenownMeta,
@@ -12879,6 +13228,7 @@
     runWillOfDAudit,
     runCharacterNameAudit,
     runHakiDecisiveAudit,
+    runArcPerformanceAudit,
   });
 
   /* ========================================================
@@ -12934,6 +13284,7 @@
         save: false,
       },
     );
+    showWelcomeIdentityIfNeeded();
     if (developmentQuery.has("shopPreview")) {
       openScreen(SCREEN.SHOP, { save: false });
       requestAnimationFrame(() => {

@@ -636,6 +636,7 @@
       loreCharacters: event.loreCharacters || [],
       decisiveKind: event.decisiveKind || event.bossType || "",
       intro: event.intro || "",
+      introDialogue: event.introDialogue || null,
 
       requiresD: event.requiresD ?? null,
       requiresFruit: event.requiresFruit ?? null,
@@ -4168,6 +4169,64 @@ const COMMON_EVENTS = [
     }),
   });
 
+  const SPECIAL_CANONICAL_DIALOGUES = Object.freeze({
+    "Borsalino": [
+      "Oooh… quelle route inquiétante. Voyons si tu la suivras encore quand la lumière cessera de t’aider.",
+      "Tu as donc trouvé ton cap dans cette nuit… Quelle bande de jeunes gens terrifiants.",
+    ],
+    "Basil Hawkins": [
+      "Tes chances de quitter cette mer avec la cible sont faibles. Celles de changer ce calcul ne sont pourtant pas nulles.",
+      "La carte annonçait ta défaite. Il semble que je doive enfin corriger la probabilité.",
+    ],
+    "Karasu": [
+      "Mes corbeaux porteront le message. Ta tâche est de préserver le silence autour de ceux qui doivent le recevoir.",
+      "La route existe désormais. Ne laisse pas notre victoire révéler les noms qu’elle devait protéger.",
+    ],
+    "Trafalgar Law": [
+      "Ne confonds pas alliance et confiance. Suis le plan, et chacun repartira avec ce qu’il aura su préserver.",
+      "L’accord s’arrête à la sortie de l’archipel. Jusque-là, aucune vie ne sera une monnaie d’échange.",
+    ],
+    "Issho": [
+      "Une loi qui abandonne les innocents ne pèse pas lourd face à leur vie. Montrez-moi quelle justice vous choisirez.",
+      "Je soutiendrai votre décision si vous pouvez encore la regarder en face lorsque cette île sera loin.",
+    ],
+    "Dracule Mihawk": [
+      "Je ne suis pas venu réclamer un duel. Montre-moi seulement si ta chasse possède davantage de tranchant que ton orgueil.",
+      "Tu as évité les combats inutiles sans abandonner ta cible. C’est un jugement plus rare qu’une victoire.",
+    ],
+    "Morley": [
+      "Je peux ouvrir la terre, mais pas décider qui vous laisserez derrière. Donne le signal quand tout le monde sera prêt.",
+      "Héhé ! Le pont tiendra pour les derniers aussi. Une révolution ne ferme pas la porte aux retardataires !",
+    ],
+    "Eustass Kid": [
+      "Cette île et son tonnerre seront à moi. Si ton pavillon veut le noyau, qu’il ose me devancer !",
+      "Tch… tu n’as pas plié. Ne t’imagine pas que ça fait de nous des alliés.",
+    ],
+    "Smoker": [
+      "Je veux les trafiquants, mais pas au prix du village. Donne-moi un plan qui ne sacrifie ni la justice ni les civils.",
+      "Ton rapport tiendra s’il dit les faits. Les excuses, elles, partiront avec la prochaine averse.",
+    ],
+    "Killer": [
+      "La cible t’appartient si ton contrat est honnête. Touche à un innocent de l’équipage, et la chasse change de proie.",
+      "Fais vérifier chaque clause. Kid n’attendra pas une seconde trahison du commanditaire.",
+    ],
+    "Sabo": [
+      "On détruit le relais après l’évacuation. Une révolution qui oublie les habitants ne mérite pas sa victoire.",
+      "Le signal doit voyager sans désigner ceux qui nous ont aidés. Trouve la méthode, je fournirai la flamme.",
+    ],
+  });
+
+  function getSpecialCanonicalDialogue(canonicalName, shortName, sceneIndex) {
+    if (sceneIndex !== 0 && sceneIndex < 3) return null;
+    const lines = SPECIAL_CANONICAL_DIALOGUES[canonicalName];
+    if (!lines) return null;
+    return {
+      speaker: shortName,
+      role: canonicalName,
+      text: lines[sceneIndex === 0 ? 0 : 1],
+    };
+  }
+
   const specialArcScene = (slug, title, description, resolutionCategory, risk, choices, success, mixed, failure) => ({
     slug, title, description, resolutionCategory, risk, choices, success, mixed, failure,
   });
@@ -4295,6 +4354,7 @@ const COMMON_EVENTS = [
       important: true,
       highStakes: sceneData.risk,
       loreCharacters: [canonicalName],
+      introDialogue: getSpecialCanonicalDialogue(canonicalName, shortName, sceneIndex),
       condition: ({ zoneId: currentZoneId, specialZoneId }) =>
         currentZoneId === zoneId && specialZoneId === zoneId,
       choices: sceneData.choices.map((choiceText, choiceIndex) => {
@@ -5462,27 +5522,43 @@ const COMMON_EVENTS = [
     pirate: Object.freeze({
       stage1: Object.freeze({
         id: "haki-awakening-pirate",
-        title: "Les trois silences de Reverse Mountain",
-        description: "À {zone}, un courant referme la passe sur ton navire tandis qu’un équipage rival profite du chaos pour menacer les tiens. Le fracas disparaît soudain derrière une pression intérieure inconnue : quelques secondes décideront de ce que ta volonté sait réellement accomplir.",
-        choices: ["Lire le courant avant son prochain choc", "Faire de ton corps le rempart du pont", "Ordonner aux deux équipages de plier"],
+        title: "Le regard de Crocus",
+        description: "À {zone}, Laboon percute la passe au moment où des pillards tentent de monter à bord. Crocus refuse d’abandonner la baleine ou ton navire : sous son regard d’ancien compagnon de Roger, l’urgence pousse tes sens, ta garde et ta volonté au-delà de leur limite.",
+        introDialogue: { speaker: "Crocus", role: "Gardien du phare de Reverse Mountain", text: "Laboon ne déviera pas, et ces pillards comptent sur ta panique. Je vais protéger la baleine ; montre-moi ce que ta volonté protège, elle." },
+        loreCharacters: ["Crocus"],
+        choices: ["Lire le prochain mouvement de Laboon et des pillards", "Faire de ton corps le rempart du pont", "Briser l’élan des assaillants par ta seule volonté"],
       }),
       stage2: Object.freeze({
         id: "haki-confrontation-pirate",
-        title: "La volonté sous le blocus",
-        description: "Près de {zone}, une flotte pirate beaucoup plus nombreuse verrouille le passage sans exposer son capitaine. Sa pression couche les moins aguerris ; vaincre la flotte entière est impossible, mais ton équipage attend de voir si ta volonté ouvrira une route.",
+        title: "Sous le regard des grands noms",
+        introDialogue: { zoneVariants: {
+          "starless-sea": { speaker: "Kizaru", role: "Amiral", text: "Oooh… tu tiens encore debout ? Alors essaie donc d’ouvrir une route avant que ma lumière ne referme toute cette mer." },
+          "wandering-archipelago": { speaker: "Trafalgar Law", role: "Capitaine du Heart", text: "Ta volonté impressionne peut-être ton équipage. Ici, elle devra maintenir deux îles séparées assez longtemps pour sauver les deux nôtres." },
+          "tempest-isle": { speaker: "Eustass Kid", role: "Capitaine du Kid", text: "Tch… si ton pavillon plie devant cet orage, il n’avait rien à faire sur ma route. Fais bouger cette ferraille avec ta volonté ou dégage !" }
+        }, default: { speaker: "Shanks le Roux", role: "Empereur", text: "Une volonté qui écrase les autres ne suffit pas. Montre-moi si la tienne peut ouvrir une route sans sacrifier ceux qui la suivent." } },
+        loreCharacters: ["Borsalino", "Trafalgar Law", "Eustass Kid", "Shanks"],
+        description: "Près de {zone}, une figure dont le nom résonne sur toutes les mers verrouille le passage et impose une pression qui couche les moins aguerris. La vaincre seul est irréaliste ; les tiens attendent de voir si ta volonté peut néanmoins leur ouvrir une route.",
         choices: ["Protéger le pont jusqu’au passage du dernier allié", "Frapper le navire qui transmet les ordres", "Avancer seul et refuser le tribut"],
       }),
     }),
     marine: Object.freeze({
       stage1: Object.freeze({
         id: "haki-awakening-marine",
-        title: "Le convoi sous la passe",
-        description: "À {zone}, une opération d’interception tourne au sauvetage lorsqu’un convoi civil dérive entre les tirs. L’officier responsable perd le contact avec l’avant-garde et ton unité doit agir avant qu’un nouvel impact ne ferme la passe.",
+        title: "La fumée dans la passe",
+        introDialogue: { speaker: "Smoker", role: "Chasseur Blanc", text: "Le convoi passe avant la capture. Je retiens leur navire avec ma fumée ; trouve l’ouverture que leurs canons n’ont pas encore montrée." },
+        loreCharacters: ["Smoker"],
+        description: "À {zone}, la poursuite menée par Smoker tourne au sauvetage lorsqu’un convoi civil dérive entre les tirs des pirates. Sa fumée retient l’avant-garde, mais ton unité doit découvrir en quelques secondes comment protéger les embarcations.",
         choices: ["Anticiper la prochaine salve et déplacer le convoi", "Recevoir l’impact devant les embarcations", "Rappeler toute la ligne à son devoir"],
       }),
       stage2: Object.freeze({
         id: "haki-confrontation-marine",
-        title: "L’ordre qui brise une ligne",
+        title: "La justice des grandes puissances",
+        introDialogue: { zoneVariants: {
+          "starless-sea": { speaker: "Kizaru", role: "Amiral", text: "Le quartier ou le bâtiment officiel… voilà un choix bien effrayant. Tu voulais commander ? Décide avant que la lumière n’arrive." },
+          "wandering-archipelago": { speaker: "Fujitora", role: "Amiral", text: "Un ordre qui détourne les yeux des civils mérite d’être pesé. Je retiendrai les îles ; à vous d’assumer la justice qui restera." },
+          "tempest-isle": { speaker: "Smoker", role: "Vice-amiral", text: "Le quartier n’est pas une ligne à rayer d’un rapport. Je prends l’avant-garde ; change cet ordre si tu as le courage de le porter." }
+        }, default: { speaker: "Garp", role: "Héros de la Marine", text: "Bwahaha ! Un ordre absurde reste absurde avec de beaux galons. Sauve les gens, et assume le reste devant moi." } },
+        loreCharacters: ["Borsalino", "Issho", "Smoker", "Garp"],
         description: "Aux abords de {zone}, un ordre gouvernemental exige d’abandonner un quartier pour préserver un bâtiment officiel. Une présence écrasante accompagne l’assaut ennemi ; tes soldats hésitent entre la chaîne de commandement et les civils restés derrière.",
         choices: ["Tenir le corridor autour des civils", "Prendre l’initiative contre l’avant-garde", "Imposer un nouvel ordre à toute l’unité"],
       }),
@@ -5490,13 +5566,21 @@ const COMMON_EVENTS = [
     "bounty-hunter": Object.freeze({
       stage1: Object.freeze({
         id: "haki-awakening-bounty-hunter",
-        title: "La cible aux cent feintes",
-        description: "À {zone}, un pirate recherché utilise le relief et ses hommes pour multiplier les fausses attaques. Le contrat n’exige pas un duel glorieux : il faut distinguer l’intention réelle, survivre à sa charge ou briser l’assurance de sa bande.",
+        title: "La bombe de Mr. 5",
+        introDialogue: { speaker: "Mr. 5", role: "Agent de Baroque Works", text: "Tu as suivi la prime jusqu’au bout de la route ? Parfait. Une seule de mes explosions est réelle… mais elle suffira à effacer ton contrat." },
+        loreCharacters: ["Mr. 5"],
+        description: "À {zone}, Mr. 5 transforme le relief en piège et mêle ses hommes à une succession d’explosions factices. Le contrat n’exige pas un duel glorieux : il faut lire son intention, survivre à l’impact ou briser l’assurance de sa bande.",
         choices: ["Attendre le seul mouvement qui ne ment pas", "Fermer la garde et absorber sa charge", "Faire déposer les armes à toute sa bande"],
       }),
       stage2: Object.freeze({
         id: "haki-confrontation-bounty-hunter",
-        title: "Le contrat de la Red Line",
+        title: "La chasse des monstres",
+        introDialogue: { zoneVariants: {
+          "starless-sea": { speaker: "Basil Hawkins", role: "Supernova", text: "Tes chances de conserver la cible après mon attaque sont de huit pour cent. Celles de t’éveiller à une volonté nouvelle restent… impossibles à chiffrer." },
+          "wandering-archipelago": { speaker: "Dracule Mihawk", role: "Œil de Faucon", text: "La prime ne m’intéresse pas. Je veux savoir si ta volonté demeure lorsque la cible, les preuves et ta propre survie exigent trois décisions différentes." },
+          "tempest-isle": { speaker: "Killer", role: "Massacreur", text: "Le contrat vise l’un des nôtres. Protège tes preuves si tu y crois vraiment : je ne retiendrai pas mes lames une seconde fois." }
+        }, default: { speaker: "Crocodile", role: "Ancien Corsaire", text: "Un chasseur sans volonté n’est qu’un employé armé. Voyons ce que vaut la tienne quand le contrat cesse de te protéger." } },
+        loreCharacters: ["Basil Hawkins", "Dracule Mihawk", "Killer", "Crocodile"],
         description: "Près de {zone}, une cible bien plus dangereuse retourne les autres chasseurs contre toi puis libère une pression qui fige les équipages. La capture n’est plus le seul enjeu : preuves, survivants et réputation peuvent disparaître ensemble.",
         choices: ["Couvrir les chasseurs pris dans la pression", "Arracher la preuve au navire de la cible", "Réclamer seul le droit de poursuivre le contrat"],
       }),
@@ -5504,13 +5588,21 @@ const COMMON_EVENTS = [
     revolutionary: Object.freeze({
       stage1: Object.freeze({
         id: "haki-awakening-revolutionary",
-        title: "L’extraction sans signal",
-        description: "À {zone}, une cellule évacue des familles pendant qu’une unité gouvernementale brouille tous les signaux. Les agents ne peuvent plus se coordonner ; ton instinct, ta garde ou ta capacité à rallier les hésitants décidera de l’extraction.",
+        title: "Le dernier signal de Koala",
+        introDialogue: { speaker: "Koala", role: "Armée révolutionnaire", text: "Les relais sont coupés et les familles se dispersent. Je prends les agents du Gouvernement ; toi, deviens le signal qu’elles peuvent encore suivre." },
+        loreCharacters: ["Koala"],
+        description: "À {zone}, Koala dirige l’évacuation de familles traquées lorsqu’une unité gouvernementale brouille tous les signaux. Séparée de son groupe par l’assaut, elle te confie l’extraction : instinct, garde ou volonté décideront de son issue.",
         choices: ["Lire les patrouilles dans leurs angles morts", "Protéger la sortie jusqu’au dernier passage", "Faire reculer l’unité par un refus sans appel"],
       }),
       stage2: Object.freeze({
         id: "haki-confrontation-revolutionary",
-        title: "Le relais encerclé",
+        title: "La volonté des commandants",
+        introDialogue: { zoneVariants: {
+          "starless-sea": { speaker: "Karasu", role: "Commandant révolutionnaire", text: "Mes corbeaux ne peuvent porter les évacués. Tiens sous cette pression, et je disperserai le réseau avant que le Gouvernement ne le voie." },
+          "wandering-archipelago": { speaker: "Morley", role: "Commandante révolutionnaire", text: "Je peux ouvrir la terre, pas décider à ta place ! Impose une route à cette peur, et je ferai passer chaque cellule." },
+          "tempest-isle": { speaker: "Sabo", role: "Chef d’état-major", text: "La pression ennemie veut nous figer avant l’assaut. Je retiens leur chef ; montre aux cellules qu’une volonté peut encore les remettre debout." }
+        }, default: { speaker: "Dragon", role: "Chef de l’Armée révolutionnaire", text: "Un réseau ne survit pas grâce à un seul chef. Donne à chacun la volonté de tenir lorsque plus aucun ordre ne peut l’atteindre." } },
+        loreCharacters: ["Karasu", "Morley", "Sabo", "Dragon"],
         description: "Aux abords de {zone}, une force gouvernementale encercle un relais qui protège plusieurs cellules. Sa pression étouffe toute tentative de sortie. Détruire l’ennemi est irréaliste ; préserver le réseau exige de tenir, surprendre ou imposer une volonté collective.",
         choices: ["Former un rempart autour des évacués", "Ouvrir une brèche dans le dispositif", "Donner aux cellules un ordre que la peur ne couvre pas"],
       }),
@@ -5605,8 +5697,9 @@ const COMMON_EVENTS = [
       weight: 1, unique: true, important: true, highStakes: stage === 2,
       decisiveStage: stage, dreamIds,
       requiredFlags: stage === 2 ? { completedDecisiveStage1: true } : {},
-      loreCharacters: [], decisiveKind: stage === 1 ? "awakening" : "will-confrontation",
+      loreCharacters: scene.loreCharacters || [], decisiveKind: stage === 1 ? "awakening" : "will-confrontation",
       intro: stage === 1 ? "Une faculté encore inconnue cherche sa forme dans l’urgence." : "La pression adverse met ta volonté personnelle à l’épreuve.",
+      introDialogue: scene.introDialogue,
       choices: scene.choices.map((text, index) => stage === 1
         ? createHakiStageOneChoice(scene.id, faction, index, text)
         : createHakiStageTwoChoice(scene.id, index, text)),
@@ -5636,6 +5729,9 @@ const COMMON_EVENTS = [
     const officialCharacters = new Set([
       "Morgans", "Buggy", "Crocodile", "Nico Robin", "Koala", "Sabo",
       "Tashigi", "Fujitora", "Sakazuki", "Koby", "Garp",
+      "Crocus", "Smoker", "Mr. 5", "Borsalino", "Trafalgar Law",
+      "Eustass Kid", "Shanks", "Issho", "Basil Hawkins", "Dracule Mihawk",
+      "Killer", "Karasu", "Morley", "Dragon",
     ]);
     const validFactions = new Set(["pirate", "bounty-hunter", "revolutionary", "marine"]);
     const knownTitles = new Set((window.SEA_OF_LEGENDS_TITLES || []).map((title) => title.id));
@@ -5713,7 +5809,7 @@ const COMMON_EVENTS = [
   const LEGENDARY_ARC_STORIES = Object.freeze({
     talent: {
       pirate: [
-        ["Le nom dans le journal", "À Paradise, un correspondant de Morgans relie tes derniers exploits à une nouvelle génération de pirates. Une patrouille veut saisir ses notes avant l’impression.", ["Défendre publiquement le correspondant", "Faire parvenir les notes par une route secrète", "Attirer la patrouille loin de ton équipage"]],
+        ["Le nom dans le journal", "À Paradise, Morgans vient personnellement vérifier si tes derniers exploits annoncent une nouvelle génération de pirates. Une patrouille veut saisir ses clichés et empêcher l’impression.", ["Défendre publiquement Morgans", "Faire parvenir ses clichés par une route secrète", "Attirer la patrouille loin de son ballon"]],
         ["L’épreuve du rookie", "Bellamy provoque ton pavillon devant un port entier pour vérifier si la réputation qui grandit repose sur autre chose que des rumeurs.", ["Accepter un affrontement bref et décisif", "Retourner ses hommes contre sa mise en scène", "Protéger le port avant de répondre à la provocation"]],
         ["Une affiche pour la génération suivante", "Morgans attend la preuve qui fera de ton nom celui d’une nouvelle Supernova, tandis que la Marine referme la baie.", ["Briser le blocus sous les regards", "Révéler les preuves des exploits accomplis", "Faire sortir tous les pavillons alliés ensemble"]],
       ],
@@ -5728,15 +5824,15 @@ const COMMON_EVENTS = [
         ["Sous l’autorité de Dragon", "Dragon attend ton rapport tandis qu’une dernière opération peut sauver tout un réseau sans remplacer aucun commandant historique.", ["Coordonner les cellules depuis le front", "Retourner les communications ennemies", "Préserver le réseau avant de revendiquer la victoire"]],
       ],
       "bounty-hunter": [
-        ["Les contrats convergents", "À Paradise, trois guildes découvrent que leurs contrats mènent au même réseau pirate. Ton nom circule déjà parmi les équipages recherchés.", ["Réunir les chasseurs sous un plan commun", "Suivre seul la piste la plus dangereuse", "Retourner les receleurs du réseau"]],
-        ["La chasse de Paradise", "Un capitaine rookie connu rachète les ports qui pourraient témoigner. La capture exige davantage qu’un duel spectaculaire.", ["L’intercepter pendant le transfert", "Infiltrer son marché clandestin", "Protéger les témoins et couper sa retraite"]],
-        ["Le surnom sur les avis de recherche", "La chute publique du réseau peut consacrer le surnom de Cauchemar des pirates, à condition de ramener une preuve incontestable.", ["Capturer le capitaine vivant", "Livrer les registres aux ports victimes", "Forcer toute la flotte à déposer les armes"]],
+        ["Le contrat de Crocodile", "À Paradise, Crocodile révèle que trois contrats mènent au même réseau pirate. Il ne cherche pas un exécutant : il veut savoir si ton nom peut obliger des guildes rivales à suivre un seul plan.", ["Réunir les chasseurs sous un plan commun", "Suivre seul la piste la plus dangereuse", "Retourner les receleurs du réseau"]],
+        ["Le grand bluff de Baggy", "Baggy prétend avoir déjà soumis le capitaine rookie qui rachète les ports témoins. Derrière sa mise en scène, une vraie piste traverse son réseau de mercenaires.", ["L’intercepter pendant le transfert", "Infiltrer son marché clandestin", "Protéger les témoins et couper sa retraite"]],
+        ["Le jugement de Mihawk", "Mihawk attend la preuve de la chute du réseau. Il ne reconnaîtra le surnom de Cauchemar des pirates qu’à un chasseur capable de ramener une cible et des preuves intactes sans confondre prestige et carnage.", ["Capturer le capitaine vivant", "Livrer les registres aux ports victimes", "Forcer toute la flotte à déposer les armes"]],
       ],
     },
     marineford: {
       pirate: [
         ["La brèche des condamnés", "Un transfert secret traverse la forteresse reconstruite. Kizaru verrouille la baie tandis qu’un ancien allié de ton pavillon attend dans les cales.", ["Masquer l’approche derrière les épaves", "Créer une diversion sur les batteries", "Négocier un passage avec les pirates encerclés"]],
-        ["Le corridor de lumière", "L’extraction a déclenché l’encerclement. Les Pacifistas ferment les quais et chaque décision prise à l’arrivée détermine désormais qui peut encore fuir.", ["Tenir le quai pour les retardataires", "Détourner les Pacifistas vers la digue", "Confier le prisonnier à l’équipage et ouvrir la route"]],
+        ["Le corridor de Sentomaru", "L’extraction a déclenché l’encerclement. Sentomaru dirige les Pacifistas qui ferment les quais, et chaque décision prise à l’arrivée détermine désormais qui peut encore fuir.", ["Tenir le quai pour les retardataires", "Détourner les Pacifistas vers la digue", "Confier le prisonnier à l’équipage et ouvrir la route"]],
         ["Le pavillon dans la baie", "Akainu ordonne de condamner les accès plutôt que de poursuivre chaque navire. Il ne s’agit pas de le vaincre, mais d’arracher une flotte entière à son dispositif.", ["Briser la chaîne du port", "Protéger le dernier navire sous le bombardement", "Retourner le plan d’évacuation contre le blocus"]],
       ],
       marine: [
@@ -5745,9 +5841,9 @@ const COMMON_EVENTS = [
         ["Le symbole et les vivants", "La place centrale menace de s’effondrer. Fujitora couvre une partie de l’évacuation, mais te laisse choisir ce que ton unité fera du temps gagné.", ["Sauver les dernières recrues", "Neutraliser le détonateur central", "Coordonner la retraite de toute la baie"]],
       ],
       "bounty-hunter": [
-        ["Le contrat sous les canons", "La Cross Guild finance la capture d’un courtier pendant qu’un convoi gouvernemental entre à Marineford. Le contrat omet les prisonniers civils attachés à sa cible.", ["Accepter le contrat mais protéger les prisonniers", "Révéler la clause cachée aux autres chasseurs", "Suivre la cible à travers le convoi"]],
+        ["Le contrat de Crocodile", "Crocodile finance la capture d’un courtier pendant qu’un convoi gouvernemental entre à Marineford. Il confirme froidement que la Cross Guild ne paiera que pour la cible, pas pour les prisonniers civils attachés à elle.", ["Accepter le contrat mais protéger les prisonniers", "Révéler la clause cachée aux autres chasseurs", "Suivre la cible à travers le convoi"]],
         ["La cible aux deux commanditaires", "Le courtier détient les preuves d’un marché entre le Cipher Pol et des pirates. Smoker veut les documents ; ton commanditaire veut le silence.", ["Capturer la cible avec les preuves", "Livrer une copie à Smoker", "Retourner les chasseurs corrompus contre le courtier"]],
-        ["Le prix d’une vérité", "La bataille se referme sur les quais. La cible peut être livrée, mais des dizaines de prisonniers resteront dans la zone bombardée.", ["Sécuriser la cible et ouvrir les cellules", "Renoncer à une part du contrat pour évacuer", "Imposer un cessez-le-feu par les preuves"]],
+        ["Le sabre et les cellules", "Tashigi rejoint les quais au moment où la bataille se referme. Elle peut garantir la remise de la cible, mais refuse de partir tant que des dizaines de prisonniers restent dans la zone bombardée.", ["Sécuriser la cible et ouvrir les cellules", "Renoncer à une part du contrat pour évacuer", "Imposer un cessez-le-feu par les preuves"]],
       ],
       revolutionary: [
         ["Les noms sous la forteresse", "Sabo transmet l’existence d’un registre de prisonniers politiques caché sous Marineford. Le Cipher Pol commence leur déplacement avant l’aube.", ["Infiltrer les archives du transfert", "Saboter les portes sans exposer la cellule", "Faire sortir les familles par les tunnels"]],
@@ -5784,6 +5880,103 @@ const COMMON_EVENTS = [
     "bounty-hunter": "arbitre-de-marineford", revolutionary: "liberateur-de-marineford",
   });
 
+  const LEGENDARY_DIALOGUES = Object.freeze({
+    talent: Object.freeze({
+      pirate: [
+        { speaker: "Morgans", role: "Président du World Economy News Paper", text: "Le monde adore les nouveaux monstres ! Donne-moi une raison d’imprimer ton nom plus gros que celui des autres rookies." },
+        { speaker: "Bellamy", role: "La Hyène", text: "Une belle affiche ne fait pas un grand pirate. Montre à ce port ce qu’il reste quand les rumeurs se taisent." },
+        { speaker: "Morgans", role: "Président du World Economy News Paper", text: "Une génération ne naît pas en silence ! Sors de cette baie et je ferai de ton exploit une nouvelle mondiale." },
+      ],
+      marine: [
+        { speaker: "Smoker", role: "Vice-amiral", text: "Je te confie cette escadre, pas ma confiance. Ramène les civils et prouve que tu sais commander dans le chaos." },
+        { speaker: "Tsuru", role: "Grande stratège de la Marine", text: "La justice se révèle lorsque chaque ordre coûte quelque chose. Choisis ce que tes soldats pourront encore défendre demain." },
+        { speaker: "Garp", role: "Héros de la Marine", text: "Wahaha ! Les galons ne sauveront aucune recrue. Montre-moi plutôt pourquoi ils devraient te suivre." },
+      ],
+      revolutionary: [
+        { speaker: "Koala", role: "Armée révolutionnaire", text: "Dragon a lu tes rapports. Cette fois, ce sont des vies qui diront si leur promesse était réelle." },
+        { speaker: "Sabo", role: "Chef d’état-major", text: "Ces cellules ne se font pas confiance. Unis-les sans leur voler la raison pour laquelle elles se battent." },
+        { speaker: "Dragon", role: "Chef de l’Armée révolutionnaire", text: "Un nom n’a de valeur que s’il ouvre une voie aux peuples. Fais que cette opération survive à ta propre victoire." },
+      ],
+      "bounty-hunter": [
+        { speaker: "Crocodile", role: "Fondateur de Cross Guild", text: "Trois contrats, trois guildes incapables de voir le même réseau. Unis-les ou chasse seul ; dans les deux cas, rapporte-moi un résultat qui mérite ton nom." },
+        { speaker: "Baggy", role: "Empereur autoproclamé de la chasse", text: "Ce rookie ? Évidemment qu’il tremble déjà devant le grand Baggy ! Trouve-le vite… avant qu’il raconte une version moins glorieuse." },
+        { speaker: "Dracule Mihawk", role: "Œil de Faucon", text: "Une réputation achetée ne résiste pas aux preuves. Ramène la cible intacte, et les pirates prononceront eux-mêmes ton nouveau surnom." },
+      ],
+    }),
+    marineford: Object.freeze({
+      pirate: [
+        { speaker: "Kizaru", role: "Amiral", text: "Oooh… venir chercher un prisonnier ici ? Voilà des pirates bien pressés de devenir de la lumière." },
+        { speaker: "Sentomaru", role: "Commandant des Pacifistas", text: "Ma défense est la plus solide du monde ! Aucun prisonnier ne franchira ce quai, et ton pavillon coulera avec les retardataires." },
+        { speaker: "Akainu", role: "Amiral en chef", text: "Aucun pavillon criminel ne quittera cette baie. Marineford sera la fin de votre fuite." },
+      ],
+      marine: [
+        { speaker: "Coby", role: "Officier de la Marine", text: "Les familles sont encore dans le secteur. Si nous fermons ces portes maintenant, notre victoire les condamnera." },
+        { speaker: "Ryokugyu", role: "Amiral", text: "Le dépôt tient, le reste est secondaire. Un bon soldat ne demande pas à l’ordre d’être confortable." },
+        { speaker: "Fujitora", role: "Amiral", text: "Je peux retenir l’effondrement un instant. À vous de décider quelles vies donneront un sens à ce temps." },
+      ],
+      "bounty-hunter": [
+        { speaker: "Crocodile", role: "Cross Guild", text: "Le courtier est la cible. Les prisonniers attachés à lui ne figurent pas au contrat ; si tu les sauves, fais-le sur ton temps et sans perdre ma preuve." },
+        { speaker: "Smoker", role: "Vice-amiral", text: "Ton contrat sent le piège. Garde ta cible si tu veux, mais ne laisse pas ses preuves brûler avec les innocents." },
+        { speaker: "Tashigi", role: "Capitaine de la Marine", text: "Je garantirai la remise de ta cible. Mais si tu abandonnes ces cellules pour préserver ta prime, ne prétends plus que cette chasse servait la justice." },
+      ],
+      revolutionary: [
+        { speaker: "Sabo", role: "Chef d’état-major", text: "Ce registre contient des noms que le Gouvernement a déjà effacés. Fais sortir les prisonniers ; je retiendrai la porte." },
+        { speaker: "Rob Lucci", role: "Cipher Pol", text: "Les archives et leurs témoins disparaîtront ensemble. Votre flamme n’éclairera rien sous cette forteresse." },
+        { speaker: "Sabo", role: "Chef d’état-major", text: "Les survivants sont là. Maintenant, protège leur voix assez longtemps pour que le monde ne puisse plus nier leur existence." },
+      ],
+    }),
+  });
+
+  const EMPEROR_DIALOGUES = Object.freeze({
+    blackbeard: { speaker: "Barbe Noire", role: "Empereur", text: "Zehahaha ! Les rêves ne meurent jamais… mais les faibles, eux, abandonnent leur trésor au premier vrai monstre." },
+    kaido: { speaker: "Kaido", role: "Empereur", text: "Tu veux franchir ma route ? Alors montre-moi si ta volonté survit quand la force ne suffit plus." },
+    "big-mom": { speaker: "Big Mom", role: "Impératrice", text: "Mamamama ! Tout ici m’appartient. Ton objectif, tes alliés… et bientôt les années qu’il te reste." },
+    shanks: { speaker: "Shanks le Roux", role: "Empereur", text: "Si cet objectif vaut vraiment ton voyage, avance. Mais ne mise pas la vie des tiens sur une fierté vide." },
+    luffy: { speaker: "Luffy", role: "Empereur", text: "Je ne te laisserai pas faire du mal à mes amis. Si tu veux passer, viens défendre ton choix toi-même !" },
+    buggy: { speaker: "Baggy", role: "Empereur", text: "Tu crois pouvoir défier le grand Baggy ?! Très bien… essaie donc de traverser toute ma flotte !" },
+  });
+
+  const EMPEROR_APPROACH_DIALOGUES = Object.freeze({
+    blackbeard: [
+      { speaker: "Jesus Burgess", role: "Commandant de Barbe Noire", text: "Wi-hahaha ! Ce que tu cherches appartient au commodore Teach. Viens donc le reprendre avec tes propres poings !" },
+      { speaker: "Shiryu", role: "Capitaine du deuxième navire", text: "Tu as franchi la flotte extérieure. Maintenant, essaie d’atteindre ton objectif avant que ma lame invisible ne choisisse qui repart." },
+    ],
+    kaido: [
+      { speaker: "Queen", role: "All-Star aux Cent Bêtes", text: "Mwahaha ! Tu veux traverser le territoire de Kaido ? J’espère au moins que ta défaite sera assez spectaculaire pour mon show !" },
+      { speaker: "King", role: "Incendie", text: "Tu as attiré l’attention de Kaido. C’est la dernière erreur que ton équipage aura le temps de comprendre." },
+    ],
+    "big-mom": [
+      { speaker: "Perospero", role: "Ministre des Bonbons", text: "Perorin ! Tout objectif sur ce territoire appartient à Mama. Offre quelque chose d’assez précieux, ou reste ici pour toujours." },
+      { speaker: "Katakuri", role: "Commandant de Big Mom", text: "J’ai vu la route que tu comptes prendre. Change ton avenir maintenant, ou je l’arrêterai moi-même." },
+    ],
+    shanks: [
+      { speaker: "Yasopp", role: "Officier du Roux", text: "Notre capitaine ne cherche pas la guerre. Mais si ton objectif menace nos amis, mon prochain tir mettra fin à ton approche." },
+      { speaker: "Ben Beckman", role: "Bras droit du Roux", text: "Tu es arrivé assez loin pour être entendu. Choisis bien ton prochain geste : Shanks jugera ce qu’il protège, pas ce qu’il promet." },
+    ],
+    luffy: [
+      { speaker: "Jinbe", role: "Timonier des Mugiwara", text: "Cet objectif se trouve sous la protection de notre capitaine. Expose tes raisons, ou prépare-toi à affronter tout l’équipage." },
+      { speaker: "Roronoa Zoro", role: "Sabreur des Mugiwara", text: "Tu as franchi notre ligne. Un pas de plus vers ce qu’on protège, et c’est moi qui t’arrête." },
+    ],
+    buggy: [
+      { speaker: "Crocodile", role: "Dirigeant de Cross Guild", text: "Oublie le cirque de Baggy. L’objectif est sous mon contrôle ; avance seulement si tu peux payer son véritable prix." },
+      { speaker: "Dracule Mihawk", role: "Œil de Faucon", text: "Le titre d’Empereur attire beaucoup d’ambitieux. Montre-moi si la tienne mérite que je dégaine." },
+    ],
+  });
+
+  function getEmperorApproachVariants(step) {
+    return Object.fromEntries(Object.entries(EMPEROR_APPROACH_DIALOGUES)
+      .map(([emperorId, dialogues]) => [emperorId, dialogues[step - 1]]));
+  }
+
+  function getLegendaryIntroDialogue(arcId, faction, step) {
+    if (arcId === "emperor") {
+      return step === 3
+        ? { emperorVariants: EMPEROR_DIALOGUES }
+        : { emperorVariants: getEmperorApproachVariants(step) };
+    }
+    return LEGENDARY_DIALOGUES[arcId]?.[faction]?.[step - 1] || null;
+  }
+
   function createLegendaryArcEvent(arcId, faction, step, story) {
     const [title, description, choiceTexts] = story;
     const successFlag = `legendary_${arcId}_${step}_success`;
@@ -5794,6 +5987,7 @@ const COMMON_EVENTS = [
       eventType: "legendary", resolutionCategory: step === 1 ? "social" : "action",
       rarity: EVENT_RARITY.VERY_RARE, unique: true, important: true, highStakes: true,
       tags: ["legendary-arc", `legendary-${arcId}`, `legendary-step-${step}`],
+      introDialogue: getLegendaryIntroDialogue(arcId, faction, step),
       choices: choiceTexts.map((text, choiceIndex) => ({
         id: `approach-${choiceIndex + 1}`, text,
         resolutionWeights: step === 1

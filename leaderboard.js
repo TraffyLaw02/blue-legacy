@@ -10,6 +10,9 @@
     submitRpc: "submit_monthly_score",
   });
   const AUTH_STORAGE_KEY = "blueLegacySupabaseAuth";
+  const CACHE_STORAGE_KEY = "blueLegacyLeaderboardCache";
+  const READ_RETRY_DELAYS = Object.freeze([500, 1500]);
+  const REQUEST_TIMEOUT_MS = 10000;
   const MONTH_FORMATTER = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
   let profileProvider = () => ({ playerIdentity: {} });
   let identityFormatter = ({ playerIdentity = {}, profileCosmetics = {} }) => {
@@ -19,6 +22,9 @@
   let identityRenderer = null;
   let homeRequest = 0;
   let fullRequest = 0;
+  let authPromise = null;
+  let topFiveLoadPromise = null;
+  let topFiftyLoadPromise = null;
 
   function monthKey(date = new Date()) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -38,11 +44,21 @@
     }
   }
 
-  async function ensureAnonymousAuth() {
+  async function fetchWithTimeout(url, options = {}) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  async function authenticateAnonymously() {
     const existing = readAuth();
     if (existing && (!existing.expires_at || existing.expires_at * 1000 > Date.now() + 60000)) return existing;
     if (existing?.refresh_token) {
-      const refreshResponse = await fetch(`${CONFIG.url}/auth/v1/token?grant_type=refresh_token`, {
+      const refreshResponse = await fetchWithTimeout(`${CONFIG.url}/auth/v1/token?grant_type=refresh_token`, {
         method: "POST",
         headers: { apikey: CONFIG.publishableKey, Authorization: `Bearer ${CONFIG.publishableKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ refresh_token: existing.refresh_token }),
@@ -52,30 +68,102 @@
         try { localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(refreshed)); } catch (error) { /* session utilisable en mémoire */ }
         return refreshed;
       }
+      const refreshPayload = await refreshResponse.clone().json().catch(async () => ({ message: await refreshResponse.text().catch(() => "") }));
+      logError("auth-refresh", createRequestError(refreshResponse, refreshPayload));
     }
-    const response = await fetch(`${CONFIG.url}/auth/v1/signup`, {
+    const response = await fetchWithTimeout(`${CONFIG.url}/auth/v1/signup`, {
       method: "POST",
       headers: { apikey: CONFIG.publishableKey, Authorization: `Bearer ${CONFIG.publishableKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
-    if (!response.ok) throw new Error(`Authentification anonyme impossible (${response.status})`);
+    if (!response.ok) {
+      const payload = await response.clone().json().catch(async () => ({ message: await response.text().catch(() => "") }));
+      throw createRequestError(response, payload);
+    }
     const auth = await response.json();
     try { localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth)); } catch (error) { /* session utilisable en mémoire */ }
     return auth;
   }
 
+  function ensureAnonymousAuth() {
+    const existing = readAuth();
+    if (existing && (!existing.expires_at || existing.expires_at * 1000 > Date.now() + 60000)) {
+      return Promise.resolve(existing);
+    }
+    if (authPromise) return authPromise;
+    authPromise = authenticateAnonymously()
+      .catch((error) => {
+        logError("auth", error);
+        throw error;
+      })
+      .finally(() => { authPromise = null; });
+    return authPromise;
+  }
+
+  function createRequestError(response, payload) {
+    const error = new Error(payload?.message || `Supabase HTTP ${response.status}`);
+    error.name = "SupabaseRequestError";
+    error.status = response.status;
+    error.code = payload?.code || null;
+    error.details = payload?.details || null;
+    error.hint = payload?.hint || null;
+    return error;
+  }
+
+  function errorInfo(error) {
+    return {
+      message: error?.message || String(error),
+      status: error?.status || null,
+      code: error?.code || null,
+      details: error?.details || null,
+      hint: error?.hint || null,
+    };
+  }
+
+  function logError(operation, error, attempt = null) {
+    console.error(LOG_PREFIX, {
+      operation,
+      attempt,
+      ...errorInfo(error),
+    });
+  }
+
+  function isTransientError(error) {
+    if ([408, 429, 500, 502, 503, 504].includes(Number(error?.status))) return true;
+    if (["AbortError", "TimeoutError", "TypeError"].includes(error?.name)) return true;
+    return /fetch|network|timeout|temporar|connexion|connection/i.test(String(error?.message || ""));
+  }
+
+  function delay(milliseconds) {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  }
+
+  async function retryRead(operation, read) {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        return await read();
+      } catch (error) {
+        logError(operation, error, attempt);
+        if (!isTransientError(error) || attempt === 3) throw error;
+        await delay(READ_RETRY_DELAYS[attempt - 1]);
+      }
+    }
+    return null;
+  }
+
   async function request(path, { method = "GET", body, auth = false, prefer } = {}) {
-    const session = auth ? await ensureAnonymousAuth() : readAuth();
+    const session = auth ? await ensureAnonymousAuth() : null;
     const headers = { apikey: CONFIG.publishableKey, Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
-    headers.Authorization = `Bearer ${session?.access_token || CONFIG.publishableKey}`;
+    // Une lecture publique ne doit jamais hériter d'un JWT local expiré.
+    headers.Authorization = `Bearer ${auth ? session.access_token : CONFIG.publishableKey}`;
     if (prefer) headers.Prefer = prefer;
-    const response = await fetch(`${CONFIG.url}${path}`, {
+    const response = await fetchWithTimeout(`${CONFIG.url}${path}`, {
       method, headers, body: body === undefined ? undefined : JSON.stringify(body),
     });
     if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      throw new Error(`Supabase ${response.status}${detail ? ` — ${detail}` : ""}`);
+      const payload = await response.clone().json().catch(async () => ({ message: await response.text().catch(() => "") }));
+      throw createRequestError(response, payload);
     }
     if (method === "HEAD" || response.status === 204) return { data: null, count: readCount(response) };
     return { data: await response.json(), count: readCount(response) };
@@ -101,12 +189,63 @@
     };
   }
 
+  function writeTopFiveCache(entries) {
+    try {
+      localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify({
+        monthKey: monthKey(),
+        timestamp: Date.now(),
+        entries,
+      }));
+    } catch (error) {
+      logError("top5-cache-write", error);
+    }
+  }
+
+  function readTopFiveCache() {
+    try {
+      const cache = JSON.parse(localStorage.getItem(CACHE_STORAGE_KEY) || "null");
+      if (cache?.monthKey !== monthKey() || !Array.isArray(cache.entries)) return null;
+      return cache;
+    } catch (error) {
+      logError("top5-cache-read", error);
+      return null;
+    }
+  }
+
   async function getMonthlyTop(limit = 5) {
     const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 5)));
     const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,dream_completed,score,updated_at";
     const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, order: "score.desc,updated_at.asc", limit: String(safeLimit) });
     const result = await request(`/rest/v1/${CONFIG.table}?${query}`);
     return (result.data || []).map(normalizeEntry);
+  }
+
+  function loadTopFive({ force = false } = {}) {
+    if (topFiveLoadPromise && !force) return topFiveLoadPromise;
+    const pending = retryRead("top5", () => getMonthlyTop(5))
+      .then((entries) => {
+        writeTopFiveCache(entries);
+        return entries;
+      });
+    topFiveLoadPromise = pending;
+    pending.then(() => {
+      if (topFiveLoadPromise === pending) topFiveLoadPromise = null;
+    }, () => {
+      if (topFiveLoadPromise === pending) topFiveLoadPromise = null;
+    });
+    return pending;
+  }
+
+  function loadTopFifty() {
+    if (topFiftyLoadPromise) return topFiftyLoadPromise;
+    const pending = retryRead("top50", () => getMonthlyTop(50));
+    topFiftyLoadPromise = pending;
+    pending.then(() => {
+      if (topFiftyLoadPromise === pending) topFiftyLoadPromise = null;
+    }, () => {
+      if (topFiftyLoadPromise === pending) topFiftyLoadPromise = null;
+    });
+    return pending;
   }
 
   async function getCurrentPlayerMonthlyEntry() {
@@ -146,10 +285,10 @@
     };
     try {
       await request(`/rest/v1/rpc/${CONFIG.submitRpc}`, { method: "POST", body: payload, auth: true });
-      refreshHome();
+      refreshHome({ force: true });
       return { submitted: true };
     } catch (error) {
-      console.error(LOG_PREFIX, "Soumission du score impossible.", error);
+      logError("submit", error);
       return { submitted: false, error };
     }
   }
@@ -221,13 +360,36 @@
     element.append(box);
   }
 
-  async function refreshHome() {
+  function renderCachedTopFive(element, cache) {
+    renderList(element, cache.entries);
+    const notice = document.createElement("div"); notice.className = "monthly-leaderboard-cache-notice";
+    notice.append(text("small", "", "Dernier classement connu · Actualisation impossible"));
+    const button = text("button", "leaderboard-cache-retry", "Réessayer");
+    button.type = "button";
+    button.dataset.leaderboardRetry = "";
+    notice.append(button);
+    element.append(notice);
+  }
+
+  function renderPersonalUnavailable(element) {
+    clear(element);
+    element.append(text("p", "leaderboard-personal-message", "Votre classement est temporairement indisponible."));
+  }
+
+  async function refreshHome({ force = false } = {}) {
     const element = document.getElementById("monthly-leaderboard-top-five");
     if (!element) return;
     const requestId = ++homeRequest;
     clear(element); element.append(text("p", "monthly-leaderboard-status", "Chargement des légendes…"));
-    try { const entries = await getMonthlyTop(5); if (requestId === homeRequest) renderList(element, entries); }
-    catch (error) { console.error(LOG_PREFIX, "Top 5 indisponible.", error); if (requestId === homeRequest) renderError(element); }
+    try {
+      const entries = await loadTopFive({ force });
+      if (requestId === homeRequest) renderList(element, entries);
+    } catch (error) {
+      if (requestId !== homeRequest) return;
+      const cache = readTopFiveCache();
+      if (cache) renderCachedTopFive(element, cache);
+      else renderError(element);
+    }
   }
 
   function hasIdentity(profile) { return Boolean(String(profile?.playerIdentity?.firstName || "").trim() && String(profile?.playerIdentity?.lastName || "").trim()); }
@@ -241,23 +403,40 @@
     element.append(text("strong", "leaderboard-personal-rank", `Vous êtes #${rank}`), createRow(entry, rank, false));
   }
 
-  async function refreshFull() {
+  async function loadAndRenderTopFifty(list, requestId) {
+    try {
+      const entries = await loadTopFifty();
+      if (requestId === fullRequest) renderList(list, entries, { full: true });
+    } catch (error) {
+      if (requestId === fullRequest) renderError(list);
+    }
+  }
+
+  async function loadAndRenderPersonal(personal, profile, requestId) {
+    if (!hasIdentity(profile)) {
+      if (requestId === fullRequest) renderPersonal(personal, profile, null, null);
+      return;
+    }
+    try {
+      const personalEntry = await getCurrentPlayerMonthlyEntry();
+      const rank = personalEntry ? await getCurrentPlayerRank(personalEntry) : null;
+      if (requestId === fullRequest) renderPersonal(personal, profile, personalEntry, rank);
+    } catch (error) {
+      logError("personal-rank", error);
+      if (requestId === fullRequest) renderPersonalUnavailable(personal);
+    }
+  }
+
+  function refreshFull() {
     const list = document.getElementById("monthly-leaderboard-top-fifty");
     const personal = document.getElementById("monthly-leaderboard-personal");
     if (!list || !personal) return;
     const requestId = ++fullRequest;
     clear(list); list.append(text("p", "monthly-leaderboard-status", "Chargement des légendes…"));
     clear(personal); personal.append(text("p", "monthly-leaderboard-status", "Chargement…"));
-    try {
-      const profile = profileProvider() || {};
-      const [entries, personalEntry] = await Promise.all([getMonthlyTop(50), hasIdentity(profile) ? getCurrentPlayerMonthlyEntry() : Promise.resolve(null)]);
-      const rank = personalEntry ? await getCurrentPlayerRank(personalEntry) : null;
-      if (requestId !== fullRequest) return;
-      renderList(list, entries, { full: true }); renderPersonal(personal, profile, personalEntry, rank);
-    } catch (error) {
-      console.error(LOG_PREFIX, "Classement complet indisponible.", error);
-      if (requestId === fullRequest) { renderError(list); renderError(personal, false); }
-    }
+    const profile = profileProvider() || {};
+    void loadAndRenderTopFifty(list, requestId);
+    void loadAndRenderPersonal(personal, profile, requestId);
   }
 
   function setMonthLabels() {
@@ -271,7 +450,7 @@
     setMonthLabels();
     document.addEventListener("click", (event) => {
       if (event.target.closest("[data-leaderboard-retry]")) {
-        document.getElementById("leaderboard-screen")?.hidden ? refreshHome() : refreshFull();
+        document.getElementById("leaderboard-screen")?.hidden ? refreshHome({ force: true }) : refreshFull();
       }
     });
   }
