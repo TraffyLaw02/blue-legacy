@@ -4,10 +4,10 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <meta content="Blue Legacy, une aventure narrative sur les mers." name="description"/>
-<title>Blue Legacy — 1.0</title>
-<link rel="icon" type="image/png" href="assets/icone.png?v=100"/>
-<link rel="shortcut icon" type="image/png" href="assets/icone.png?v=100"/>
-<link rel="apple-touch-icon" href="assets/icone.png?v=100"/>
+<title>Blue Legacy — 1.0.1</title>
+<link rel="icon" type="image/png" href="assets/icone.png?v=101"/>
+<link rel="shortcut icon" type="image/png" href="assets/icone.png?v=101"/>
+<link rel="apple-touch-icon" href="assets/icone.png?v=101"/>
 <link href="style.css" rel="stylesheet"/>
 </head>
 <body>
@@ -322,6 +322,9 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <div aria-hidden="true" class="zone-transition-icon" id="zone-transition-icon">🗺️</div>
 <p class="zone-transition-eyebrow" id="zone-transition-eyebrow">Nouvelle zone</p>
 <p class="zone-transition-progress" id="zone-transition-progress">Étape 1 sur 6</p>
+<img alt="" aria-hidden="true" class="zone-transition-asset" id="zone-transition-asset" hidden>
+<img alt="" aria-hidden="true" class="transition-feature-asset" id="transition-feature-asset" hidden>
+<p class="transition-feature-fallback" id="transition-feature-fallback" hidden></p>
 <h2 id="zone-transition-title">Nom de la zone</h2>
 <p class="zone-transition-description" id="zone-transition-description">Une nouvelle étape commence.</p>
 <button class="button zone-transition-button" id="continue-zone-transition-btn" type="button">
@@ -342,12 +345,19 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 </section>
 <section aria-labelledby="game-screen-title" class="screen layout-medium" hidden="" id="game-screen">
 <header class="game-header">
-<div>
+<div class="game-header-topline">
 <p id="game-date">Mois 1</p>
-<h2 id="game-screen-title">Zone actuelle</h2>
-<p class="game-region" id="game-region">🗺️ Grande zone</p>
-</div>
 <button aria-label="Ouvrir le menu de jeu" class="icon-button" id="open-game-menu-btn" type="button">☰</button>
+</div>
+<div class="game-header-assets">
+<img alt="" aria-hidden="true" class="game-zone-asset" id="game-zone-asset">
+<span class="game-contextual-asset-slot" hidden id="game-contextual-asset-slot">
+<img class="game-contextual-asset" id="game-contextual-asset">
+<span class="game-contextual-asset-fallback" id="game-contextual-asset-fallback"></span>
+</span>
+</div>
+<h2 class="game-zone-title sr-only" id="game-screen-title">Zone actuelle</h2>
+<p class="game-region" id="game-region">🗺️ Grande zone</p>
 </header>
 <aside aria-label="État du personnage" class="character-status" id="character-status">
 <div class="character-identity-row">
@@ -397,7 +407,9 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <!-- RÉSULTAT D’UN ÉVÉNEMENT -->
 <section aria-labelledby="result-screen-title" class="screen layout-narrow" hidden="" id="result-screen">
 <article class="result-card">
-<p class="eyebrow">Conséquence</p>
+<p class="eyebrow" id="result-eyebrow">Conséquence</p>
+<img class="result-legendary-asset" id="result-legendary-asset" hidden>
+<p class="result-legendary-asset-fallback" id="result-legendary-asset-fallback" hidden></p>
 <h2 id="result-screen-title">Résultat</h2>
 <p id="result-description"></p>
 <div class="stat-changes" id="result-stat-changes"></div>
@@ -612,7 +624,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <p class="eyebrow">Votre légende commence ici</p>
 <h2 id="welcome-identity-title">Bienvenue dans Blue Legacy</h2>
 </div>
-<p>Avant de prendre la mer, renseignez votre nom et votre prénom.</p>
+<p>Avant de prendre la mer, renseignez le nom et prénom de votre légende</p>
 <p class="welcome-identity-note">Cette identité apparaît dans votre carte Statistiques et dans le leaderboard. Vous pourrez la modifier plus tard depuis Statistiques.</p>
 <label>Nom<input name="lastName" maxlength="40" autocomplete="family-name" required></label>
 <label>Prénom<input name="firstName" maxlength="40" autocomplete="given-name" required></label>

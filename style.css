@@ -31,7 +31,7 @@
 }
 
 /* =========================================================
-   BLUE LEGACY — STYLE.CSS V1.1
+   BLUE LEGACY — STYLE.CSS 1.0.1
    Direction artistique : aventure maritime, colorée et ludique
    Mobile first, sans bibliothèque externe
 ========================================================= */
@@ -1757,12 +1757,116 @@ body.has-game-credit #home-screen {
 /* =========================================================
    10. ÉCRAN DE JEU ET ÉVÉNEMENTS
 ========================================================= */
-.game-header {
+#game-screen .game-header {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 12px 7px;
   background: linear-gradient(135deg, var(--zone-primary), var(--zone-secondary));
   border-color: color-mix(in srgb, var(--zone-primary) 78%, #102D40);
   box-shadow:
     0 5px 0 color-mix(in srgb, var(--zone-primary) 78%, #102D40),
     0 10px 20px color-mix(in srgb, var(--zone-primary) 26%, transparent);
+}
+
+.game-header-topline {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.game-header #game-date {
+  margin: 0;
+}
+
+.game-zone-asset {
+  display: block;
+  width: clamp(170px, 34vw, 270px);
+  max-width: min(78%, 270px);
+  max-height: 84px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--zone-primary) 42%, transparent));
+}
+
+.game-header-assets {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-contextual-asset-slot {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+}
+
+.game-contextual-asset,
+.game-contextual-asset-fallback { max-width: 100%; }
+
+.game-contextual-asset {
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .26));
+}
+
+.game-contextual-asset-fallback { display: none; }
+
+#game-screen.has-contextual-asset .game-header-assets {
+  gap: clamp(7px, 2vw, 16px);
+}
+
+#game-screen.has-contextual-asset :is(.game-zone-asset, .game-contextual-asset-slot) {
+  width: min(36vw, 220px);
+  max-width: calc(50% - 4px);
+}
+
+#game-screen.has-contextual-asset :is(.game-zone-asset, .game-contextual-asset) {
+  max-height: 72px;
+}
+
+#game-screen.game-contextual-asset-error .game-contextual-asset { display: none; }
+
+#game-screen.game-contextual-asset-error .game-contextual-asset-fallback {
+  display: block;
+  color: #f8f5ed;
+  font-size: clamp(.9rem, 3vw, 1.15rem);
+  font-weight: 900;
+  line-height: 1.05;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.game-header .game-region {
+  margin: 0;
+  text-align: center;
+}
+
+#open-game-menu-btn {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 6px 9px;
+  border-radius: 10px;
+}
+
+#game-screen.game-zone-asset-error .game-zone-asset {
+  display: none;
+}
+
+#game-screen.game-zone-asset-error .game-zone-title {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
 }
 
 .game-header p,
@@ -2270,6 +2374,88 @@ body.is-boss-danger-event #result-screen .result-card.negative {
   border-color: #757b82;
 }
 
+.transition-feature-asset {
+  display: block;
+  width: clamp(250px, 72vw, 500px);
+  max-width: 100%;
+  max-height: clamp(140px, 28vh, 220px);
+  margin: clamp(12px, 3vw, 20px) auto 0;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .22));
+}
+
+.zone-transition-screen.legendary-asset-intro .zone-transition-icon { display: none; }
+
+.zone-transition-screen.legendary-asset-intro #zone-transition-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.transition-feature-fallback { display: none; }
+
+.zone-transition-screen.feature-asset-error .transition-feature-asset {
+  display: none;
+}
+
+.zone-transition-screen.feature-asset-error .transition-feature-fallback {
+  display: block;
+  margin: 12px 0 0;
+  color: var(--zone-text);
+  font-size: clamp(1.4rem, 7vw, 2.5rem);
+  font-weight: 900;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.zone-transition-screen.legendary-asset-intro.feature-asset-error #zone-transition-title {
+  position: static;
+  width: 100%;
+  height: auto;
+  margin: 12px 0 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+.zone-transition-screen.haki-asset-conclusion :is(.zone-transition-icon, .zone-transition-eyebrow),
+.zone-transition-screen.dream-asset-conclusion :is(.zone-transition-icon, .zone-transition-eyebrow) {
+  display: none;
+}
+
+.zone-transition-screen.dream-asset-conclusion #zone-transition-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.zone-transition-screen.dream-success-conclusion {
+  --zone-primary: #5f467d;
+  --zone-secondary: #ded2ef;
+  --zone-accent: #f0cf72;
+  --zone-text: #291e38;
+  min-height: 100dvh;
+  background: linear-gradient(155deg, #fff9e7 0%, #d9c9eb 56%, #72568f 100%);
+}
+
+.zone-transition-screen.dream-success-conclusion .zone-transition-card {
+  max-width: 640px;
+  border-color: #8063a0;
+  box-shadow: 0 5px 0 #5f467d, 0 14px 28px rgba(69, 47, 91, .22);
+}
+
 .zone-transition-screen.legendary-arc-conclusion .zone-transition-card {
   max-width: 620px;
   background: linear-gradient(150deg, #f4f1ea, #c8cbcd);
@@ -2361,9 +2547,14 @@ body.is-legendary-event #result-screen .button-primary {
   body.is-legendary-event #game-screen .event-container { width: min(100%, calc(100vw - 20px)); }
   .zone-transition-screen.legendary-arc-transition h1,
   body.is-legendary-event #game-screen h2 { font-size: clamp(1.35rem, 7vw, 2rem); overflow-wrap: anywhere; }
+
+  .transition-feature-asset {
+    width: min(100%, 390px);
+    max-height: 170px;
+  }
 }
 
-/* Typologie V1.2 : une seule classe pilote tout le thème de l'événement courant. */
+/* Typologie des événements : une seule classe pilote tout le thème courant. */
 body:is(
   .is-risk-event,
   .is-decisive-event,
@@ -2622,6 +2813,38 @@ body.is-recruit-surprise #game-screen .event-choice {
   width: min(100%, 620px);
   padding: 22px 18px;
   transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.result-legendary-asset {
+  display: block;
+  width: clamp(220px, 62vw, 420px);
+  max-width: 100%;
+  max-height: clamp(100px, 20vh, 170px);
+  margin: 0 auto clamp(10px, 2.5vw, 16px);
+  object-fit: contain;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .2));
+}
+
+.result-legendary-asset-fallback { display: none; }
+
+#result-screen.result-legendary-asset-error .result-legendary-asset { display: none; }
+
+#result-screen.result-legendary-asset-error .result-legendary-asset-fallback {
+  display: block;
+  margin: 0 0 12px;
+  color: #111315;
+  font-size: clamp(1.35rem, 6vw, 2.2rem);
+  font-weight: 900;
+  line-height: 1.05;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+@media (max-width: 430px) {
+  .result-legendary-asset {
+    width: min(100%, 340px);
+    max-height: 140px;
+  }
 }
 
 .result-card.good,
@@ -3105,6 +3328,46 @@ body.shake #app,
   box-shadow: inset 0 0 0 7px color-mix(in srgb, var(--zone-accent) 16%, transparent);
 }
 
+.zone-transition-asset {
+  display: block;
+  width: clamp(250px, 72vw, 500px);
+  max-width: 100%;
+  max-height: clamp(120px, 28vh, 220px);
+  margin: clamp(10px, 2.5vw, 18px) auto 0;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 3px color-mix(in srgb, var(--zone-primary) 34%, transparent));
+}
+
+.zone-transition-screen.zone-asset-transition .zone-transition-icon {
+  display: none;
+}
+
+.zone-transition-screen.zone-asset-transition #zone-transition-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.zone-transition-screen.zone-asset-transition.zone-asset-error .zone-transition-asset {
+  display: none;
+}
+
+.zone-transition-screen.zone-asset-transition.zone-asset-error #zone-transition-title {
+  position: static;
+  width: 100%;
+  height: auto;
+  margin: 10px 0 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
 .zone-transition-eyebrow,
 .zone-transition-progress {
   font-weight: 900;
@@ -3276,10 +3539,38 @@ body.shake #app,
     padding: 24px 18px;
   }
 
+  .zone-transition-asset {
+    width: min(100%, 390px);
+    max-height: 165px;
+  }
+
   .zone-transition-card h2 {
     font-size: clamp(1.65rem, 8vw, 2.2rem);
     letter-spacing: 0.02em;
   }
+}
+
+@media (max-width: 430px) {
+  #game-screen .game-header {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 6px 10px 7px;
+    gap: 2px;
+  }
+
+  .game-zone-asset {
+    width: min(76vw, 230px);
+    max-height: 74px;
+  }
+}
+
+@media (max-width: 340px) {
+  .zone-transition-asset { max-height: 140px; }
+  .game-zone-asset { width: min(72vw, 205px); max-height: 70px; }
+  #game-screen.has-contextual-asset .game-header-assets { gap: 6px; }
+  #game-screen.has-contextual-asset :is(.game-zone-asset, .game-contextual-asset-slot) {
+    width: min(35vw, 112px);
+  }
+  #game-screen.has-contextual-asset :is(.game-zone-asset, .game-contextual-asset) { max-height: 64px; }
 }
 
 @media (max-width: 699px) {

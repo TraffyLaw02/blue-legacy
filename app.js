@@ -1,5 +1,5 @@
 /* ==========================================================
-   BLUE LEGACY — APP.JS V1.1
+   BLUE LEGACY — APP.JS 1.0.1
 ========================================================== */
 
 (() => {
@@ -23,7 +23,7 @@
   ]);
 
   const CONFIG = Object.freeze({
-    version: "1.3.0",
+    version: "1.0.1",
     saveKey: STORAGE_KEYS.save,
     profileKey: STORAGE_KEYS.profile,
     legacySaveKeys: STORAGE_KEYS.legacySaves,
@@ -102,6 +102,55 @@
     "red-line",
     "shinsekai",
   ]);
+
+  const ZONE_ASSET_PATHS = Object.freeze({
+    "east-blue": "assets/zones/eastblue.png",
+    "north-blue": "assets/zones/northblue.png",
+    "south-blue": "assets/zones/southblue.png",
+    "west-blue": "assets/zones/westblue.png",
+    "reverse-mountain": "assets/zones/reversemountain.png",
+    "grand-line": "assets/zones/paradise.png",
+    "red-line": "assets/zones/redline.png",
+    "starless-sea": "assets/zones/merssansetoiles.png",
+    "wandering-archipelago": "assets/zones/archipelmouvant.png",
+    "tempest-isle": "assets/zones/iledelatempete.png",
+    "shinsekai": "assets/zones/nouveaumonde.png",
+  });
+
+  function getZoneAssetPath(zone) {
+    return ZONE_ASSET_PATHS[zone?.id] || "";
+  }
+
+  const LEGENDARY_ARC_ASSETS = Object.freeze({
+    talent: Object.freeze({ path: "assets/legendaires/prodige.png", label: "Prodige?" }),
+    marineford: Object.freeze({ path: "assets/legendaires/marineford.png", label: "Marineford" }),
+    emperor: Object.freeze({ path: "assets/legendaires/vsempereur.png", label: "VS Empereur" }),
+  });
+
+  function getLegendaryArcAsset(arcId) {
+    return LEGENDARY_ARC_ASSETS[arcId] || null;
+  }
+
+  const HAKI_EVENT_ASSETS = Object.freeze({
+    1: Object.freeze({ path: "assets/hakis/eveilp1.png", label: "L’Éveil — Partie 1" }),
+    2: Object.freeze({ path: "assets/hakis/eveilp2.png", label: "L’Éveil — Partie 2" }),
+  });
+
+  const DREAM_CONCLUSION_ASSETS = Object.freeze({
+    success: Object.freeze({ path: "assets/reves/reveaccompli.png", label: "Rêve accompli" }),
+    failure: Object.freeze({ path: "assets/reves/reveinacheve.png", label: "Rêve inachevé" }),
+  });
+
+  function getHakiEventStage(event) {
+    const stage = Number(event?.decisiveStage);
+    return event?.eventType === "decisive" && event?.tags?.includes("haki-awakening") && [1, 2].includes(stage)
+      ? stage
+      : null;
+  }
+
+  function getHakiEventAsset(stage) {
+    return HAKI_EVENT_ASSETS[Number(stage)] || null;
+  }
 
   const CREATION_STEPS = Object.freeze([
     "sex",
@@ -413,6 +462,10 @@
 
     dom.gameDate = byId("game-date");
     dom.gameZone = byId("game-screen-title");
+    dom.gameZoneAsset = byId("game-zone-asset");
+    dom.gameContextualAssetSlot = byId("game-contextual-asset-slot");
+    dom.gameContextualAsset = byId("game-contextual-asset");
+    dom.gameContextualAssetFallback = byId("game-contextual-asset-fallback");
     dom.gameRegion = byId("game-region");
     dom.gameCharacterName = byId("game-character-name");
     dom.gameStatsToggle = byId("game-stats-toggle");
@@ -434,7 +487,11 @@
     dom.eventDescription = byId("event-description");
     dom.eventChoices = byId("event-choices");
 
+    dom.resultScreen = byId("result-screen");
     dom.resultTitle = byId("result-screen-title");
+    dom.resultEyebrow = byId("result-eyebrow");
+    dom.resultLegendaryAsset = byId("result-legendary-asset");
+    dom.resultLegendaryAssetFallback = byId("result-legendary-asset-fallback");
     dom.resultDescription = byId("result-description");
     dom.resultStats = byId("result-stat-changes");
     dom.resultRewards = byId("result-rewards");
@@ -456,6 +513,9 @@
     dom.zoneTransitionIcon = byId("zone-transition-icon");
     dom.zoneTransitionEyebrow = byId("zone-transition-eyebrow");
     dom.zoneTransitionProgress = byId("zone-transition-progress");
+    dom.zoneTransitionAsset = byId("zone-transition-asset");
+    dom.transitionFeatureAsset = byId("transition-feature-asset");
+    dom.transitionFeatureFallback = byId("transition-feature-fallback");
     dom.zoneTransitionTitle = byId("zone-transition-title");
     dom.zoneTransitionDescription = byId("zone-transition-description");
     dom.continueZoneTransition = byId("continue-zone-transition-btn");
@@ -1224,6 +1284,9 @@
   function inferPlayableScreen(payload = {}) {
     if (payload.game?.pendingLogbookEntry) return SCREEN.LOGBOOK;
     if (payload.result || payload.game?.pendingResult) return SCREEN.RESULT;
+    if (payload.game?.pendingZoneTransition?.reason === "dream-success-conclusion") {
+      return SCREEN.ZONE_TRANSITION;
+    }
     if (payload.game?.pendingRewardReveals?.length) return SCREEN.REWARD_REVEAL;
     if (payload.game?.pendingZoneTransition) return SCREEN.ZONE_TRANSITION;
     if (payload.game?.pendingDialogue) return SCREEN.DIALOGUE;
@@ -2274,6 +2337,50 @@
     });
 
     return difference;
+  }
+
+  function ensureOutcomeStatVariation(event, choice, outcome, intendedEffects, statsBefore, game) {
+    if (Object.keys(getStatsDifference(statsBefore, game.stats)).length) return null;
+
+    const tier = outcome.resolvedOutcomeTier || outcome.outcomeTier || inferOutcomeTier(outcome);
+    const intendedEntries = Object.entries(intendedEffects || {})
+      .map(([rawStat, rawValue]) => [normalizeStatKey(rawStat), Number(rawValue)])
+      .filter(([stat, value]) => STATS[stat] && stat !== "popularity" && Number.isFinite(value) && value !== 0)
+      .sort((left, right) => Math.abs(right[1]) - Math.abs(left[1]));
+    const weightedStats = Object.entries(choice?.resolutionWeights || {})
+      .map(([rawStat, rawWeight]) => [normalizeStatKey(rawStat === "renown" ? "bounty" : rawStat), Number(rawWeight) || 0])
+      .filter(([stat]) => STATS[stat] && !["popularity", "crew"].includes(stat))
+      .sort((left, right) => right[1] - left[1])
+      .map(([stat]) => stat);
+    const contextualStats = event?.resolutionCategory === "action"
+      ? ["combat", "haki", "health", "intelligence", "charisma", "fortune", "bounty"]
+      : ["charisma", "intelligence", "bounty", "fortune", "haki", "combat", "health"];
+    const intendedDirection = Math.sign(intendedEntries.reduce((sum, [, value]) => sum + value, 0));
+    const preferredDirection = intendedDirection || (["failure", "severe_failure"].includes(tier) ? -1 : 1);
+    const candidates = uniqueArray([
+      ...intendedEntries.map(([stat]) => stat),
+      ...weightedStats,
+      ...contextualStats,
+    ]).filter((stat) => STATS[stat] && !["popularity", "crew"].includes(stat));
+
+    for (const direction of [preferredDirection, -preferredDirection]) {
+      for (const stat of candidates) {
+        const current = Number(game.stats[stat]) || 0;
+        const definition = STATS[stat];
+        if ((direction > 0 && current >= definition.max) || (direction < 0 && current <= definition.min)) continue;
+        applyStatChanges({ [stat]: direction }, game.stats, {
+          game,
+          source: "event-safety",
+          ignoreDiminishingReturns: true,
+          ignoreTitlePassives: true,
+        });
+        if (Object.keys(getStatsDifference(statsBefore, game.stats)).length) {
+          return { stat, value: direction };
+        }
+      }
+    }
+
+    return null;
   }
 
   function clampCareerScore(value) {
@@ -4020,6 +4127,35 @@
     applyZoneTheme(dom.gameScreen, zone);
   }
 
+  function updateImageAsset(image, path, container, errorClass) {
+    if (!image || !container) return false;
+    container.classList.remove(errorClass);
+    image.onload = () => container.classList.remove(errorClass);
+    image.onerror = () => container.classList.add(errorClass);
+    if (!path) {
+      image.removeAttribute("src");
+      container.classList.add(errorClass);
+      return false;
+    }
+    if (image.getAttribute("src") !== path) image.src = path;
+    else if (image.complete && image.naturalWidth === 0) container.classList.add(errorClass);
+    return true;
+  }
+
+  function updateZoneAsset(image, zone, container, errorClass) {
+    return updateImageAsset(image, getZoneAssetPath(zone), container, errorClass);
+  }
+
+  function getHakiConclusionStage(pending, game = state.game) {
+    const explicitStage = Number(pending?.hakiStage || pending?.decisiveStage);
+    if ([1, 2].includes(explicitStage)) return explicitStage;
+    const historicalEvent = [...(game?.periodEvents || []), ...(game?.importantEvents || [])]
+      .find((event) => event?.resolutionId === pending?.resolutionId && getHakiEventStage(event));
+    const historicalStage = getHakiEventStage(historicalEvent);
+    if (historicalStage) return historicalStage;
+    return game?.flags?.completedDecisiveStage2 === true ? 2 : 1;
+  }
+
   function updateZoneTransitionScreen() {
     const game = state.game;
     const pending = game?.pendingZoneTransition;
@@ -4028,13 +4164,28 @@
 
     const routeLength = game.route.length || 6;
     const special = isSpecialZone(zone);
+    const isGeographicTransition = ["adventure-start", "zone-change"].includes(pending.reason);
     const isBossTransition = pending.reason === "boss-event";
     const isLegendaryTransition = pending.reason === "legendary-arc";
     const isLegendaryConclusion = pending.reason === "legendary-conclusion";
     const isHakiConclusion = pending.reason === "haki-conclusion";
     const isDreamFailureConclusion = pending.reason === "dream-failure-conclusion";
-    const isDecisiveConclusion = isHakiConclusion || isDreamFailureConclusion;
+    const isDreamSuccessConclusion = pending.reason === "dream-success-conclusion";
+    const isDreamConclusion = isDreamFailureConclusion || isDreamSuccessConclusion;
+    const isDecisiveConclusion = isHakiConclusion || isDreamConclusion;
     const boss = isBossTransition ? game.currentEvent : null;
+    const legendaryArcId = isLegendaryTransition ? game.currentEvent?.legendaryArc : null;
+    const legendaryAsset = getLegendaryArcAsset(legendaryArcId);
+    const hakiConclusionStage = isHakiConclusion ? getHakiConclusionStage(pending, game) : null;
+    const featureAsset = isLegendaryTransition
+      ? legendaryAsset
+      : isHakiConclusion
+        ? getHakiEventAsset(hakiConclusionStage)
+        : isDreamSuccessConclusion
+          ? DREAM_CONCLUSION_ASSETS.success
+          : isDreamFailureConclusion
+            ? DREAM_CONCLUSION_ASSETS.failure
+            : null;
     applyZoneTransitionTheme(zone);
     resetBossTransitionTheme();
     if (isBossTransition || isDecisiveConclusion) {
@@ -4047,10 +4198,40 @@
     dom.zoneTransitionScreen?.classList.toggle("legendary-arc-conclusion", isLegendaryConclusion);
     dom.zoneTransitionScreen?.classList.toggle("haki-conclusion", isHakiConclusion);
     dom.zoneTransitionScreen?.classList.toggle("dream-failure-conclusion", isDreamFailureConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("dream-success-conclusion", isDreamSuccessConclusion);
     dom.zoneTransitionScreen?.classList.toggle(
       "talent-arc-transition",
       isLegendaryTransition && game.currentEvent?.legendaryArc === "talent",
     );
+    dom.zoneTransitionScreen?.classList.toggle("zone-asset-transition", isGeographicTransition);
+    dom.zoneTransitionScreen?.classList.toggle("legendary-asset-intro", isLegendaryTransition);
+    dom.zoneTransitionScreen?.classList.toggle("haki-asset-conclusion", isHakiConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("dream-asset-conclusion", isDreamConclusion);
+    if (dom.zoneTransitionAsset) {
+      dom.zoneTransitionAsset.hidden = !isGeographicTransition;
+      if (isGeographicTransition) {
+        updateZoneAsset(dom.zoneTransitionAsset, zone, dom.zoneTransitionScreen, "zone-asset-error");
+      } else {
+        dom.zoneTransitionScreen?.classList.remove("zone-asset-error");
+      }
+    }
+    if (dom.transitionFeatureAsset) {
+      dom.transitionFeatureAsset.hidden = !featureAsset;
+      if (featureAsset) {
+        updateImageAsset(
+          dom.transitionFeatureAsset,
+          featureAsset.path,
+          dom.zoneTransitionScreen,
+          "feature-asset-error",
+        );
+      } else {
+        dom.zoneTransitionScreen?.classList.remove("feature-asset-error");
+      }
+    }
+    if (dom.transitionFeatureFallback) {
+      dom.transitionFeatureFallback.textContent = featureAsset?.label || "";
+      dom.transitionFeatureFallback.hidden = !featureAsset;
+    }
 
     if (dom.zoneTransitionIcon) {
       dom.zoneTransitionIcon.textContent = isLegendaryTransition || isLegendaryConclusion ? "◆" : isDecisiveConclusion
@@ -4061,7 +4242,7 @@
     }
     if (dom.zoneTransitionEyebrow) {
       dom.zoneTransitionEyebrow.textContent =
-        isLegendaryTransition || isLegendaryConclusion ? "Arc légendaire" : isDecisiveConclusion
+        isLegendaryTransition ? "Événement légendaire" : isLegendaryConclusion ? "Arc légendaire" : isDecisiveConclusion
           ? pending.eyebrow || "Épreuve décisive"
           : isBossTransition
           ? "Événement décisif"
@@ -4078,8 +4259,9 @@
     }
     if (dom.zoneTransitionTitle) {
       dom.zoneTransitionTitle.textContent = isLegendaryTransition
-        ? (game.currentEvent?.legendaryArc === "talent" ? "UN TALENT PRODIGIEUX ?"
-          : game.currentEvent?.legendaryArc === "marineford" ? "MARINEFORD" : "COMBAT CONTRE UN EMPEREUR !")
+        ? legendaryAsset?.label || "Événement légendaire"
+        : isDreamSuccessConclusion ? DREAM_CONCLUSION_ASSETS.success.label
+        : isDreamFailureConclusion ? DREAM_CONCLUSION_ASSETS.failure.label
         : isLegendaryConclusion || isDecisiveConclusion
         ? pending.title || "LA ROUTE CONTINUE"
         : isBossTransition
@@ -4212,6 +4394,14 @@
       }
     }
     saveGame();
+    if (transitionReason === "dream-success-conclusion") {
+      if (game.pendingRewardReveals?.length) {
+        openScreen(SCREEN.REWARD_REVEAL, { save: false });
+        return true;
+      }
+      openScreen(SCREEN.GAME, { save: false });
+      return finishEvent();
+    }
     if (["haki-conclusion", "dream-failure-conclusion"].includes(transitionReason)) {
       openScreen(SCREEN.GAME, { save: false });
       if (game.currentAction >= game.actionsThisMonth) {
@@ -4289,6 +4479,55 @@
     revolutionary: "Dragon a entendu parler de tes exploits.",
     "bounty-hunter": "Les pirates redoutent désormais ta silhouette.",
   });
+  const LEGENDARY_MARINEFORD_CONTEXTS = Object.freeze({
+    pirate: "Extraire un allié de la forteresse.",
+    marine: "Protéger les civils au cœur de la crise.",
+    "bounty-hunter": "Un contrat au cœur du chaos.",
+    revolutionary: "Libérer les prisonniers sous la forteresse.",
+  });
+  const LEGENDARY_EMPEROR_HEADER_NAMES = Object.freeze({
+    blackbeard: "Barbe Noire",
+    kaido: "Kaido aux Cent Bêtes",
+    "big-mom": "Big Mom",
+    shanks: "Shanks le Roux",
+    luffy: "Monkey D. Luffy",
+    buggy: "Baggy",
+  });
+
+  function getActiveLegendaryArcId(game = state.game) {
+    const eventArcId = game?.currentEvent?.legendaryArc;
+    if (getLegendaryArcAsset(eventArcId) && game?.legendaryArcs?.[eventArcId]?.status === "in-progress") {
+      return eventArcId;
+    }
+    return Object.keys(LEGENDARY_ARC_ASSETS).find(
+      (arcId) => game?.legendaryArcs?.[arcId]?.status === "in-progress",
+    ) || null;
+  }
+
+  function getGameHeaderContextAsset(game = state.game) {
+    const hakiStage = getHakiEventStage(game?.currentEvent);
+    if (hakiStage) {
+      const asset = getHakiEventAsset(hakiStage);
+      return asset ? { ...asset, kind: "haki", hakiStage } : null;
+    }
+    const legendaryArcId = getActiveLegendaryArcId(game);
+    const asset = getLegendaryArcAsset(legendaryArcId);
+    return asset ? { ...asset, kind: "legendary", legendaryArcId } : null;
+  }
+
+  function getLegendaryArcHeaderContext(arcId, game = state.game) {
+    if (arcId === "talent") {
+      return LEGENDARY_TALENT_INTROS[game?.character?.faction] || "Le monde commence à retenir ton nom.";
+    }
+    if (arcId === "marineford") {
+      return LEGENDARY_MARINEFORD_CONTEXTS[game?.character?.faction] || "La forteresse traverse une nouvelle crise.";
+    }
+    if (arcId === "emperor") {
+      const emperorId = game?.legendaryArcs?.emperor?.emperorId;
+      return LEGENDARY_EMPEROR_HEADER_NAMES[emperorId] || LEGENDARY_EMPEROR_NAMES[emperorId] || "Un Empereur";
+    }
+    return "";
+  }
   const LEGENDARY_DREAM_OBJECTIVES = Object.freeze({
     "one-piece": "une copie d’un Road Ponéglyphe", "sea-emperor": "la reconnaissance d’un territoire libre",
     "worlds-greatest-fortune": "une cargaison impériale légendaire", "forgotten-history": "une archive interdite",
@@ -4660,7 +4899,7 @@
     "maitrise-haki-des-rois-plus",
   ]);
 
-  function queueHakiFailureConclusion(event, outcome, rewards, resolutionId, game = state.game) {
+  function queueHakiConclusion(event, outcome, rewards, resolutionId, game = state.game) {
     const stage = Number(event?.decisiveStage);
     const zone = getCurrentZone(game);
     if (!game || !zone || !event?.tags?.includes("haki-awakening") || ![1, 2].includes(stage)) return false;
@@ -4669,12 +4908,20 @@
     );
     const tier = outcome?.resolvedOutcomeTier || outcome?.outcomeTier || inferOutcomeTier(outcome || {});
     const failedAwakening = ["mixed", "failure", "severe_failure"].includes(tier);
-    if (gainedHaki || !failedAwakening) return false;
     if (game.pendingZoneTransition?.reason === "haki-conclusion" &&
         game.pendingZoneTransition.resolutionId === resolutionId) return false;
 
     const masteryAttempt = stage === 2 && game.flags?.firstDecisiveHakiType === "conquerors";
-    const copy = stage === 1
+    const copy = gainedHaki || !failedAwakening
+      ? {
+          id: `haki-awakening-success-${stage}`,
+          icon: "✦",
+          title: stage === 1 ? "L’éveil prend forme" : masteryAttempt
+            ? "La volonté atteint sa maîtrise"
+            : "Une volonté souveraine s’éveille",
+          description: getOutcomeNarrative(outcome, null, event),
+        }
+      : stage === 1
       ? {
           id: "haki-awakening-failure",
           icon: "◇",
@@ -4698,6 +4945,7 @@
       ...createZoneTransitionData(zone, game.currentZoneIndex, "haki-conclusion", game),
       ...copy,
       resolutionId,
+      hakiStage: stage,
       eyebrow: "ÉPREUVE DÉCISIVE",
       buttonLabel: "Poursuivre l’aventure",
     };
@@ -4741,6 +4989,28 @@
       resolutionId,
       eyebrow: "DERNIÈRE ÉPREUVE",
       buttonLabel: "Découvrir la fin de ma carrière",
+    };
+    return true;
+  }
+
+  function queueFinalDreamSuccessConclusion(event, resolutionId, game = state.game) {
+    const finalOutcome = game?.bossProgress?.finalOutcome;
+    const zone = getCurrentZone(game);
+    if (!game || !zone || event?.eventType !== "decisive" || Number(event?.decisiveStage) !== 3) return false;
+    if (!finalOutcome || finalOutcome.dreamCompleted !== true) return false;
+    if (finalOutcome.dreamId && finalOutcome.dreamId !== game.character?.dream) return false;
+    if (finalOutcome.factionId && finalOutcome.factionId !== game.character?.faction) return false;
+    if (game.pendingZoneTransition?.reason === "dream-success-conclusion" &&
+        game.pendingZoneTransition.resolutionId === resolutionId) return false;
+    game.pendingZoneTransition = {
+      ...createZoneTransitionData(zone, game.currentZoneIndex, "dream-success-conclusion", game),
+      id: "final-dream-success",
+      title: DREAM_CONCLUSION_ASSETS.success.label,
+      description: finalOutcome.result || "Ton rêve est désormais accompli.",
+      resolutionId,
+      buttonLabel: game.pendingRewardReveals?.length
+        ? "Découvrir mon Titre"
+        : "Découvrir la fin de ma carrière",
     };
     return true;
   }
@@ -6300,11 +6570,12 @@
     const outcomeNarrative = getOutcomeNarrative(outcome, choice, event);
     const statsBefore = getStatsSnapshot(game.stats);
     const flagsBefore = { ...game.flags };
-    applyStatChanges(
-      getDifficultyAdjustedEffects(
+    const intendedEffects = getDifficultyAdjustedEffects(
         getNarrativelyCoherentEffects(event, outcome),
         game,
-      ),
+      );
+    applyStatChanges(
+      intendedEffects,
       game.stats,
       {
         game,
@@ -6314,6 +6585,7 @@
         ignoreDiminishingReturns: Boolean(outcome.ignoreDiminishingReturns),
       },
     );
+    ensureOutcomeStatVariation(event, choice, outcome, intendedEffects, statsBefore, game);
     applyChoiceFlags(outcome, game, { event });
     if (
       (outcome.resolvedOutcomeTier || outcome.outcomeTier) === "severe_failure" ||
@@ -6323,7 +6595,7 @@
     }
     const rewards = applyOutcomeMajorRewards(outcome, game);
     queueRewardReveals(rewards, game, { resolutionId, eventId: event.id });
-    queueHakiFailureConclusion(event, outcome, rewards, resolutionId, game);
+    queueHakiConclusion(event, outcome, rewards, resolutionId, game);
 
     const dreamProgress = getOutcomeDreamProgress(outcome, game);
     if (dreamProgress) {
@@ -6370,6 +6642,7 @@
       queueRewardReveal(record, game, { resolutionId, eventId: event.id });
     });
     refreshPopularityScore(game);
+    queueFinalDreamSuccessConclusion(event, resolutionId, game);
     queueFinalDreamFailureConclusion(event, resolutionId, game);
 
     const statsAfter = getStatsSnapshot(game.stats);
@@ -6448,6 +6721,7 @@
         outcomeNarrative,
       statChanges,
       rewards,
+      legendaryArc: event.legendaryArc || null,
       important: eventRecord.important,
       ending: outcome.ending || null,
       effectsApplied: true,
@@ -6807,6 +7081,12 @@
     }
     state.result = null;
     game.pendingResult = null;
+
+    if (game.pendingZoneTransition?.reason === "dream-success-conclusion") {
+      openScreen(SCREEN.ZONE_TRANSITION);
+      state.isContinuingResult = false;
+      return true;
+    }
 
     if (game.pendingRewardReveals?.length) {
       openScreen(SCREEN.REWARD_REVEAL);
@@ -10022,6 +10302,7 @@
     const character = game.character;
     const zone = getCurrentZone(game);
     const event = game.currentEvent;
+    const headerContextAsset = getGameHeaderContextAsset(game);
     applyGameZoneTheme(zone);
     updateEventTheme(event);
 
@@ -10031,11 +10312,36 @@
     }
 
     if (dom.gameZone) {
-      dom.gameZone.textContent = `${getLocationIcon(zone)} ${zone?.name || "Zone inconnue"}`;
+      dom.gameZone.textContent = zone?.name || "Zone inconnue";
+    }
+
+    if (dom.gameZoneAsset) {
+      updateZoneAsset(dom.gameZoneAsset, zone, dom.gameScreen, "game-zone-asset-error");
+    }
+
+    dom.gameScreen?.classList.toggle("has-contextual-asset", Boolean(headerContextAsset));
+    if (dom.gameContextualAssetSlot) {
+      dom.gameContextualAssetSlot.hidden = !headerContextAsset;
+    }
+    if (dom.gameContextualAsset && headerContextAsset) {
+      dom.gameContextualAsset.alt = headerContextAsset.label;
+      if (dom.gameContextualAssetFallback) {
+        dom.gameContextualAssetFallback.textContent = headerContextAsset.label;
+      }
+      updateImageAsset(
+        dom.gameContextualAsset,
+        headerContextAsset.path,
+        dom.gameScreen,
+        "game-contextual-asset-error",
+      );
+    } else {
+      dom.gameScreen?.classList.remove("game-contextual-asset-error");
     }
 
     if (dom.gameRegion) {
-      dom.gameRegion.textContent = `${getZoneIcon(zone)} ${getBroadZoneLabel(zone)}`;
+      dom.gameRegion.textContent = headerContextAsset?.kind === "legendary"
+        ? getLegendaryArcHeaderContext(headerContextAsset.legendaryArcId, game)
+        : `${getZoneIcon(zone)} ${getBroadZoneLabel(zone)}`;
     }
 
     if (dom.gameCharacterName) {
@@ -10234,6 +10540,32 @@
     }
 
     updateEventTheme(state.game?.currentEvent || null);
+
+    const legendaryArcId = result.legendaryArc || state.game?.currentEvent?.legendaryArc || null;
+    const legendaryAsset = getLegendaryArcAsset(legendaryArcId);
+    dom.resultScreen?.classList.toggle("has-legendary-result-asset", Boolean(legendaryAsset));
+    if (dom.resultEyebrow) {
+      dom.resultEyebrow.hidden = false;
+      dom.resultEyebrow.textContent = "Conséquence";
+    }
+    if (dom.resultLegendaryAsset) {
+      dom.resultLegendaryAsset.hidden = !legendaryAsset;
+      if (legendaryAsset) {
+        dom.resultLegendaryAsset.alt = legendaryAsset.label;
+        updateImageAsset(
+          dom.resultLegendaryAsset,
+          legendaryAsset.path,
+          dom.resultScreen,
+          "result-legendary-asset-error",
+        );
+      } else {
+        dom.resultScreen?.classList.remove("result-legendary-asset-error");
+      }
+    }
+    if (dom.resultLegendaryAssetFallback) {
+      dom.resultLegendaryAssetFallback.textContent = legendaryAsset?.label || "";
+      dom.resultLegendaryAssetFallback.hidden = !legendaryAsset;
+    }
 
     if (dom.resultTitle) {
       dom.resultTitle.textContent =
@@ -12428,6 +12760,17 @@
         thirdEquipBlocked: !thirdEquip,
       };
 
+      saveProfile({ ...createDefaultProfile(), berries: 500 });
+      const cosmeticD = findProfileCosmetic("cosmetic-d");
+      const cosmeticDBought = purchaseProfileCosmetic("cosmetic-d");
+      const cosmeticDProfile = getProfile();
+      results.cosmeticD = {
+        catalogPrice: cosmeticD?.price,
+        bought: cosmeticDBought,
+        exactBalance: cosmeticDProfile.berries === 0,
+        owned: cosmeticDProfile.profileCosmetics.ownsCosmeticD,
+      };
+
       const character = { faction: "pirate", origin: "east-blue", dream: "one-piece", hasD: false };
       const baseline = getInitialStats(character, []);
       const treasure = getInitialStats(character, ["treasure-map"]);
@@ -12512,6 +12855,8 @@
       results.achievements.claimed === 6 && results.achievements.idempotent &&
       results.purchase.bought && results.purchase.doubleBuyBlocked && results.purchase.exactBalance &&
       results.purchase.owned && results.purchase.thirdEquipBlocked &&
+      results.cosmeticD.catalogPrice === 500 && results.cosmeticD.bought &&
+      results.cosmeticD.exactBalance && results.cosmeticD.owned &&
       results.effects.treasureFortune === 15000 && results.effects.jolly.every((value) => value === 2) &&
       results.effects.eternalOrdinary === 5 && results.effects.eternalRisk === 0 &&
       results.effects.vivreMultiplier === 1.6 && results.effects.strawFirstEvent &&
@@ -13776,6 +14121,8 @@
     );
     const outcomeRows = events.flatMap((event) => event.choices.flatMap((choice) =>
       choice.outcomes.map((outcome) => ({ event, choice, outcome, tier: inferOutcomeTier(outcome) }))));
+    const emptyStatVariations = outcomeRows.filter(({ outcome }) =>
+      !Object.values(outcome.effects || {}).some((value) => Number(value) !== 0));
     const hasMechanicalChange = (outcome) => Boolean(
       Object.keys(outcome.effects || {}).length || Object.keys(outcome.flags || {}).length ||
       outcome.removeFlags?.length || outcome.dreamProgress || outcome.ending || outcome.devilFruit ||
@@ -13785,6 +14132,7 @@
     outcomeRows.forEach(({ event, outcome, tier }) => {
       const values = Object.values(outcome.effects || {}).map(Number).filter(Number.isFinite);
       const reference = `${event.id}/${outcome.id}`;
+      if (!values.some((value) => value !== 0)) balanceWarnings.push(`Issue sans variation statistique : ${reference}`);
       if (!hasMechanicalChange(outcome)) balanceWarnings.push(`Issue sans changement : ${reference}`);
       if (["success", "exceptional_success"].includes(tier) && values.length && values.every((value) => value <= 0)) {
         balanceWarnings.push(`Issue positive uniquement négative : ${reference}`);
@@ -13868,6 +14216,7 @@
       surpriseErrors,
       balance: {
         outcomesAnalyzed: outcomeRows.length,
+        outcomesWithoutStatVariation: emptyStatVariations.map(({ event, outcome }) => `${event.id}/${outcome.id}`),
         tierCounts,
         meanEffectsByType,
         proportions: Object.fromEntries(Object.entries(tierCounts).map(([tier, count]) => [tier, count / Math.max(1, outcomeRows.length)])),
@@ -14014,8 +14363,10 @@
     if (!choice) return null;
     const outcome = secureFinalDreamOutcome(selectOutcome(choice, game, event), choice, event, game);
     const tier = outcome.resolvedOutcomeTier || outcome.outcomeTier || inferOutcomeTier(outcome);
+    const statsBefore = getStatsSnapshot(game.stats);
+    const intendedEffects = getDifficultyAdjustedEffects(getNarrativelyCoherentEffects(event, outcome), game);
     applyStatChanges(
-      getDifficultyAdjustedEffects(getNarrativelyCoherentEffects(event, outcome), game),
+      intendedEffects,
       game.stats,
       {
         game,
@@ -14025,6 +14376,7 @@
         ignoreDiminishingReturns: Boolean(outcome.ignoreDiminishingReturns),
       },
     );
+    ensureOutcomeStatVariation(event, choice, outcome, intendedEffects, statsBefore, game);
     applyChoiceFlags(outcome, game);
     applyOutcomeMajorRewards(outcome, game);
     const dreamProgress = getOutcomeDreamProgress(outcome, game);

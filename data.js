@@ -1,5 +1,5 @@
 /* ==========================================================
-   BLUE LEGACY — DONNÉES GÉNÉRALES V1.1
+   BLUE LEGACY — DONNÉES GÉNÉRALES 1.0.1
 
    Ce fichier contient uniquement les catalogues généraux.
    Les événements, titres et succès vivent dans leurs fichiers dédiés.

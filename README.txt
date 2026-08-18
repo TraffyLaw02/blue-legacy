@@ -14,8 +14,8 @@ Blue Legacy est un roguelite narratif jouable directement dans un navigateur. Ch
 
 Le jeu s’inspire notamment de One Piece, de Destiny Eleven et de BitLife, avec une progression centrée sur les conséquences, les statistiques et la construction d’une carrière unique.
 
-Version actuelle : 0.9.2
-Statut : En développement — dernière phase avant la V1
+Version actuelle : 1.0.1
+Statut : Version stable — mise à jour 1.0.1
 
 Présentation
 
@@ -581,7 +581,7 @@ Les Titres de Haki proviennent des deux premières épreuves décisives et reste
 Les Succès sont permanents et peuvent progresser sur plusieurs carrières. Leur récompense en berrys n’est versée qu’une seule fois ; ces berrys servent aux achats permanents de la Boutique. Les conditions secrètes restent masquées jusqu’à leur découverte.
 
 État du développement
-Version actuelle : 0.9.3
+Version actuelle : 1.0.1
 
 La version 0.9.2 contient notamment :
 
@@ -598,7 +598,7 @@ la Boutique ;
 le Panthéon ;
 les fiches de carrière ;
 les principales migrations de sauvegarde.
-Prochaine version : 0.9.3
+Historique de stabilisation :
 
 La version 0.9.3 représente la dernière phase de stabilisation avant la V1.
 
@@ -669,8 +669,8 @@ Crédits
 
 Projet imaginé et développé par Léo Robert, avec l’aide d’outils d’intelligence artificielle pour la conception, l’écriture, l’équilibrage et le développement.
 
-Blue Legacy — Version 0.9.3
-Blue Legacy 0.9.3 - Profil Statistiques
+Blue Legacy — Version 1.0.1
+Blue Legacy 1.0.1 - Profil Statistiques
 ----------------------------------------
 L'accueil propose désormais une page Statistiques permanente : Carte de légende,
 identité de profil, records reconstruits depuis le Panthéon et progression globale.

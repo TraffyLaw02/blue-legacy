@@ -1,6 +1,6 @@
 /* ==========================================================
    BLUE LEGACY — EVENTS.JS
-   Version 1.1
+   Version 1.0.1
 
    Ce fichier contient uniquement les événements narratifs.
 
@@ -547,6 +547,22 @@
     return values.some((value) => value < 0) ? "failure" : "mixed";
   }
 
+  function getEditorialFallbackEffects(event = {}, choice = {}, tier = "mixed") {
+    const weights = choice.resolutionWeights && typeof choice.resolutionWeights === "object"
+      ? choice.resolutionWeights
+      : {};
+    const weightedStats = Object.entries(weights)
+      .map(([stat, weight]) => [stat === "renown" ? "bounty" : stat, Number(weight) || 0])
+      .filter(([stat]) => ["health", "combat", "haki", "intelligence", "charisma", "bounty", "fortune"].includes(stat))
+      .sort((left, right) => right[1] - left[1]);
+    const categoryDefaults = event.resolutionCategory === "action"
+      ? ["combat", "haki", "health"]
+      : ["charisma", "intelligence", "bounty"];
+    const stat = weightedStats[0]?.[0] || categoryDefaults[0];
+    const direction = ["failure", "severe_failure"].includes(tier) ? -1 : 1;
+    return { [stat]: direction };
+  }
+
   function balanceOutcome(outcome, event, choice) {
     BALANCE_LEDGER.outcomesAnalyzed += 1;
     const before = JSON.stringify(outcome.effects || {});
@@ -559,12 +575,11 @@
       delete effects.health;
       BALANCE_LEDGER.statisticCoherenceCorrections += 1;
     }
-    const hasMajorChange = Boolean(
-      outcome.ending || outcome.devilFruit || outcome.crewMember || outcome.combatStyle ||
-      outcome.dreamProgress || outcome.callback || outcome.relationship ||
-      outcome.addTraits?.length || outcome.titles?.length,
-    );
-    if (!Object.keys(effects).length && !hasMajorChange) BALANCE_LEDGER.emptyOutcomesBefore += 1;
+    const hasStatVariation = Object.values(effects).some((value) => Number(value) !== 0);
+    if (!hasStatVariation) {
+      BALANCE_LEDGER.emptyOutcomesBefore += 1;
+      Object.assign(effects, getEditorialFallbackEffects(event, choice, tier));
+    }
 
     const coreCap = event.eventType === "ordinary" ? 4 : event.eventType === "risk" ? 5 : 9;
     Object.entries(effects).forEach(([stat, raw]) => {
