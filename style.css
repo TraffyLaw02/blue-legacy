@@ -2441,6 +2441,33 @@ body.is-boss-danger-event #result-screen .result-card.negative {
   border: 0;
 }
 
+.dream-conclusion-popularity {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 10px auto 2px;
+  color: var(--zone-text);
+  line-height: 1.15;
+}
+
+.dream-conclusion-popularity[hidden] {
+  display: none;
+}
+
+.dream-conclusion-popularity span {
+  font-size: clamp(.78rem, 2.8vw, .92rem);
+  font-weight: 800;
+}
+
+.dream-conclusion-popularity strong {
+  color: var(--zone-primary);
+  font-size: clamp(1.28rem, 5vw, 1.65rem);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .zone-transition-screen.dream-success-conclusion {
   --zone-primary: #5f467d;
   --zone-secondary: #ded2ef;

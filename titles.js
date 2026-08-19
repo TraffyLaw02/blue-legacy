@@ -559,7 +559,7 @@ window.SEA_OF_LEGENDS_TITLES = Object.freeze([
     ["briseur-de-totto-land", "Briseur de Totto Land", "legendary", "🍬", { intelligence: 3, combat: 3, charisma: 2 }, 3],
     ["rival-du-roux", "Rival du Roux", "mythic", "⚔️", { haki: 4, charisma: 4, health: 2 }, 3],
     ["fleau-de-barbe-noire", "Fléau de Barbe Noire", "mythic", "🌑", { intelligence: 4, combat: 3, haki: 3 }, 3],
-    ["adversaire-du-chapeau-de-paille", "Adversaire du Chapeau de paille", "legendary", "👒", { health: 3, combat: 3, charisma: 3 }, 3],
+    ["rival-de-barbe-blanche", "Rival de Barbe Blanche", "mythic", "🌊", { health: 4, combat: 3, haki: 2 }, 3],
     ["geolier-de-baggy", "Geôlier de Baggy", "legendary", "⛓️", { intelligence: 4, charisma: 3, combat: 2 }, 3],
   ].map(([id, name, rarity, icon, immediate, popularity]) => ({
     id, name,

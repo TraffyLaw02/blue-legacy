@@ -3922,7 +3922,7 @@ const COMMON_EVENTS = [
       scene("shinsekai-ultimatum", "Trois jours pour plier le genou", "Un commandant d’Empereur exige ton pavillon, ton Log Pose et le meilleur dessert de ton cuisinier.", "Répondre par le canon", "Livrer un dessert piégé d’humiliation", { tags: ["emperor", "ultimatum", "humor"], measuredTrait: "créatif" }),
       scene("shinsekai-fleet-war", "La mer couverte de voiles", "Deux flottes ferment l’horizon et demandent ton choix avant la première salve.", "Percer le centre de la bataille", "Unir les capitaines indépendants", { tags: ["war", "fleet"], boldTag: "Sans retour", winFlags: { ledIndependentNewWorldFleet: true } }),
       scene("shinsekai-crew-crisis", "Le vote sous le mât fendu", "Après des semaines de guerre, l’équipage exige de choisir entre ton rêve et la survie du navire.", "Défendre ton rêve sans mentir", "Confier la décision à l’équipage", { tags: ["crew", "dream"], boldTag: "Honneur" }),
-      scene("shinsekai-public-battle", "Le combat diffusé au monde", "La responsable des presses clandestines détourne un réseau d’Escargophones : ta bataille contre les un équipage pirate sera vue dans toutes les mers.", "Combattre sous les objectifs", "Couper le signal et sauver les otages", { tags: ["newspaper", "public"], stat: "popularity" }),
+      scene("shinsekai-public-battle", "Une bataille diffusée dans toutes les mers", "La responsable des presses clandestines détourne un réseau d’Escargophones : ton affrontement contre un équipage pirate sera retransmis en direct. Des otages se trouvent encore sur le navire ennemi.", "Attaquer devant les Escargophones", "Couper le signal et sauver les otages", { tags: ["newspaper", "public"], stat: "popularity" }),
       scene("shinsekai-road-poneglyph-rubbing", "Le rouge sous la forteresse", "Une copie de Road Ponéglyphe repose sous la salle du trésor d’un commandant d’Empereur.", "Descendre pendant le banquet", "Échanger une route contre un relevé", { tags: ["road-poneglyph", "one-piece"], boldTag: "Audace", winFlags: { securedRoadPoneglyphRubbing: true } }),
       scene("shinsekai-alba-return", "Le quatrième retour de la capitaine rivale", "La capitaine rivale commande désormais une flotte dont chaque navire prétend être l’amiral. Votre ancienne relation décide de l’accueil.", "Lui proposer une guerre commune", "Régler enfin votre rivalité", { tags: ["callback", "rival"], callbackFlags: { sparedAlbaRival: true }, winFlags: { alliedAlbaNewWorldFleet: true } }),
       scene("shinsekai-kingdom-choice", "La couronne dans la cale", "Un royaume chassé de son île offre sa couronne à qui reprendra le port occupé.", "Reconquérir le port sans garder la couronne", "Transformer la flotte royale en alliance", { tags: ["kingdom", "territory"], boldTag: "Honneur" }),
@@ -3931,7 +3931,7 @@ const COMMON_EVENTS = [
       scene("shinsekai-emperor-banquet", "Le banquet des cent desserts", "Un Empereur absent invite cent équipages à dîner ; chaque gâteau contient un ordre différent.", "Lire ton ordre à voix haute", "Échanger les gâteaux entre capitaines", { tags: ["emperor", "feast", "humor"], measuredTrait: "rusé" }),
       scene("shinsekai-rare-world-bounty", "Le chiffre que le journal hésite à imprimer", "Ta prime dépasse celle de plusieurs royaumes réunis. Les imprimeurs demandent si ton portrait doit sourire.", "Assumer la légende", "Faire imprimer les noms de l’équipage", { tags: ["bounty", "newspaper"], stat: "bounty", boldTag: "Quitte ou double" }),
       scene("shinsekai-rare-emperor-seat", "Le siège laissé vide", "La chute d’un seigneur pirate libère un territoire assez vaste pour faire de toi un Empereur, si les peuples et les flottes te reconnaissent.", "Réunir les pavillons libres", "Protéger le territoire sans revendiquer le titre", { tags: ["emperor", "status"], boldTag: "Sans retour", major: true, winFlags: { candidateForEmperorStatus: true } }),
-      scene("shinsekai-rare-forgotten-route", "La route effacée des quatre cartes", "Les relevés de la tempête, des récifs et d’un Road Ponéglyphe désignent une mer absente de toutes les cartes officielles.", "Suivre la convergence", "Partager la découverte avec les alliés", { tags: ["history", "road-poneglyph"], boldTag: "Intuition", major: true }),
+      scene("shinsekai-rare-forgotten-route", "Quatre cartes indiquent une mer inconnue", "Les relevés de la tempête, des récifs et d’un Road Ponéglyphe indiquent tous les mêmes coordonnées, absentes des cartes officielles.", "Naviguer vers les coordonnées", "Partager les relevés avec les alliés", { tags: ["history", "road-poneglyph"], boldTag: "Intuition", major: true }),
       scene("shinsekai-rare-fleet-betrayal", "La salve venue de l’alliance", "Au milieu d’une guerre de territoire, un pavillon allié tourne ses canons vers ton navire.", "Aborder le traître", "Sauver les équipages trompés", { tags: ["betrayal", "fleet"], boldTag: "Sans retour" }),
       scene("shinsekai-very-rare-kings-crossing", "Quand deux volontés fendent le ciel", "Face à une puissance du Nouveau Monde, la mer se retire et les nuages se séparent avant le premier coup.", "Rester debout pour ton rêve", "Placer l’équipage hors du choc", { tags: ["kings-haki", "legend"], boldTag: "Sans retour", major: true, dangerTheme: true, requiresD: true, winFlags: { survivedKingsWillCollision: true } }),
       scene("shinsekai-very-rare-road-to-king", "La dernière aiguille du monde", "Les décisions de toute ta route convergent : alliés, relevés et dettes peuvent ouvrir un cap vers le One Piece, sans garantir ce qui attend au bout.", "Donner l’ordre de suivre le cap", "Attendre que chaque allié soit prêt", { tags: ["one-piece", "dream", "road-poneglyph"], boldTag: "Dernière chance", major: true, requiredFlags: { securedRoadPoneglyphRubbing: true }, winFlags: { openedPathTowardPirateKing: true } }),
@@ -4242,8 +4242,23 @@ const COMMON_EVENTS = [
     };
   }
 
+  const SPECIAL_EDITORIAL_TITLES = Object.freeze({
+    "moving-border-justice": "Deux villages revendiquent la même île",
+    "precision-over-pride": "La cible se cache derrière Mihawk",
+    "village-or-secret-route": "Déplacer le village condamnera la route",
+    "killer-conductive-trail": "Killer suit le fugitif sur les rails",
+    "loyalty-clause": "Le contrat vise aussi un innocent",
+    "kizaru-final-report": "Kizaru exige votre rapport final",
+    "hawkins-final-card": "Hawkins mise tout sur une dernière route",
+    "law-last-exchange": "Law place les deux équipages dans sa ROOM",
+    "fujitora-last-weight": "Fujitora retient la dernière route",
+    "mihawk-final-passage": "Mihawk bloque la sortie de l’archipel",
+    "kid-last-thunder": "Kid prend le dernier paratonnerre",
+    "sabo-final-signal": "Le Gouvernement guette le signal de Sabo",
+  });
+
   const specialArcScene = (slug, title, description, resolutionCategory, risk, choices, success, mixed, failure) => ({
-    slug, title, description, resolutionCategory, risk, choices, success, mixed, failure,
+    slug, title: SPECIAL_EDITORIAL_TITLES[slug] || title, description, resolutionCategory, risk, choices, success, mixed, failure,
   });
 
   const SPECIAL_CANONICAL_ARCS = Object.freeze({
@@ -4956,13 +4971,13 @@ const COMMON_EVENTS = [
       { id: "hold-line", text: "Maintenir la coque dans le courant", tag: "Endurance", resolutionWeights: { health: 0.55, combat: 0.15, haki: 0.3 }, success: "Ta coque absorbe le choc et les deux navires franchissent le sommet.", successEffects: { haki: 2, popularity: 2 }, failure: "Le choc ouvre une voie d'eau avant le sommet. Les réparations engloutissent une partie des réserves.", failureEffects: { health: -8, fortune: -12000 } },
       { id: "break-wave", text: "Fendre la vague entre les navires", tag: "Maîtrise", resolutionWeights: { health: 0.15, combat: 0.5, haki: 0.35 }, success: "La vague se sépare assez longtemps pour laisser passer les deux proues.", successEffects: { combat: 2, haki: 1 }, failure: "La manœuvre évite la collision frontale, mais arrache une partie du gréement.", failureEffects: { fortune: -9000, health: -4 } },
     ]}),
-    createRiskEvent({ id: "risk-common-paradise-climate-wall", title: "Le mur des quatre climats", description: "Dans Paradise, quatre fronts météorologiques se referment autour du Log Pose et rendent chaque cap dangereux.", resolutionCategory: "action", zones: ["grand-line"], tags: ["weather", "navigation"], choices: [
+    createRiskEvent({ id: "risk-common-paradise-climate-wall", title: "Quatre tempêtes barrent la route", description: "La météo de Paradise bascule sans prévenir. Devant le navire, grêle, vents violents, pluie glaciale et éclairs ferment presque toutes les routes.", resolutionCategory: "action", zones: ["grand-line"], tags: ["weather", "navigation"], choices: [
       { id: "endure-front", text: "Traverser le front le moins instable", tag: "Résistance", resolutionWeights: { health: 0.45, combat: 0.1, haki: 0.45 }, success: "Le navire ressort couvert de givre, mais conserve son cap.", successEffects: { haki: 2 }, failure: "La grêle blesse plusieurs marins et détruit les réserves exposées.", failureEffects: { health: -9, fortune: -10000 } },
-      { id: "read-pressure", text: "Attendre la rupture entre les fronts", tag: "Perception", resolutionWeights: { health: 0.15, combat: 0.15, haki: 0.7 }, success: "Tu perçois l'accalmie avant qu'elle apparaisse et ouvres une route sûre.", successEffects: { haki: 3 }, failure: "L'accalmie se referme trop vite. Le navire s'échappe au prix de lourds dégâts.", failureEffects: { health: -5, fortune: -14000 } },
+      { id: "read-pressure", text: "Attendre une accalmie entre deux fronts", tag: "Perception", resolutionWeights: { health: 0.15, combat: 0.15, haki: 0.7 }, success: "Tu repères l'accalmie avant les autres et engages le navire dans l'unique route sûre.", successEffects: { haki: 3 }, failure: "L'accalmie se referme pendant la traversée. Le navire s'échappe au prix de lourds dégâts.", failureEffects: { health: -5, fortune: -14000 } },
     ]}),
-    createRiskEvent({ id: "risk-common-redline-sealed-pass", title: "Le laissez-passer aux trois sceaux", description: "À Red Line, un contrôle officiel déclare faux les laissez-passer de tout le convoi. Les agents préparent déjà les cellules.", resolutionCategory: "social", zones: ["red-line"], tags: ["government", "inspection"], choices: [
-      { id: "challenge-register", text: "Exiger la consultation du registre central", tag: "Autorité", resolutionWeights: { charisma: 0.3, intelligence: 0.25, renown: 0.45 }, success: "Le registre confirme les sceaux et force les agents à rouvrir le passage.", successEffects: { bounty: 60000, popularity: 2 }, failure: "Le responsable fait disparaître la page et confisque la cargaison contestée.", failureEffects: { fortune: -18000, bounty: -50000 } },
-      { id: "expose-seal", text: "Démontrer lequel des trois sceaux a été copié", tag: "Enquête", resolutionWeights: { charisma: 0.2, intelligence: 0.65, renown: 0.15 }, success: "L'encre trahit le faussaire au sein même du poste de contrôle.", successEffects: { intelligence: 2, popularity: 2 }, failure: "La preuve arrive trop tard et le convoi doit payer une garantie ruineuse.", failureEffects: { fortune: -16000, charisma: -2 } },
+    createRiskEvent({ id: "risk-common-redline-sealed-pass", title: "Les gardes déclarent vos laissez-passer faux", description: "À un poste de contrôle de Red Line, les agents du Gouvernement bloquent le convoi : l'un des trois cachets officiels apposés sur les laissez-passer aurait été copié. Les gardes encerclent déjà le groupe et menacent de saisir la cargaison.", resolutionCategory: "social", zones: ["red-line"], tags: ["government", "inspection"], choices: [
+      { id: "challenge-register", text: "Faire vérifier les documents officiels", tag: "Autorité", resolutionWeights: { charisma: 0.3, intelligence: 0.25, renown: 0.45 }, success: "Le registre officiel confirme les trois cachets et oblige les agents à rouvrir le passage.", successEffects: { bounty: 60000, popularity: 2 }, failure: "Le responsable fait disparaître la page utile et confisque la cargaison contestée.", failureEffects: { fortune: -18000, bounty: -50000 } },
+      { id: "expose-seal", text: "Examiner les cachets pour trouver le faux", tag: "Enquête", resolutionWeights: { charisma: 0.2, intelligence: 0.65, renown: 0.15 }, success: "Une différence dans l'encre révèle le cachet copié et désigne le faussaire parmi les agents.", successEffects: { intelligence: 2, popularity: 2 }, failure: "Tu identifies l'anomalie trop tard et le convoi doit payer une garantie ruineuse pour repartir.", failureEffects: { fortune: -16000, charisma: -2 } },
     ]}),
     createRiskEvent({ id: "risk-common-starless-hull", title: "Quelque chose sous la coque", description: "Dans la Mer sans étoiles, une créature invisible frappe la coque en suivant les vibrations des voix.", resolutionCategory: "action", zones: ["starless-sea"], tags: ["sea-beast", "darkness"], choices: [
       { id: "hold-silence", text: "Tenir le pont dans un silence total", tag: "Volonté", resolutionWeights: { health: 0.35, combat: 0.1, haki: 0.55 }, success: "La présence s'éloigne lorsque le navire cesse enfin de vibrer.", successEffects: { haki: 2 }, failure: "Un cri rompt le silence et la créature fend la coque avant de plonger.", failureEffects: { health: -8, fortune: -11000 } },
@@ -4984,7 +4999,7 @@ const COMMON_EVENTS = [
       { id: "rally-harbor", text: "Rallier les dockers pour libérer la cargaison", tag: "Solidarité", resolutionWeights: { charisma: 0.65, intelligence: 0.2, renown: 0.15 }, success: "Les dockers ouvrent l'entrepôt et distribuent les caisses sous contrôle des médecins.", successEffects: { charisma: 2, popularity: 3 }, failure: "Le marchand fait fermer le port et vend les premières doses au plus offrant.", failureEffects: { charisma: -3, fortune: -9000 } },
       { id: "trace-ownership", text: "Prouver que la cargaison appartient aux villages", tag: "Preuves", resolutionWeights: { charisma: 0.15, intelligence: 0.65, renown: 0.2 }, success: "Les manifestes révèlent le détournement et rendent les remèdes à leurs destinataires.", successEffects: { intelligence: 2, popularity: 2 }, failure: "Les documents ont été remplacés et l'urgence impose de racheter une partie des doses.", failureEffects: { fortune: -13000, charisma: -1 } },
     ]}),
-    createRiskEvent({ id: "risk-hunter-redline-forged-order", title: "Le contrat signé par un bureau fantôme", description: "À Red Line, un contrat de capture porte le sceau d'un service gouvernemental aboli. La cible est déjà encerclée.", resolutionCategory: "social", paths: [PATHS.BOUNTY_HUNTER], zones: ["red-line"], tags: ["contract", "forgery"], choices: [
+    createRiskEvent({ id: "risk-hunter-redline-forged-order", title: "Ton contrat de capture est un faux", description: "À Red Line, tu découvres que l'ordre de capture a été signé au nom d'un service gouvernemental qui n'existe plus. Les chasseurs ont pourtant déjà encerclé la cible et s'apprêtent à la livrer.", resolutionCategory: "social", paths: [PATHS.BOUNTY_HUNTER], zones: ["red-line"], tags: ["contract", "forgery"], choices: [
       { id: "halt-hunt", text: "Suspendre la chasse devant les concurrents", tag: "Réputation", resolutionWeights: { charisma: 0.25, intelligence: 0.2, renown: 0.55 }, success: "Ta réputation impose une vérification et le faux commanditaire disparaît des quais.", successEffects: { bounty: 90000, popularity: 3 }, failure: "Les concurrents livrent la mauvaise cible et t'accusent d'avoir saboté le paiement.", failureEffects: { bounty: -100000, charisma: -3 } },
       { id: "trace-seal", text: "Remonter l'encre du sceau jusqu'à l'imprimeur", tag: "Enquête", resolutionWeights: { charisma: 0.15, intelligence: 0.7, renown: 0.15 }, success: "L'imprimeur identifie le courtier qui fabriquait les mandats.", successEffects: { intelligence: 3, fortune: 9000 }, failure: "L'atelier brûle avant ton arrivée et le commanditaire efface sa piste.", failureEffects: { fortune: -7000, charisma: -2 } },
     ]}),
@@ -5028,7 +5043,7 @@ const COMMON_EVENTS = [
   }
 
   const RESTORED_COMMON_EVENTS = [
-    createRestoredCommonEvent({ id: "common-blue-lighthouse-debt", title: "La lanterne sous scellés", description: "Dans une mer cardinale, un créancier a fait saisir l'huile du phare avant la nuit.", resolutionCategory: "social", zones: STARTING_BLUES, tags: ["lighthouse", "village"], choices: [
+    createRestoredCommonEvent({ id: "common-blue-lighthouse-debt", title: "Le phare risque de s'éteindre cette nuit", description: "Dans une mer cardinale, un créancier a saisi les réserves d'huile du phare. Sans lumière cette nuit, les bateaux de pêche devront rester au large.", resolutionCategory: "social", zones: STARTING_BLUES, tags: ["lighthouse", "village"], choices: [
       { id: "rally", text: "Réunir les pêcheurs autour du gardien", tag: "Solidarité", resolutionWeights: { charisma: .6, intelligence: .25, renown: .15 }, success: "Les habitants rachètent ensemble l'huile et rallument la lanterne.", successEffects: { charisma: 1, popularity: 2 }, failure: "La collecte échoue et le port reste fermé jusqu'au matin.", failureEffects: { fortune: -4000 } },
       { id: "audit", text: "Examiner le contrat de saisie", tag: "Enquête", resolutionWeights: { charisma: .2, intelligence: .65, renown: .15 }, success: "Une clause frauduleuse annule la saisie avant le coucher du soleil.", successEffects: { intelligence: 1 }, failure: "Le contrat tient et tu finances une nuit d'éclairage.", failureEffects: { fortune: -6000 } },
     ]}),
@@ -5036,11 +5051,11 @@ const COMMON_EVENTS = [
       { id: "reach", text: "Gagner la corniche à contre-courant", tag: "Endurance", resolutionWeights: { health: .5, combat: .15, haki: .35 }, success: "Tu ramènes le navigateur à bord avant la prochaine vague.", successEffects: { popularity: 2 }, failure: "Le sauvetage réussit, mais la coque heurte la paroi.", failureEffects: { health: -4, fortune: -3000 } },
       { id: "line", text: "Guider un cordage depuis le sommet", tag: "Précision", resolutionWeights: { health: .2, combat: .45, haki: .35 }, success: "Le cordage arrache le naufragé au courant.", successEffects: { combat: 1 }, failure: "Le premier lancer manque et coûte une partie du gréement.", failureEffects: { fortune: -4500 } },
     ]}),
-    createRestoredCommonEvent({ id: "common-paradise-logpose-exchange", title: "Le comptoir des aiguilles", description: "Dans Paradise, deux relevés de Log Pose contradictoires indiquent la prochaine île.", resolutionCategory: "social", zones: ["grand-line"], tags: ["log-pose", "trade"], choices: [
+    createRestoredCommonEvent({ id: "common-paradise-logpose-exchange", title: "Deux Log Pose indiquent des routes opposées", description: "Dans un comptoir de Paradise, deux relevés récents indiquent des caps différents vers la prochaine île. L'un des deux a forcément été falsifié.", resolutionCategory: "social", zones: ["grand-line"], tags: ["log-pose", "trade"], choices: [
       { id: "journals", text: "Comparer les journaux des derniers équipages", tag: "Analyse", resolutionWeights: { charisma: .2, intelligence: .65, renown: .15 }, success: "Les dates révèlent la carte encore fiable.", successEffects: { intelligence: 1, fortune: 5000 }, failure: "Les relevés maquillés imposent un long détour.", failureEffects: { fortune: -5000 } },
       { id: "sailors", text: "Faire témoigner les marins du comptoir", tag: "Contact", resolutionWeights: { charisma: .6, intelligence: .25, renown: .15 }, success: "Un vieux timonier reconnaît le faux relevé.", successEffects: { charisma: 1 }, failure: "Les témoignages font manquer la marée favorable.", failureEffects: { fortune: -3500 } },
     ]}),
-    createRestoredCommonEvent({ id: "common-redline-refugee-manifest", title: "Les noms absents du manifeste", description: "À Red Line, plusieurs familles d'un convoi ont disparu du manifeste officiel.", resolutionCategory: "social", zones: ["red-line"], tags: ["refugees", "government"], choices: [
+    createRestoredCommonEvent({ id: "common-redline-refugee-manifest", title: "Les gardes refusent plusieurs familles", description: "À Red Line, les agents bloquent plusieurs familles parce que leurs noms ont disparu de la liste officielle du convoi. Sans preuve rapide, elles seront séparées du groupe.", resolutionCategory: "social", zones: ["red-line"], tags: ["refugees", "government"], choices: [
       { id: "restore", text: "Reconstituer la liste devant les agents", tag: "Mémoire", resolutionWeights: { charisma: .25, intelligence: .55, renown: .2 }, success: "Les registres confirment chaque nom et le convoi repart entier.", successEffects: { intelligence: 1, popularity: 2 }, failure: "La vérification impose une nuit sous surveillance.", failureEffects: { fortune: -6500 } },
       { id: "vouch", text: "Engager ta parole pour les familles", tag: "Autorité", resolutionWeights: { charisma: .45, intelligence: .15, renown: .4 }, success: "Ta parole suspend l'ordre et ouvre le passage.", successEffects: { charisma: 1 }, failure: "L'agent refuse et consigne ton intervention.", failureEffects: { bounty: -25000 } },
     ]}),
@@ -5090,7 +5105,7 @@ const COMMON_EVENTS = [
      être partagée avec un autre rêve. */
   const FINAL_DREAM_SCENES = Object.freeze({
     "one-piece": finalDreamScene(
-      "Le cap que nul Log Pose n’indique",
+      "La dernière route vers Laugh Tale",
       "Les relevés des quatre Road Ponéglyphes convergent enfin. Au-delà d’une mer où le Log Pose devient muet se trouve Laugh Tale, mais une flotte rivale fonce sur les mêmes coordonnées et la moindre erreur condamnera la route.",
       "Ouvrir la route vers Laugh Tale sous le feu rival",
       "Superposer les quatre relevés et lire le dernier courant",
@@ -5104,7 +5119,7 @@ const COMMON_EVENTS = [
       [{ haki: 24, crew: 2 }, { intelligence: 50 }, { health: 50, crew: 3 }],
     ),
     "sea-emperor": finalDreamScene(
-      "Le jour où le Nouveau Monde reconnaît un pavillon",
+      "Une grande flotte attaque ton territoire",
       "Le port fortifié de l’Archipel d’Obsidienne commande trois routes du Nouveau Monde. Son peuple accepte ton pacte, mais une grande flotte pirate vient reprendre le tribut : tenir ce territoire décidera si ton pavillon devient une puissance mondiale ou un souvenir.",
       "Tenir les passes jusqu’au retrait de la grande flotte",
       "Couper ses dépôts et retourner ses routes de ravitaillement",
@@ -5124,7 +5139,7 @@ const COMMON_EVENTS = [
       [{ bounty: 100000, fortune: 5000 }, { intelligence: 48, fortune: 5000 }, { charisma: 28, fortune: 8000 }],
     ),
     "forgotten-history": finalDreamScene(
-      "La dernière page sauvée d’Ohara",
+      "Cipher Pol attaque le dernier Ponéglyphe",
       "Un Ponéglyphe du Nouveau Monde complète les fragments sauvés d’Ohara. Cipher Pol encercle le sanctuaire et prépare son effacement ; il faut interpréter la pierre puis préserver la vérité sans prétendre révéler ce que le monde ignore encore.",
       "Protéger le sanctuaire jusqu’à la fin du relevé",
       "Reconstituer la chronologie avec les fragments d’Ohara",
@@ -5174,7 +5189,7 @@ const COMMON_EVENTS = [
       [{ bounty: 100000, fortune: 18000 }, { intelligence: 50, fortune: 14000 }, { charisma: 34, bounty: 90000 }],
     ),
     "break-the-chains": finalDreamScene(
-      "La route où les chaînes prennent fin",
+      "Le centre du trafic d’esclaves",
       "Le centre du plus vaste réseau d’esclavage du Nouveau Monde coordonne convois, ventes et colliers pour des intermédiaires des Dragons Célestes. Des milliers de captifs attendent le signal qui peut libérer tous les sites et rendre la route inutilisable.",
       "Prendre le centre de contrôle et ouvrir chaque convoi",
       "Saboter colliers, comptes et routes au même instant",
@@ -5184,7 +5199,7 @@ const COMMON_EVENTS = [
       [{ combat: 50, crew: 3 }, { haki: 22, intelligence: 46 }, { health: 52, charisma: 34 }],
     ),
     "reveal-void-century": finalDreamScene(
-      "La vérité sur toutes les fréquences",
+      "Cipher Pol attaque la diffusion mondiale",
       "Les fragments authentifiés et les témoins sont réunis. Cipher Pol attaque le dernier relais d’Escargophones avant une diffusion simultanée vers plusieurs mers ; il ne s’agit plus de découvrir la vérité, mais de la rendre impossible à effacer.",
       "Tenir le relais jusqu’à la dernière transmission",
       "Fractionner preuves et témoignages entre mille récepteurs",
@@ -5194,7 +5209,7 @@ const COMMON_EVENTS = [
       [{ combat: 48, haki: 22 }, { intelligence: 52 }, { charisma: 36, intelligence: 46 }],
     ),
     "build-underground-network": finalDreamScene(
-      "Le réseau sans centre à abattre",
+      "Cipher Pol infiltre le nouveau réseau",
       "Toutes les cellules, routes et soutiens de ta carrière doivent se connecter cette nuit par un protocole d’Escargophones traversant Red Line. Cipher Pol a infiltré un relais et espère détruire le réseau au moment même de sa naissance.",
       "Extraire l’infiltré sans interrompre la connexion mondiale",
       "Déployer un protocole distribué sans quartier général",
@@ -5204,7 +5219,7 @@ const COMMON_EVENTS = [
       [{ bounty: 90000, crew: 3 }, { intelligence: 51 }, { charisma: 36, crew: 3 }],
     ),
     "found-free-nation": finalDreamScene(
-      "L’aube de la République des Récifs",
+      "La République des Récifs sous blocus",
       "Le territoire libéré proclame son nom et son conseil élu, mais une flotte gouvernementale ferme le port tandis que pénurie et anciens dignitaires menacent sa première journée. La nation n’existera que si sa population peut la défendre et la gouverner durablement.",
       "Briser le blocus en protégeant les quartiers civils",
       "Garantir vivres, institutions et défense pour cent jours",
@@ -5214,7 +5229,7 @@ const COMMON_EVENTS = [
       [{ bounty: 90000, charisma: 32 }, { intelligence: 50, fortune: 12000 }, { charisma: 40, crew: 3 }],
     ),
     "admiral": finalDreamScene(
-      "Le siège vacant de l’Amiral",
+      "Le corridor qui décidera du prochain Amiral",
       "Une crise du Nouveau Monde coupe un corridor rempli de civils tandis qu’un siège d’Amiral est soumis à sélection. L’état-major observe qui peut commander plusieurs unités, vaincre la menace et refuser de sacrifier la population pour une victoire rapide.",
       "Prendre la ligne de front et maintenir le corridor",
       "Coordonner les unités autour d’une évacuation offensive",
@@ -5224,7 +5239,7 @@ const COMMON_EVENTS = [
       [{ combat: 50, haki: 22 }, { haki: 22, crew: 3 }, { health: 50, bounty: 90000 }],
     ),
     "fleet-admiral": finalDreamScene(
-      "Le commandement de toutes les flottes",
+      "Toutes les flottes attendent ton ordre",
       "Une crise mondiale rend les ordres actuels incompatibles et ouvre une transition à la tête de la Marine. Plusieurs flottes attendent une doctrine unique tandis que le Gouvernement et les vice-amiraux évaluent qui peut empêcher l’institution de se déchirer.",
       "Prendre le commandement opérationnel des flottes divisées",
       "Présenter une doctrine qui résout les trois crises ensemble",
@@ -5234,7 +5249,7 @@ const COMMON_EVENTS = [
       [{ bounty: 1, health: 45 }, { intelligence: 46, bounty: 10000 }, { charisma: 28, bounty: 15000 }],
     ),
     "reform-the-marines": finalDreamScene(
-      "L’ordre général qui change la Marine",
+      "La Marine doit choisir une nouvelle justice",
       "Les preuves d’abus accumulées convergent avec une crise où l’ancienne procédure condamne des civils. L’état-major doit voter un ordre général contraignant sur les détentions, la protection des populations et la responsabilité du commandement.",
       "Appliquer la nouvelle procédure pendant la crise",
       "Rendre les preuves et le dispositif juridiquement indissociables",
@@ -5244,7 +5259,7 @@ const COMMON_EVENTS = [
       [{ bounty: 80000, charisma: 32 }, { intelligence: 52 }, { charisma: 40, bounty: 80000 }],
     ),
     "greatest-marine-hero": finalDreamScene(
-      "Le rempart des cent mille vies",
+      "Cent mille civils pris dans la bataille",
       "Une île du Nouveau Monde s’effondre sous une attaque et une catastrophe maritime. L’ordre officiel privilégie la victoire navale, mais cent mille civils et des unités encerclées n’ont qu’un corridor ; vaincre sans les sauver ne ferait de personne un héros.",
       "Tenir seul l’entrée du corridor pendant l’évacuation",
       "Transformer toute l’opération militaire en sauvetage",
@@ -5536,7 +5551,7 @@ const COMMON_EVENTS = [
     pirate: Object.freeze({
       stage1: Object.freeze({
         id: "haki-awakening-pirate",
-        title: "Le regard de Crocus",
+        title: "Laboon et les pillards ferment la passe",
         description: "À {zone}, Laboon percute la passe au moment où des pillards tentent de monter à bord. Crocus refuse d’abandonner la baleine ou ton navire : sous son regard d’ancien compagnon de Roger, l’urgence pousse tes sens, ta garde et ta volonté au-delà de leur limite.",
         introDialogue: { speaker: "Crocus", role: "Gardien du phare de Reverse Mountain", text: "Laboon ne déviera pas, et ces pillards comptent sur ta panique. Je vais protéger la baleine ; montre-moi ce que ta volonté protège, elle." },
         loreCharacters: ["Crocus"],
@@ -5544,7 +5559,7 @@ const COMMON_EVENTS = [
       }),
       stage2: Object.freeze({
         id: "haki-confrontation-pirate",
-        title: "Sous le regard des grands noms",
+        title: "Une puissance bloque votre fuite",
         introDialogue: { zoneVariants: {
           "starless-sea": { speaker: "Kizaru", role: "Amiral", text: "Oooh… tu tiens encore debout ? Alors essaie donc d’ouvrir une route avant que ma lumière ne referme toute cette mer." },
           "wandering-archipelago": { speaker: "Trafalgar Law", role: "Capitaine du Heart", text: "Ta volonté impressionne peut-être ton équipage. Ici, elle devra maintenir deux îles séparées assez longtemps pour sauver les deux nôtres." },
@@ -5566,7 +5581,7 @@ const COMMON_EVENTS = [
       }),
       stage2: Object.freeze({
         id: "haki-confrontation-marine",
-        title: "La justice des grandes puissances",
+        title: "Des civils derrière la ligne ennemie",
         introDialogue: { zoneVariants: {
           "starless-sea": { speaker: "Kizaru", role: "Amiral", text: "Le quartier ou le bâtiment officiel… voilà un choix bien effrayant. Tu voulais commander ? Décide avant que la lumière n’arrive." },
           "wandering-archipelago": { speaker: "Fujitora", role: "Amiral", text: "Un ordre qui détourne les yeux des civils mérite d’être pesé. Je retiendrai les îles ; à vous d’assumer la justice qui restera." },
@@ -5588,7 +5603,7 @@ const COMMON_EVENTS = [
       }),
       stage2: Object.freeze({
         id: "haki-confrontation-bounty-hunter",
-        title: "La chasse des monstres",
+        title: "La cible retourne les chasseurs",
         introDialogue: { zoneVariants: {
           "starless-sea": { speaker: "Basil Hawkins", role: "Supernova", text: "Tes chances de conserver la cible après mon attaque sont de huit pour cent. Celles de t’éveiller à une volonté nouvelle restent… impossibles à chiffrer." },
           "wandering-archipelago": { speaker: "Dracule Mihawk", role: "Œil de Faucon", text: "La prime ne m’intéresse pas. Je veux savoir si ta volonté demeure lorsque la cible, les preuves et ta propre survie exigent trois décisions différentes." },
@@ -5610,7 +5625,7 @@ const COMMON_EVENTS = [
       }),
       stage2: Object.freeze({
         id: "haki-confrontation-revolutionary",
-        title: "La volonté des commandants",
+        title: "Le Gouvernement encercle le relais",
         introDialogue: { zoneVariants: {
           "starless-sea": { speaker: "Karasu", role: "Commandant révolutionnaire", text: "Mes corbeaux ne peuvent porter les évacués. Tiens sous cette pression, et je disperserai le réseau avant que le Gouvernement ne le voie." },
           "wandering-archipelago": { speaker: "Morley", role: "Commandante révolutionnaire", text: "Je peux ouvrir la terre, pas décider à ta place ! Impose une route à cette peur, et je ferai passer chaque cellule." },
@@ -5833,7 +5848,7 @@ const COMMON_EVENTS = [
         ["Les insignes du quartier général", "Garp assiste à la dernière opération : neutraliser une flotte sans sacrifier les recrues décidera de ta promotion.", ["Diriger l’abordage avec l’avant-garde", "Piéger la flotte loin des habitants", "Confier chaque front à l’officier le plus capable"]],
       ],
       revolutionary: [
-        ["Le rapport destiné à Dragon", "À Paradise, Koala transmet à Dragon le récit de tes libérations. Une cellule compromise doit encore être évacuée avant que ce potentiel soit confirmé.", ["Prendre la tête de l’extraction", "Créer de faux itinéraires pour Cipher Pol", "Rallier les habitants à la protection de la cellule"]],
+        ["Cipher Pol attaque la cellule remarquée par Dragon", "À Paradise, Koala vient de transmettre à Dragon le récit de tes libérations. Au même moment, Cipher Pol localise une cellule alliée : il faut l’évacuer avant l’arrivée des agents.", ["Diriger l’extraction de la cellule", "Envoyer Cipher Pol sur de faux itinéraires", "Mobiliser les habitants pour cacher les agents"]],
         ["La confiance de Sabo", "Sabo te confie plusieurs groupes qui ne se connaissent pas. Une garnison exploite leur méfiance pour encercler un village insurgé.", ["Unir les groupes dans une attaque commune", "Détruire le réseau de surveillance", "Évacuer les familles avant de fermer le piège"]],
         ["Sous l’autorité de Dragon", "Dragon attend ton rapport tandis qu’une dernière opération peut sauver tout un réseau sans remplacer aucun commandant historique.", ["Coordonner les cellules depuis le front", "Retourner les communications ennemies", "Préserver le réseau avant de revendiquer la victoire"]],
       ],
@@ -5845,7 +5860,7 @@ const COMMON_EVENTS = [
     },
     marineford: {
       pirate: [
-        ["La brèche des condamnés", "Un transfert secret traverse la forteresse reconstruite. Kizaru verrouille la baie tandis qu’un ancien allié de ton pavillon attend dans les cales.", ["Masquer l’approche derrière les épaves", "Créer une diversion sur les batteries", "Négocier un passage avec les pirates encerclés"]],
+        ["Kizaru ferme la baie de Marineford", "Un ancien allié de ton pavillon est enfermé dans un convoi qui traverse la forteresse reconstruite. Kizaru verrouille la baie avant le transfert : ton équipage doit atteindre les cales sans rester pris au piège.", ["Approcher derrière les épaves", "Attirer les batteries loin du convoi", "Ouvrir un passage avec les pirates encerclés"]],
         ["Le corridor de Sentomaru", "L’extraction a déclenché l’encerclement. Sentomaru dirige les Pacifistas qui ferment les quais, et chaque décision prise à l’arrivée détermine désormais qui peut encore fuir.", ["Tenir le quai pour les retardataires", "Détourner les Pacifistas vers la digue", "Confier le prisonnier à l’équipage et ouvrir la route"]],
         ["Le pavillon dans la baie", "Akainu ordonne de condamner les accès plutôt que de poursuivre chaque navire. Il ne s’agit pas de le vaincre, mais d’arracher une flotte entière à son dispositif.", ["Briser la chaîne du port", "Protéger le dernier navire sous le bombardement", "Retourner le plan d’évacuation contre le blocus"]],
       ],
@@ -5867,24 +5882,24 @@ const COMMON_EVENTS = [
     },
     emperor: {
       pirate: [
-        ["Le pavillon sur la route", "La flotte de {emperor} contrôle l’objectif lié à ton rêve : {objective}. Reculer préserverait tes forces, mais abandonnerait cette piste.", ["Infiltrer la flotte extérieure", "Défier publiquement son autorité", "Négocier avec un commandant dissident"]],
-        ["Le cercle impérial", "Ton premier mouvement force {emperor} à engager un commandant majeur. L’objectif reste accessible derrière la bataille.", ["Affronter le commandant en protégeant l’équipage", "Percer jusqu’à l’objectif", "Retourner le terrain contre la flotte"]],
-        ["La volonté d’un Empereur", "{emperor} entre dans la confrontation. La victoire dépend d’un effort collectif et de ta capacité à accomplir l’objectif, pas d’un duel irréaliste.", ["Porter l’action décisive avec les alliés", "Sauver l’objectif sous sa pression", "Forcer la flotte impériale à céder le passage"]],
+        ["La flotte de {emperor} ferme la route", "La flotte de {emperor} contrôle {objective}. {emperorThreat} Reculer sauverait ton équipage, mais condamnerait la piste liée à ton rêve.", ["Passer entre les navires extérieurs", "Attirer la flotte loin de l’objectif", "Négocier avec un commandant rival"]],
+        ["Un commandant défend l’objectif", "Ton premier mouvement ouvre un passage, mais un commandant de {emperor} contre-attaque. {emperorCounterattack} L’objectif reste accessible derrière sa ligne.", ["Retenir le commandant loin de l’équipage", "Traverser sa ligne jusqu’à l’objectif", "Utiliser le terrain contre ses renforts"]],
+        ["{emperor} entre dans la bataille", "{emperorArrival} Ton équipage et ses alliés doivent créer ensemble quelques secondes d’ouverture pour atteindre l’objectif et battre en retraite.", ["Ouvrir le passage avec les alliés", "Extraire l’objectif sous l’attaque", "Repousser la flotte jusqu’à la sortie"]],
       ],
       marine: [
-        ["L’ordre contre un Empereur", "La Marine engage une opération contre {emperor} autour de {objective}. Ton unité reçoit un objectif que la force seule ne peut sécuriser.", ["Établir un blocus mobile", "Protéger les populations prises entre les flottes", "Infiltrer la chaîne de commandement adverse"]],
-        ["La flotte sous pression", "La réponse impériale disperse les unités avancées. Tes choix initiaux déterminent les renforts qui te font encore confiance.", ["Rassembler les navires isolés", "Neutraliser un commandant sans sacrifier les civils", "Exposer la faille tactique à l’état-major"]],
-        ["Justice face au pavillon", "{emperor} intervient alors que l’objectif est presque sécurisé. La flotte entière doit créer l’ouverture que ton unité exploitera.", ["Diriger l’assaut collectif", "Achever la mission malgré la présence impériale", "Obtenir une retraite qui protège l’île"]],
+        ["La Marine encercle la flotte de {emperor}", "La Marine lance une opération autour de {objective}. {emperorThreat} Ton unité doit contenir la flotte sans prendre les habitants entre deux feux.", ["Déplacer le blocus avec la flotte", "Évacuer les habitants hors du combat", "Infiltrer les ordres adverses"]],
+        ["Le commandant impérial brise le blocus", "Un commandant de {emperor} disperse les unités avancées. {emperorCounterattack} Plusieurs navires attendent ton ordre pour reprendre l’opération.", ["Regrouper les navires isolés", "Éloigner le commandant des civils", "Transmettre sa faille à l’état-major"]],
+        ["{emperor} attaque la ligne de la Marine", "{emperorArrival} La flotte doit te ménager une ouverture pour terminer la mission, puis évacuer l’île sans abandonner les civils.", ["Coordonner l’assaut de la flotte", "Sécuriser l’objectif pendant l’attaque", "Couvrir l’évacuation de l’île"]],
       ],
       "bounty-hunter": [
-        ["Le contrat impossible", "Un consortium offre un contrat lié à {emperor} : {objective}. La prime masque plusieurs intérêts contradictoires.", ["Vérifier le commanditaire avant d’approcher", "Suivre la cible jusque dans la flotte", "Former une coalition de chasseurs"]],
-        ["Les menottes de l’Empereur", "Un commandant impérial protège désormais la cible. La capture de {emperor} reste improbable, mais une preuve ou un lieutenant changerait ta carrière.", ["Isoler le commandant", "Voler la preuve recherchée", "Transformer le contrat en piège public"]],
-        ["La prise qui fait légende", "{emperor} couvre la retraite de son organisation. Il faut obtenir un résultat réel sans prétendre dominer seul toute sa puissance.", ["Conclure la capture avec les renforts", "Arracher l’objectif puis survivre", "Forcer une capitulation politique"]],
+        ["Un contrat au cœur de la flotte de {emperor}", "Un consortium promet une prime pour {objective}. {emperorThreat} Les clauses contradictoires indiquent qu’un commanditaire cherche aussi à faire disparaître les preuves.", ["Vérifier le commanditaire avant la chasse", "Suivre la cible dans la flotte", "Réunir les chasseurs fiables"]],
+        ["Un commandant protège la cible", "Un commandant de {emperor} prend la cible et les preuves sous sa garde. {emperorCounterattack} Il faut séparer ce que réclame le contrat de ce que protège réellement la flotte.", ["Éloigner le commandant de la cible", "Récupérer les preuves sans combattre", "Piéger publiquement le commanditaire"]],
+        ["{emperor} couvre la fuite de la cible", "{emperorArrival} La capture reste possible quelques instants, à condition que les chasseurs agissent ensemble et renoncent à affronter seuls toute la flotte.", ["Capturer la cible avec les renforts", "Prendre les preuves puis décrocher", "Obtenir la reddition de ses complices"]],
       ],
       revolutionary: [
-        ["L’île sous un pavillon", "L’influence de {emperor} protège un système d’oppression autour de {objective}. Une population entière attend que quelqu’un ouvre la première brèche.", ["Armer la résistance locale", "Infiltrer le réseau impérial", "Évacuer les familles avant l’insurrection"]],
-        ["Le commandant et la révolte", "Un commandant de {emperor} écrase le soulèvement. Les choix initiaux ont toutefois conservé une route vers le cœur du dispositif.", ["Unir les cellules pour tenir la place", "Détruire l’infrastructure d’oppression", "Retourner les soldats exploités contre leurs maîtres"]],
-        ["Le jour où l’île répond", "{emperor} intervient au-dessus d’une bataille collective. Libérer l’île exige de préserver le mouvement, même sans vaincre personnellement l’Empereur.", ["Porter l’assaut avec la population", "Protéger l’évacuation sous sa présence", "Briser définitivement son contrôle politique"]],
+        ["Le pavillon de {emperor} tient l’île", "Le réseau de {emperor} protège le système qui contrôle {objective}. {emperorThreat} Les habitants attendent une première brèche avant d’oser se soulever.", ["Armer la résistance locale", "Infiltrer les relais impériaux", "Évacuer les familles avant l’attaque"]],
+        ["Un commandant attaque le soulèvement", "Un commandant de {emperor} écrase les premières barricades. {emperorCounterattack} Une route reste ouverte vers les installations qui maintiennent l’île sous contrôle.", ["Réunir les cellules sur la place", "Détruire les installations de contrôle", "Rallier les soldats exploités"]],
+        ["{emperor} descend sur l’île", "{emperorArrival} La population doit conserver ses positions assez longtemps pour détruire le système d’oppression et évacuer ceux qui ne peuvent pas combattre.", ["Avancer avec les habitants", "Protéger l’évacuation sous l’attaque", "Détruire le centre du pouvoir impérial"]],
       ],
     },
   });
@@ -5946,7 +5961,7 @@ const COMMON_EVENTS = [
     kaido: { speaker: "Kaido", role: "Empereur", text: "Tu veux franchir ma route ? Alors montre-moi si ta volonté survit quand la force ne suffit plus." },
     "big-mom": { speaker: "Big Mom", role: "Impératrice", text: "Mamamama ! Tout ici m’appartient. Ton objectif, tes alliés… et bientôt les années qu’il te reste." },
     shanks: { speaker: "Shanks le Roux", role: "Empereur", text: "Si cet objectif vaut vraiment ton voyage, avance. Mais ne mise pas la vie des tiens sur une fierté vide." },
-    luffy: { speaker: "Luffy", role: "Empereur", text: "Je ne te laisserai pas faire du mal à mes amis. Si tu veux passer, viens défendre ton choix toi-même !" },
+    whitebeard: { speaker: "Barbe Blanche", role: "Empereur", text: "Gurararara ! Tu as traversé mes fils pour arriver jusqu’ici. Si ton rêve mérite vraiment de menacer ma famille, viens donc me le prouver face à moi !" },
     buggy: { speaker: "Baggy", role: "Empereur", text: "Tu crois pouvoir défier le grand Baggy ?! Très bien… essaie donc de traverser toute ma flotte !" },
   });
 
@@ -5967,9 +5982,9 @@ const COMMON_EVENTS = [
       { speaker: "Yasopp", role: "Officier du Roux", text: "Notre capitaine ne cherche pas la guerre. Mais si ton objectif menace nos amis, mon prochain tir mettra fin à ton approche." },
       { speaker: "Ben Beckman", role: "Bras droit du Roux", text: "Tu es arrivé assez loin pour être entendu. Choisis bien ton prochain geste : Shanks jugera ce qu’il protège, pas ce qu’il promet." },
     ],
-    luffy: [
-      { speaker: "Jinbe", role: "Timonier des Mugiwara", text: "Cet objectif se trouve sous la protection de notre capitaine. Expose tes raisons, ou prépare-toi à affronter tout l’équipage." },
-      { speaker: "Roronoa Zoro", role: "Sabreur des Mugiwara", text: "Tu as franchi notre ligne. Un pas de plus vers ce qu’on protège, et c’est moi qui t’arrête." },
+    whitebeard: [
+      { speaker: "Marco", role: "Commandant de la première division", text: "Tu es allé loin pour arriver jusqu’ici, mais ce que tu cherches est sous la protection du vieux. Explique tes intentions maintenant : si elles menacent notre famille, tu n’iras pas plus loin, yoi." },
+      { speaker: "Vista", role: "Commandant de la cinquième division", text: "Marco t’a laissé une chance de parler et tu as pourtant franchi notre première ligne. Barbe Blanche est tout près désormais ; je ne te laisserai pas porter le danger jusqu’à lui." },
     ],
     buggy: [
       { speaker: "Crocodile", role: "Dirigeant de Cross Guild", text: "Oublie le cirque de Baggy. L’objectif est sous mon contrôle ; avance seulement si tu peux payer son véritable prix." },
@@ -6162,9 +6177,92 @@ const COMMON_EVENTS = [
     }
   }
 
-  if (IS_DEVELOPMENT) {
-    validateContextualThirdChoices(ALL_EVENTS);
-    validateEventOutcomeNarratives(ALL_EVENTS);
+  function validateEditorialReadability(events) {
+    const warnings = [];
+    let choiceCount = 0;
+    let outcomeCount = 0;
+    let dialogueCount = 0;
+    const allowedDynamicTokens = new Set([
+      "emperor", "objective", "emperorThreat", "emperorCounterattack", "emperorArrival", "zone",
+    ]);
+    const technicalChoiceLabel = /^(direct|strategy|strategic|social|initiative|lecture|maîtrise|mastery)\s*[:—-]/i;
+
+    events.forEach((event) => {
+      const reference = event.id || "événement-sans-id";
+      const title = String(event.title || "").trim();
+      const description = String(event.description || event.text || "").trim();
+      if (!title) warnings.push(`titre vide : ${reference}`);
+      if (!description) warnings.push(`description vide : ${reference}`);
+      if (description.length > 430) warnings.push(`description très longue (${description.length}) : ${reference}`);
+      if (!(event.choices || []).length) warnings.push(`événement sans choix : ${reference}`);
+
+      const visibleTexts = [title, description];
+      const normalizedChoices = new Set();
+      (event.choices || []).forEach((choice) => {
+        choiceCount += 1;
+        const choiceReference = `${reference}/${choice.id || "choix-sans-id"}`;
+        const text = String(choice.text || "").trim();
+        visibleTexts.push(text);
+        if (!text) warnings.push(`choix vide : ${choiceReference}`);
+        if (text.length > 95) warnings.push(`choix très long (${text.length}) : ${choiceReference}`);
+        if (technicalChoiceLabel.test(text)) warnings.push(`label technique visible : ${choiceReference}`);
+        const normalized = text.toLocaleLowerCase("fr").replace(/\s+/g, " ");
+        if (normalized && normalizedChoices.has(normalized)) warnings.push(`choix dupliqué : ${choiceReference}`);
+        normalizedChoices.add(normalized);
+        (choice.outcomes || []).forEach((outcome) => {
+          outcomeCount += 1;
+          const result = String(outcome.result || "").trim();
+          visibleTexts.push(result);
+          if (!result) warnings.push(`issue sans texte : ${choiceReference}/${outcome.id || "issue-sans-id"}`);
+        });
+      });
+
+      const inspectDialogue = (value, path = "introDialogue") => {
+        if (!value || typeof value !== "object") return;
+        if ("speaker" in value || "text" in value) {
+          dialogueCount += 1;
+          const speaker = String(value.speaker || "").trim();
+          const text = String(value.text || "").trim();
+          if (!speaker) warnings.push(`dialogue sans speaker : ${reference}/${path}`);
+          if (!text) warnings.push(`dialogue vide : ${reference}/${path}`);
+          visibleTexts.push(speaker, text);
+        }
+        Object.entries(value).forEach(([key, child]) => {
+          if (child && typeof child === "object") inspectDialogue(child, `${path}.${key}`);
+        });
+      };
+      inspectDialogue(event.introDialogue);
+
+      visibleTexts.forEach((text) => {
+        [...text.matchAll(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g)].forEach((match) => {
+          if (!allowedDynamicTokens.has(match[1])) warnings.push(`placeholder inconnu {${match[1]}} : ${reference}`);
+        });
+      });
+    });
+
+    const report = Object.freeze({
+      eventCount: events.length,
+      choiceCount,
+      outcomeCount,
+      dialogueCount,
+      warningCount: warnings.length,
+      warnings: Object.freeze(warnings),
+      pass: warnings.length === 0,
+    });
+    if (warnings.length) console.warn("[Blue Legacy] Audit éditorial objectif :", warnings);
+    return report;
+  }
+
+  const editorialCatalog = [...ALL_EVENTS, ...BOSS_EVENTS, ...LEGENDARY_ARC_EVENTS];
+  const editorialAuditRequested = new URLSearchParams(window.location.search).has("editorialAudit");
+  if (IS_DEVELOPMENT || editorialAuditRequested) {
+    validateContextualThirdChoices(editorialCatalog);
+    validateEventOutcomeNarratives(editorialCatalog);
+    const editorialAudit = validateEditorialReadability(editorialCatalog);
+    window.BLUE_LEGACY_EDITORIAL_AUDIT = editorialAudit;
+    if (editorialAuditRequested) {
+      document.documentElement.dataset.editorialAudit = JSON.stringify(editorialAudit);
+    }
   }
 
   const EDITORIALLY_REPLACED_EVENT_IDS = Object.freeze([

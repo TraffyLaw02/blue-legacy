@@ -34,11 +34,12 @@
     dPityStart: 20,
     dGuaranteeAfterMisses: 39,
     dPityStep: 0.01,
-    dInitialStatBonus: 3,
+    dInitialStatBonus: 5,
     dResolutionBonus: 4,
     recentEventLimit: 6,
     actionsPerMonth: 1,
     maxMajorRewards: 2,
+    emperorRunKillerProbability: 0.01,
   });
 
   const RESOLUTION_DEBUG = false;
@@ -171,7 +172,7 @@
   });
 
   const STATS = Object.freeze({
-    health: { label: "Santé", icon: "❤️", min: 1, max: 100 },
+    health: { label: "Santé", icon: "❤️", min: 0, max: 100 },
     combat: { label: "Combat", icon: "⚔️", min: 1, max: 100 },
     // `haki` reste la clé historique unique des sauvegardes. Son sens
     // mécanique est désormais la Défense ; les Hakis du lore sont des Titres.
@@ -268,22 +269,6 @@
     ...LEGACY_MORALE_STAT_IDS,
     ...LEGACY_POPULARITY_STAT_IDS,
   ]);
-
-  const CAREER_FLAG_SCORES = Object.freeze({
-    defeatedAlbaRival: 4,
-    sparedAlbaRival: 2,
-    humiliatedAlbaRival: 2,
-    defendedReverseMountainVillage: 3,
-    freedCurrentPrisoner: 2,
-    savedMarineGuardAtReverseMountain: 3,
-    protectedWhitebeardMedicine: 4,
-    rescuedBlackBladeSurvivors: 4,
-    liberatedGovernmentConvoy: 5,
-    abandonedCurrentPrisoner: -2,
-    extortedReverseMountainVillage: -3,
-    angeredEmperorNetwork: -3,
-    markedByWorldGovernment: -2,
-  });
 
   const DREAM_INITIAL_EFFECTS = Object.freeze({
     "one-piece": { intelligence: 2 },
@@ -457,6 +442,7 @@
     dom.willOfD = byId("will-of-d-content");
     dom.dRevealName = byId("d-reveal-name");
     dom.startingStatVariance = byId("starting-stat-variance");
+    dom.startingStatVarianceTitle = byId("starting-stat-variance-title");
     dom.startingStatVarianceList = byId("starting-stat-variance-list");
     dom.beginGame = byId("begin-game-btn");
 
@@ -516,6 +502,8 @@
     dom.zoneTransitionAsset = byId("zone-transition-asset");
     dom.transitionFeatureAsset = byId("transition-feature-asset");
     dom.transitionFeatureFallback = byId("transition-feature-fallback");
+    dom.dreamConclusionPopularity = byId("dream-conclusion-popularity");
+    dom.dreamConclusionPopularityValue = byId("dream-conclusion-popularity-value");
     dom.zoneTransitionTitle = byId("zone-transition-title");
     dom.zoneTransitionDescription = byId("zone-transition-description");
     dom.continueZoneTransition = byId("continue-zone-transition-btn");
@@ -597,6 +585,26 @@
     "reveal-forgotten-history": "reveal-void-century",
     "world-symbol-of-freedom": "found-free-nation",
   });
+  const LEGACY_TITLE_ID_MAP = Object.freeze({
+    "adversaire-du-chapeau-de-paille": "rival-de-barbe-blanche",
+  });
+
+  function migrateLegacyTitleId(titleId) {
+    const id = getDataId(titleId);
+    return LEGACY_TITLE_ID_MAP[id] || id;
+  }
+
+  function normalizeMigratedTitleList(values = []) {
+    const records = new Map();
+    (Array.isArray(values) ? values : []).forEach((value) => {
+      const rawId = getDataId(value);
+      const id = migrateLegacyTitleId(rawId);
+      if (!id || records.has(id)) return;
+      const source = id !== rawId ? findTitleData(id) : value;
+      records.set(id, normalizeTitleData(id, source));
+    });
+    return [...records.values()];
+  }
 
   function normalizeDreamId(dreamId, factionId) {
     if (!dreamId || factionId !== "revolutionary") return dreamId || null;
@@ -724,22 +732,29 @@
             importantEvents: Array.isArray(entry.importantEvents)
               ? entry.importantEvents.map(normalizeHistoricalZoneRecord)
               : [],
+            runTitles: normalizeMigratedTitleList(entry.runTitles || entry.titles || []),
+            finalTitle: migrateLegacyTitleId(entry.finalTitle) === getDataId(entry.finalTitle)
+              ? entry.finalTitle
+              : normalizeTitleData("rival-de-barbe-blanche", findTitleData("rival-de-barbe-blanche")),
             legendaryArcs: normalizeLegendaryArcs(entry.legendaryArcs, { ...entry, isFinished: true }),
           };
           return migrateLegacyCareerFinalTitle(normalizedEntry, entry);
         })
       : [];
-    const titles = Array.isArray(profile.titles)
-      ? profile.titles.map((titleData) => {
-          const title = normalizeTitleData(getDataId(titleData), titleData);
-          return {
+    const titleRecords = new Map();
+    (Array.isArray(profile.titles) ? profile.titles : []).forEach((titleData) => {
+          const rawId = getDataId(titleData);
+          const id = migrateLegacyTitleId(rawId);
+          if (!id || titleRecords.has(id)) return;
+          const title = normalizeTitleData(id, id !== rawId ? findTitleData(id) : titleData);
+          titleRecords.set(id, {
             ...title,
             firstUnlockedBy:
               normalizeFirstUnlockedBy(titleData?.firstUnlockedBy, pantheon) ||
               inferFirstUnlockedBy(title.id, pantheon),
-          };
-        })
-      : [];
+          });
+        });
+    const titles = [...titleRecords.values()];
     pantheon.filter(Boolean).forEach((entry) => {
       const titleId = slugify(getDataId(entry.finalTitle));
       if (!CAREER_FINAL_TITLE_IDS.has(titleId) ||
@@ -2202,7 +2217,7 @@
 
       const game = options.game || state.game;
       if (key === "bounty" && value > 0 && target === game?.stats) {
-        // Échelle publique 0.9.3 : les gains narratifs deviennent perceptibles
+        // Échelle publique actuelle : les gains narratifs deviennent perceptibles
         // sans amplifier les pertes, la Fortune ou la monnaie permanente.
         if (options.source === "decisive") value = Math.round(value * 1.5);
         else if (options.source === "event") value = Math.round(value * 2.5);
@@ -2282,7 +2297,7 @@
   function checkRunEndingConditions(game = state.game) {
     if (!game) return null;
 
-    if (Number(game.stats?.health) <= CORE_STAT_MIN) {
+    if (Number(game.stats?.health) <= 0) {
       return {
         type: "death",
         destiny: "Tes blessures ont eu raison de ton voyage.",
@@ -2479,7 +2494,11 @@
   }
 
   function calculateEndingScore(source) {
-    const ending = source.ending || source;
+    const ending = source.ending || (
+      Number(source.month) >= CONFIG.maxMonths && source.bossProgress?.finalOutcome
+        ? createBossFinalEnding(source)
+        : source
+    );
     const completed = Number(source.month) >= CONFIG.maxMonths;
     const interrupted = ["death", "defeat", "capture"].includes(ending.type || ending.endingType);
     return (completed ? 4 : 0) + (ending.success ? 2 : 0) +
@@ -2504,10 +2523,10 @@
     const rawCareerScore = Object.values(subscores).reduce((sum, value) => sum + value, 0);
     // Les plafonds empêchent le double comptage ; ce coefficient convertit leur
     // somme conservatrice sur l'échelle joueur 1–100 calibrée par simulations.
-    const calibratedScore = rawCareerScore * 1.33;
+    const calibratedScore = rawCareerScore * 1.48;
     const prestigeCompressed = calibratedScore <= 90
       ? calibratedScore
-      : 90 + (calibratedScore - 90) * 0.20;
+      : 90 + (calibratedScore - 90) * 0.35;
     return {
       subscores,
       rawCareerScore,
@@ -2516,91 +2535,6 @@
       capLoss: Math.max(0, prestigeCompressed - POPULARITY_MAX),
       score: clampCareerScore(prestigeCompressed),
     };
-  }
-
-  /* Ancien calcul conservé uniquement comme documentation de migration. */
-  function calculateLegacyPopularityScore(source = state.game) {
-    if (!source) return POPULARITY_MIN;
-    const stats = source.stats || {};
-    const faction = source.character?.faction || source.faction || "pirate";
-    const cap = (value, maximum, points) =>
-      Math.min(points, Math.max(0, Number(value) || 0) / maximum * points);
-    const money = (value, scale, points) =>
-      Math.min(points, Math.log10(1 + Math.max(0, Number(value) || 0) / scale) * points / 2);
-
-    let score = POPULARITY_MIN;
-    score += cap(source.month, CONFIG.maxMonths, 15);
-    score += cap(Math.max(Number(source.currentZoneIndex) || 0, (source.visitedZoneIds?.length || 1) - 1), 5, 10);
-    const coreCareerStats = ["combat", "haki", "intelligence", "charisma"]
-      .map((statId) => Number(stats[statId]) || CORE_STAT_MIN).sort((a, b) => b - a);
-    const [best = 1, second = 1, third = 1, fourth = 1] = coreCareerStats;
-    score += cap(best, 100, 10) + cap(second, 100, 4) + cap((third + fourth) / 2, 100, 3);
-    score += cap(stats.health, 100, 2);
-    score += cap(stats.crew, 8, faction === "pirate" ? 3 : 2);
-    score += money(stats.bounty, 150000, 5) + money(stats.fortune, 15000, 2);
-
-    const titles = (source.runTitles || []).map((title) =>
-      normalizeTitleData(getDataId(title), title),
-    );
-    const titleRarityPoints = {
-      common: 1,
-      uncommon: 2,
-      rare: 4,
-      epic: 7,
-      legendary: 10,
-      mythic: 14,
-    };
-    score += Math.min(8, titles.reduce((sum, title) =>
-      sum + (Number(title.effects?.popularity) || titleRarityPoints[title.rarity] || 1), 0));
-    const majorStatus = getMajorCareerStatus(source);
-    if (majorStatus) {
-      score += /Roi des Pirates|Amiral en chef|Empereur des mers|Chef de l’Armée|Plus grand chasseur/.test(majorStatus)
-        ? 5
-        : 3;
-    }
-
-    score += Math.min(5, (Number(source.flags?.dreamProgress) || 0) * 0.5);
-    score += Math.min(4, (source.importantEvents?.length || 0) * 0.5);
-    score += Math.min(
-      2,
-      (Number(source.achievementProgress?.dangerEventsSurvived) || 0) * 2,
-    );
-    score += Math.min(
-      2,
-      (Number(source.achievementProgress?.callbacksResolved) || 0),
-    );
-    score += Object.entries(CAREER_FLAG_SCORES).reduce(
-      (sum, [flag, value]) => sum + (source.flags?.[flag] ? value : 0), 0,
-    );
-    score += (Number(source.popularityModifiers) || 0) / 5;
-
-    const ending = source.ending || source;
-    if (ending.dreamCompleted) score += 5;
-    if (ending.success) score += 2;
-    if (Number(source.month) >= CONFIG.maxMonths) score += 8;
-    if (["death", "defeat", "capture"].includes(ending.type || ending.endingType)) score -= 7;
-    score -= 7;
-    if (faction === "pirate") score += 3;
-    const importantCount = source.importantEvents?.length || 0;
-    if (
-      best >= 85 && second >= 55 && importantCount >= 3 &&
-      titles.length >= 4
-    ) {
-      score += 3;
-    }
-    if (
-      best >= 95 && second >= 75 && importantCount >= 5 &&
-      titles.length >= 5 && ending.dreamCompleted
-    ) {
-      score += 12;
-    }
-    if (
-      best >= 99 && second >= 88 && importantCount >= 6 &&
-      titles.length >= 6 && ending.dreamCompleted
-    ) {
-      score += 8;
-    }
-    return clampCareerScore(score);
   }
 
   function refreshPopularityScore(game = state.game) {
@@ -2714,7 +2648,7 @@
         haki: CONFIG.dInitialStatBonus,
         intelligence: CONFIG.dInitialStatBonus,
         charisma: CONFIG.dInitialStatBonus,
-      }, stats);
+      }, stats, { ignoreDiminishingReturns: true });
     }
     uniqueArray(equippedShopItems).forEach((itemId) => {
       const item = findShopItem(itemId);
@@ -2745,6 +2679,12 @@
 
   function applyStartingStatVariance(game, variance) {
     if (!game?.stats || game.startingStatVarianceRolled) return false;
+    if (game.character?.hasD) {
+      game.startingStatVariance = createNeutralStartingStatVariance();
+      game.startingStatVarianceRolled = true;
+      game.startingStatMode = "will-of-d";
+      return true;
+    }
     const normalized = normalizeStartingStatVariance(variance);
     STARTING_STAT_VARIANCE_IDS.forEach((id) => {
       game.stats[id] = (Number(game.stats[id]) || 0) + normalized[id];
@@ -2752,13 +2692,21 @@
     clampStats(game.stats);
     game.startingStatVariance = normalized;
     game.startingStatVarianceRolled = true;
+    game.startingStatMode = "variance";
     return true;
   }
 
-  function createStartingStatVarianceHtml(variance = {}) {
+  function initializeStartingStatAdjustment(game, random = Math.random) {
+    if (!game?.stats || game.startingStatVarianceRolled) return false;
+    return game.character?.hasD
+      ? applyStartingStatVariance(game, createNeutralStartingStatVariance())
+      : applyStartingStatVariance(game, rollStartingStatVariance(random));
+  }
+
+  function createStartingStatVarianceHtml(variance = {}, mode = "variance") {
     const normalized = normalizeStartingStatVariance(variance);
     return STARTING_STAT_VARIANCE_IDS.map((id) => {
-      const value = normalized[id];
+      const value = mode === "will-of-d" ? CONFIG.dInitialStatBonus : normalized[id];
       const tone = value > 0 ? "positive" : value < 0 ? "negative" : "neutral";
       return `<span class="starting-variance-chip ${tone}"><span>${escapeHtml(getStatLabel(id))}</span><strong>${value > 0 ? "+" : ""}${value}</strong></span>`;
     }).join("");
@@ -2948,6 +2896,8 @@
       conclusionPending: value?.conclusionPending === true,
       conclusionShown: value?.conclusionShown === true,
       routeResumed: value?.routeResumed === true,
+      titleRevealPending: value?.titleRevealPending === true,
+      titleRevealShown: value?.titleRevealShown === true,
     };
   }
 
@@ -2967,13 +2917,20 @@
       marineford.quality = null;
       marineford.qualityBand = null;
     }
+    const emperorValue = value?.emperor && typeof value.emperor === "object"
+      ? {
+          ...value.emperor,
+          emperorId: value.emperor.emperorId === "luffy" ? "whitebeard" : value.emperor.emperorId,
+          titleId: migrateLegacyTitleId(value.emperor.titleId),
+        }
+      : value?.emperor;
     return {
       talent: normalizeLegendaryArcState(value?.talent, {
         status: finished || month >= 13 ? "not-selected" : "unassessed",
         emperorId: null,
       }),
       marineford,
-      emperor: normalizeLegendaryArcState(value?.emperor, {
+      emperor: normalizeLegendaryArcState(emperorValue, {
         status: finished || game.bossProgress?.completedTiers?.includes?.(3)
           ? "not-selected" : "unassessed",
         emperorId: null,
@@ -2998,6 +2955,7 @@
       shopInitialBonusesApplied: Boolean(character),
       startingStatVariance: createNeutralStartingStatVariance(),
       startingStatVarianceRolled: false,
+      startingStatMode: null,
       shopEffects: {
         strawHatTriggered: false,
         strawHatConsumed: false,
@@ -3056,6 +3014,9 @@
       pendingZoneTransition: null,
       pendingDialogue: null,
       pendingRewardReveals: [],
+      emperorRunKiller: createDisabledEmperorRunKillerState(),
+      preparedFinalTitle: null,
+      finalPopularityScore: null,
       legendaryArcs: {
         talent: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
         marineford: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
@@ -3081,6 +3042,11 @@
       game.faction ||
       game.path ||
       null;
+    const hadLegacyEmperor = game.legendaryArcs?.emperor?.emperorId === "luffy";
+    const hadLegacyEmperorTitle = [
+      ...(Array.isArray(game.runTitles) ? game.runTitles : []),
+      ...(Array.isArray(game.titles) ? game.titles : []),
+    ].some((title) => getDataId(title) === "adversaire-du-chapeau-de-paille");
 
     const character = {
       name: rawCharacter.name || game.name || "Aventurier inconnu",
@@ -3144,12 +3110,11 @@
       permanentEffects: Array.isArray(game.permanentEffects)
         ? game.permanentEffects
         : [],
-      runTitles: Array.isArray(game.runTitles)
-        ? game.runTitles.map((title) => normalizeTitleData(getDataId(title), title))
-        : Array.isArray(game.titles)
-          ? game.titles.map((title) => normalizeTitleData(getDataId(title), title))
-          : [],
-      appliedTitleEffects: uniqueArray(game.appliedTitleEffects || []),
+      runTitles: normalizeMigratedTitleList(
+        Array.isArray(game.runTitles) ? game.runTitles :
+          Array.isArray(game.titles) ? game.titles : [],
+      ),
+      appliedTitleEffects: uniqueArray((game.appliedTitleEffects || []).map(migrateLegacyTitleId)),
       statGrowthFocus: { ...(game.statGrowthFocus || {}) },
       runAchievements: Array.isArray(game.runAchievements)
         ? game.runAchievements
@@ -3209,8 +3174,27 @@
       pendingRewardReveals: Array.isArray(game.pendingRewardReveals)
         ? game.pendingRewardReveals
             .filter((reward) => reward && typeof reward === "object")
-            .map((reward) => ({ ...reward }))
+            .map((reward) => {
+              if (reward.id !== "adversaire-du-chapeau-de-paille" &&
+                  getDataId(reward.data) !== "adversaire-du-chapeau-de-paille") return { ...reward };
+              return {
+                ...createRewardRevealData({
+                  type: "title",
+                  data: findTitleData("rival-de-barbe-blanche"),
+                }),
+                sourceResolutionId: reward.sourceResolutionId || null,
+                eventId: reward.eventId || null,
+                legendaryArcId: reward.legendaryArcId || null,
+              };
+            })
         : [],
+      emperorRunKiller: normalizeEmperorRunKillerState(game.emperorRunKiller),
+      preparedFinalTitle: game.preparedFinalTitle && typeof game.preparedFinalTitle === "object"
+        ? cloneData(game.preparedFinalTitle)
+        : null,
+      finalPopularityScore: Number.isFinite(Number(game.finalPopularityScore))
+        ? clampCareerScore(game.finalPopularityScore)
+        : null,
       legendaryArcs: normalizeLegendaryArcs(game.legendaryArcs, game),
       resolutionSequence: Math.max(0, Math.floor(Number(game.resolutionSequence) || 0)),
       appliedResolutionIds: uniqueArray(game.appliedResolutionIds || []).slice(-100),
@@ -3228,12 +3212,19 @@
       shopInitialBonusesApplied: game.shopInitialBonusesApplied !== false,
       startingStatVariance: normalizeStartingStatVariance(game.startingStatVariance),
       startingStatVarianceRolled: game.startingStatVarianceRolled === true,
+      startingStatMode: ["variance", "will-of-d"].includes(game.startingStatMode)
+        ? game.startingStatMode
+        : null,
       shopEffects: {
         strawHatTriggered: Boolean(game.shopEffects?.strawHatTriggered),
         strawHatConsumed: Boolean(game.shopEffects?.strawHatConsumed),
       },
       completionBerriesGranted: Math.max(0, Math.floor(Number(game.completionBerriesGranted) || 0)),
     };
+    if (hadLegacyEmperorTitle &&
+        !normalized.appliedTitleEffects.includes("rival-de-barbe-blanche")) {
+      normalized.appliedTitleEffects.push("rival-de-barbe-blanche");
+    }
 
     const legacyScale = usesLegacyPopularityScale(game.stats || game);
     normalized.popularityModifiers = Number.isFinite(Number(game.popularityModifiers))
@@ -3317,6 +3308,9 @@
         if (legendaryEvent) {
           normalized.currentEvent = localizeLegendaryArcEvent(legendaryEvent, normalized);
           normalized.currentEventId = legendaryEvent.id;
+          if (hadLegacyEmperor && normalized.currentEvent.legendaryArc === "emperor") {
+            queueEventDialogue(normalized.currentEvent, normalized);
+          }
         }
       }
     }
@@ -3332,7 +3326,7 @@
         statChanges: normalizeHistoricalStatChanges(entry.statChanges, legacyScale),
         statsAfter: normalizeStats(entry.statsAfter || normalized.stats),
         gainedTitles: Array.isArray(entry.gainedTitles)
-          ? entry.gainedTitles
+          ? normalizeMigratedTitleList(entry.gainedTitles)
           : [],
         visitedLocations: Array.isArray(entry.visitedLocations)
           ? entry.visitedLocations
@@ -3495,7 +3489,8 @@
     character.name = buildNameWithD(character);
 
     state.game = createDefaultGameState(character);
-    applyStartingStatVariance(state.game, rollStartingStatVariance());
+    scheduleEmperorRunKillerForNewRun(state.game);
+    initializeStartingStatAdjustment(state.game);
     state.game.flags.dRollCompleted = true;
     state.game.route = generateRoute(character);
     synchronizeRouteMetadata(state.game);
@@ -3538,8 +3533,14 @@
     }
     if (dom.startingStatVariance && dom.startingStatVarianceList) {
       dom.startingStatVariance.hidden = !state.game.startingStatVarianceRolled;
+      if (dom.startingStatVarianceTitle) {
+        dom.startingStatVarianceTitle.textContent = state.game.startingStatMode === "will-of-d"
+          ? "Bonus de la Volonté du D."
+          : "Variations de départ";
+      }
       dom.startingStatVarianceList.innerHTML = createStartingStatVarianceHtml(
         state.game.startingStatVariance,
+        state.game.startingStatMode,
       );
     }
   }
@@ -3801,6 +3802,9 @@
       importantEvents: Array.isArray(record.importantEvents)
         ? record.importantEvents.map(normalizeHistoricalZoneRecord)
         : record.importantEvents,
+      gainedTitles: Array.isArray(record.gainedTitles)
+        ? normalizeMigratedTitleList(record.gainedTitles)
+        : record.gainedTitles,
     };
   }
 
@@ -4171,13 +4175,16 @@
     const isHakiConclusion = pending.reason === "haki-conclusion";
     const isDreamFailureConclusion = pending.reason === "dream-failure-conclusion";
     const isDreamSuccessConclusion = pending.reason === "dream-success-conclusion";
+    const isEmperorRunKiller = pending.reason === "emperor-runkiller";
     const isDreamConclusion = isDreamFailureConclusion || isDreamSuccessConclusion;
     const isDecisiveConclusion = isHakiConclusion || isDreamConclusion;
     const boss = isBossTransition ? game.currentEvent : null;
     const legendaryArcId = isLegendaryTransition ? game.currentEvent?.legendaryArc : null;
     const legendaryAsset = getLegendaryArcAsset(legendaryArcId);
     const hakiConclusionStage = isHakiConclusion ? getHakiConclusionStage(pending, game) : null;
-    const featureAsset = isLegendaryTransition
+    const featureAsset = isEmperorRunKiller
+      ? LEGENDARY_ARC_ASSETS.emperor
+      : isLegendaryTransition
       ? legendaryAsset
       : isHakiConclusion
         ? getHakiEventAsset(hakiConclusionStage)
@@ -4186,6 +4193,7 @@
           : isDreamFailureConclusion
             ? DREAM_CONCLUSION_ASSETS.failure
             : null;
+    const finalScoring = isDreamConclusion ? prepareFinalCareerScoring(game) : null;
     applyZoneTransitionTheme(zone);
     resetBossTransitionTheme();
     if (isBossTransition || isDecisiveConclusion) {
@@ -4199,6 +4207,7 @@
     dom.zoneTransitionScreen?.classList.toggle("haki-conclusion", isHakiConclusion);
     dom.zoneTransitionScreen?.classList.toggle("dream-failure-conclusion", isDreamFailureConclusion);
     dom.zoneTransitionScreen?.classList.toggle("dream-success-conclusion", isDreamSuccessConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("emperor-runkiller", isEmperorRunKiller);
     dom.zoneTransitionScreen?.classList.toggle(
       "talent-arc-transition",
       isLegendaryTransition && game.currentEvent?.legendaryArc === "talent",
@@ -4232,9 +4241,17 @@
       dom.transitionFeatureFallback.textContent = featureAsset?.label || "";
       dom.transitionFeatureFallback.hidden = !featureAsset;
     }
+    if (dom.dreamConclusionPopularity) {
+      dom.dreamConclusionPopularity.hidden = !isDreamConclusion;
+    }
+    if (dom.dreamConclusionPopularityValue) {
+      dom.dreamConclusionPopularityValue.textContent = isDreamConclusion
+        ? `${finalScoring?.popularity ?? refreshPopularityScore(game)} / 100`
+        : "";
+    }
 
     if (dom.zoneTransitionIcon) {
-      dom.zoneTransitionIcon.textContent = isLegendaryTransition || isLegendaryConclusion ? "◆" : isDecisiveConclusion
+      dom.zoneTransitionIcon.textContent = isEmperorRunKiller ? "☠" : isLegendaryTransition || isLegendaryConclusion ? "◆" : isDecisiveConclusion
         ? pending.icon || "✦"
         : isBossTransition
         ? (boss?.decisiveStage === 3 ? "👑" : "⭐")
@@ -4242,23 +4259,24 @@
     }
     if (dom.zoneTransitionEyebrow) {
       dom.zoneTransitionEyebrow.textContent =
-        isLegendaryTransition ? "Événement légendaire" : isLegendaryConclusion ? "Arc légendaire" : isDecisiveConclusion
+        isEmperorRunKiller ? pending.eyebrow || "Empereur" : isLegendaryTransition ? "Événement légendaire" : isLegendaryConclusion ? "Arc légendaire" : isDecisiveConclusion
           ? pending.eyebrow || "Épreuve décisive"
           : isBossTransition
           ? "Événement décisif"
           : special ? "Étape inattendue • Zone spéciale" : "Nouvelle zone";
     }
     if (dom.zoneTransitionProgress) {
-      dom.zoneTransitionProgress.hidden = isLegendaryTransition || isLegendaryConclusion || isDecisiveConclusion;
+      dom.zoneTransitionProgress.hidden = isEmperorRunKiller || isLegendaryTransition || isLegendaryConclusion || isDecisiveConclusion;
       dom.zoneTransitionProgress.textContent =
-        isLegendaryTransition || isLegendaryConclusion || isDecisiveConclusion
+        isEmperorRunKiller || isLegendaryTransition || isLegendaryConclusion || isDecisiveConclusion
           ? ""
           : isBossTransition
           ? `${zone.name} • Événement décisif`
           : `Étape ${pending.routeIndex + 1} sur ${routeLength}`;
     }
     if (dom.zoneTransitionTitle) {
-      dom.zoneTransitionTitle.textContent = isLegendaryTransition
+      dom.zoneTransitionTitle.textContent = isEmperorRunKiller ? pending.title
+        : isLegendaryTransition
         ? legendaryAsset?.label || "Événement légendaire"
         : isDreamSuccessConclusion ? DREAM_CONCLUSION_ASSETS.success.label
         : isDreamFailureConclusion ? DREAM_CONCLUSION_ASSETS.failure.label
@@ -4270,7 +4288,8 @@
     }
     if (dom.zoneTransitionDescription) {
       dom.zoneTransitionDescription.textContent =
-        isLegendaryTransition
+        isEmperorRunKiller ? pending.description
+          : isLegendaryTransition
           ? (game.currentEvent?.legendaryArc === "talent"
               ? LEGENDARY_TALENT_INTROS[game.character?.faction] || "Le monde commence à retenir ton nom."
             : game.currentEvent?.legendaryArc === "marineford"
@@ -4284,7 +4303,7 @@
     }
     if (dom.continueZoneTransition) {
       dom.continueZoneTransition.disabled = false;
-      dom.continueZoneTransition.textContent = isLegendaryConclusion || isDecisiveConclusion
+      dom.continueZoneTransition.textContent = isEmperorRunKiller || isLegendaryConclusion || isDecisiveConclusion
         ? pending.buttonLabel || "Reprendre la route"
         : "Continuer";
     }
@@ -4383,8 +4402,23 @@
       dom.continueZoneTransition.disabled = true;
     }
     const transitionReason = game.pendingZoneTransition.reason;
+    const transitionEmperorId = game.pendingZoneTransition.emperorId || null;
     const conclusionArcId = game.pendingZoneTransition.arcId || null;
     game.pendingZoneTransition = null;
+    if (transitionReason === "emperor-runkiller") {
+      const scheduled = game.emperorRunKiller;
+      if (scheduled?.endingCommitted || game.isFinished) return false;
+      if (scheduled) scheduled.endingCommitted = true;
+      game.stats.health = 0;
+      saveGame();
+      const emperorName = LEGENDARY_EMPEROR_NAMES[transitionEmperorId] || "Un Empereur";
+      return finishAdventure({
+        type: "death",
+        destiny: `${emperorName} a mis un terme aussi brutal qu’improbable à ton voyage.`,
+        title: "Destin brisé",
+        success: false,
+      });
+    }
     if (transitionReason === "legendary-conclusion") {
       const arc = game.legendaryArcs?.[conclusionArcId];
       if (arc) {
@@ -4454,18 +4488,129 @@
 
   const LEGENDARY_EMPERORS = Object.freeze({
     pirate: ["blackbeard", "kaido", "big-mom", "shanks"],
-    marine: ["luffy", "buggy", "blackbeard", "shanks"],
+    marine: ["whitebeard", "buggy", "blackbeard", "shanks"],
     "bounty-hunter": ["buggy", "blackbeard", "kaido"],
-    revolutionary: ["blackbeard", "kaido", "big-mom", "shanks", "luffy"],
+    revolutionary: ["blackbeard", "kaido", "big-mom", "shanks", "whitebeard"],
   });
   const LEGENDARY_EMPEROR_NAMES = Object.freeze({
     blackbeard: "Barbe Noire", kaido: "Kaido", "big-mom": "Big Mom",
-    shanks: "Shanks le Roux", luffy: "Luffy", buggy: "Baggy",
+    shanks: "Shanks le Roux", whitebeard: "Barbe Blanche", buggy: "Baggy",
   });
+  const EMPEROR_RUN_KILLER_IDS = Object.freeze([
+    "blackbeard", "kaido", "big-mom", "shanks", "whitebeard", "buggy",
+  ]);
+  const EMPEROR_RUN_KILLER_SCENES = Object.freeze({
+    blackbeard: Object.freeze({
+      title: "Zehahaha… mauvaise pioche",
+      description: "Tu ouvres un coffre abandonné. Barbe Noire en sort en riant : c’était son coffre, son île et, apparemment, sa journée consacrée à ruiner la tienne.",
+    }),
+    kaido: Object.freeze({
+      title: "Il pleut des massues",
+      description: "Une ombre couvre ton navire. Kaido cherchait un endroit spectaculaire où atterrir ; ta coque vient de gagner le concours sans s’être inscrite.",
+    }),
+    "big-mom": Object.freeze({
+      title: "L’addition de Big Mom",
+      description: "Tu refuses poliment de céder ton goûter. Big Mom accepte le mot « poliment », beaucoup moins le mot « refuses », et transforme la mer en dessert catastrophe.",
+    }),
+    shanks: Object.freeze({
+      title: "Un verre de trop",
+      description: "Shanks lève son verre pour éviter la bagarre. Ton équipage lève le sien, ton timonier aussi, et personne ne remarque la falaise avant le dernier « santé ».",
+    }),
+    whitebeard: Object.freeze({
+      title: "Gurararara… ça secoue",
+      description: "Barbe Blanche éternue au moment où tu passes. La mer se fend, ton navire aussi, et Marco confirme que cela arrive beaucoup plus souvent qu’on ne le croit.",
+    }),
+    buggy: Object.freeze({
+      title: "Le plan génial de Baggy",
+      description: "Baggy ordonne une démonstration parfaitement maîtrisée. Crocodile soupire, Mihawk dégaine, et ton navire devient l’unique élément du plan qui fonctionne comme prévu.",
+    }),
+  });
+
+  function createDisabledEmperorRunKillerState() {
+    return {
+      armed: false,
+      emperorId: null,
+      triggerMonth: null,
+      triggered: false,
+      endingCommitted: false,
+      cancelled: false,
+    };
+  }
+
+  function normalizeEmperorRunKillerState(value) {
+    if (!value || typeof value !== "object") return createDisabledEmperorRunKillerState();
+    const emperorId = EMPEROR_RUN_KILLER_IDS.includes(value.emperorId) ? value.emperorId : null;
+    const triggerMonth = Math.floor(Number(value.triggerMonth));
+    return {
+      armed: value.armed === true && Boolean(emperorId) && triggerMonth >= 2 && triggerMonth <= 8,
+      emperorId,
+      triggerMonth: triggerMonth >= 2 && triggerMonth <= 8 ? triggerMonth : null,
+      triggered: value.triggered === true,
+      endingCommitted: value.endingCommitted === true,
+      cancelled: value.cancelled === true,
+    };
+  }
+
+  function scheduleEmperorRunKillerForNewRun(game, random = Math.random) {
+    game.emperorRunKiller = createDisabledEmperorRunKillerState();
+    if (random() >= CONFIG.emperorRunKillerProbability) return game.emperorRunKiller;
+    const emperorId = EMPEROR_RUN_KILLER_IDS[Math.min(
+      EMPEROR_RUN_KILLER_IDS.length - 1,
+      Math.floor(random() * EMPEROR_RUN_KILLER_IDS.length),
+    )];
+    game.emperorRunKiller = {
+      armed: true,
+      emperorId,
+      triggerMonth: 2 + Math.min(6, Math.floor(random() * 7)),
+      triggered: false,
+      endingCommitted: false,
+      cancelled: false,
+    };
+    return game.emperorRunKiller;
+  }
+
+  function isEmperorRunKillerEligibleEvent(event, game = state.game) {
+    const zoneId = getCurrentZone(game)?.id;
+    const tags = event?.tags || [];
+    return Boolean(event) && [...BLUE_ZONE_IDS, "reverse-mountain"].includes(zoneId) &&
+      event.eventType === "ordinary" && !event.introDialogue && !event.legendaryArc &&
+      !event.bossEvent && !event.decisiveStage && !event.highStakes && !event.important &&
+      !tags.some((tag) => ["canonical-special-arc", "legendary", "haki-awakening", "decisive"].includes(tag));
+  }
+
+  function cancelEmperorRunKillerAtParadise(game = state.game) {
+    const scheduled = game?.emperorRunKiller;
+    if (!scheduled?.armed || scheduled.triggered) return false;
+    const paradiseIndex = game.route?.findIndex((zone) => zone?.id === "grand-line") ?? -1;
+    if (paradiseIndex < 0 || game.currentZoneIndex < paradiseIndex) return false;
+    scheduled.armed = false;
+    scheduled.cancelled = true;
+    return true;
+  }
+
+  function queueEmperorRunKillerAfterEvent(event, game = state.game) {
+    const scheduled = game?.emperorRunKiller;
+    if (!scheduled?.armed || scheduled.triggered || scheduled.cancelled || game.isFinished) return false;
+    if (cancelEmperorRunKillerAtParadise(game)) return false;
+    if (Number(game.month) < scheduled.triggerMonth || !isEmperorRunKillerEligibleEvent(event, game)) return false;
+    const scene = EMPEROR_RUN_KILLER_SCENES[scheduled.emperorId];
+    if (!scene) return false;
+    scheduled.triggered = true;
+    scheduled.armed = false;
+    game.pendingZoneTransition = {
+      ...createZoneTransitionData(getCurrentZone(game), game.currentZoneIndex, "emperor-runkiller", game),
+      emperorId: scheduled.emperorId,
+      title: scene.title,
+      description: scene.description,
+      eyebrow: LEGENDARY_EMPEROR_NAMES[scheduled.emperorId] || "Empereur",
+      buttonLabel: "Accepter l’inévitable",
+    };
+    return true;
+  }
   const LEGENDARY_EMPEROR_TITLES = Object.freeze({
     blackbeard: "fleau-de-barbe-noire", kaido: "tombeur-de-kaido",
     "big-mom": "briseur-de-totto-land", shanks: "rival-du-roux",
-    luffy: "adversaire-du-chapeau-de-paille", buggy: "geolier-de-baggy",
+    whitebeard: "rival-de-barbe-blanche", buggy: "geolier-de-baggy",
   });
   const LEGENDARY_TALENT_TITLES = Object.freeze({
     pirate: "supernova",
@@ -4490,7 +4635,7 @@
     kaido: "Kaido aux Cent Bêtes",
     "big-mom": "Big Mom",
     shanks: "Shanks le Roux",
-    luffy: "Monkey D. Luffy",
+    whitebeard: "Barbe Blanche",
     buggy: "Baggy",
   });
 
@@ -4609,19 +4754,63 @@
     return weighted[Math.min(weighted.length - 1, Math.floor(random() * weighted.length))];
   }
 
+  const LEGENDARY_EMPEROR_SCENE_TEXT = Object.freeze({
+    blackbeard: Object.freeze({
+      emperorThreat: "Les navires de Barbe Noire braquent déjà leurs canons sur la zone.",
+      emperorCounterattack: "Shiryu disparaît entre les ponts pendant que les ténèbres attirent les débris vers la flotte.",
+      emperorArrival: "Barbe Noire ouvre le feu, puis ses ténèbres aspirent tout ce qui protège l’objectif.",
+    }),
+    kaido: Object.freeze({
+      emperorThreat: "Les navires des Cent Bêtes débarquent des combattants pendant que Kaido survole la zone.",
+      emperorCounterattack: "Les troupes de King ferment le ciel tandis que celles de Queen saturent les quais.",
+      emperorArrival: "Kaido descend sur le champ de bataille et son premier coup disperse les lignes alliées.",
+    }),
+    "big-mom": Object.freeze({
+      emperorThreat: "Les Homies de Big Mom encerclent la zone et réclament un tribut à tous les navires.",
+      emperorCounterattack: "Katakuri anticipe chaque mouvement pendant que les soldats-biscuits ferment les accès.",
+      emperorArrival: "Big Mom rejoint la bataille sur Zeus et ordonne à ses Homies de reprendre l’objectif.",
+    }),
+    shanks: Object.freeze({
+      emperorThreat: "Les officiers du Roux protègent la zone et refusent tout geste qui menacerait leurs alliés.",
+      emperorCounterattack: "Ben Beckman verrouille l’approche tandis que Yasopp tient les navires à distance.",
+      emperorArrival: "Shanks avance sous une pression qui fait vaciller les moins aguerris et exige l’arrêt du combat.",
+    }),
+    whitebeard: Object.freeze({
+      emperorThreat: "Les divisions de Barbe Blanche protègent la zone comme elles protégeraient leur propre famille.",
+      emperorCounterattack: "Vista ferme le passage avec ses lames tandis que Marco rassemble les divisions autour de l’objectif.",
+      emperorArrival: "Barbe Blanche fissure l’air d’un coup de poing ; la mer se soulève autour de sa flotte et brise la première ligne.",
+    }),
+    buggy: Object.freeze({
+      emperorThreat: "Les mercenaires de Cross Guild encerclent la zone tandis que Baggy revendique déjà la victoire.",
+      emperorCounterattack: "Crocodile bloque les accès et Mihawk suffit à immobiliser les combattants les plus téméraires.",
+      emperorArrival: "Baggy surgit au milieu de sa flotte, mais Crocodile et Mihawk transforment sa diversion en menace réelle.",
+    }),
+  });
+
   function localizeLegendaryArcEvent(event, game = state.game) {
     const localized = cloneData(event);
     const emperorId = game?.legendaryArcs?.emperor?.emperorId;
     const emperor = LEGENDARY_EMPEROR_NAMES[emperorId] || "un Empereur";
     const objective = LEGENDARY_DREAM_OBJECTIVES[game?.character?.dream] || "un objectif capable de changer ta destinée";
-    localized.description = String(localized.description || "").replaceAll("{emperor}", emperor).replaceAll("{objective}", objective);
+    const sceneText = LEGENDARY_EMPEROR_SCENE_TEXT[emperorId] || {
+      emperorThreat: "Sa flotte verrouille déjà les abords.",
+      emperorCounterattack: "Son commandant rassemble les renforts autour de l’objectif.",
+      emperorArrival: "L’Empereur entre lui-même dans la bataille et brise la première ligne.",
+    };
+    const visibleTokens = { emperor, objective, ...sceneText };
+    const replaceVisibleTokens = (text) => Object.entries(visibleTokens).reduce(
+      (result, [token, value]) => result.replaceAll(`{${token}}`, value),
+      String(text || ""),
+    );
+    localized.title = replaceVisibleTokens(localized.title);
+    localized.description = replaceVisibleTokens(localized.description);
     if (localized.introDialogue?.emperorVariants) {
       localized.introDialogue =
         localized.introDialogue.emperorVariants[emperorId] ||
         localized.introDialogue.emperorVariants.default ||
         null;
     }
-    if (localized.introDialogue) localized.introDialogue = replaceDialogueTokens(localized.introDialogue, { emperor, objective });
+    if (localized.introDialogue) localized.introDialogue = replaceDialogueTokens(localized.introDialogue, visibleTokens);
     localized.text = localized.description;
     localized.legendaryArc = localized.tags?.includes("legendary-talent")
       ? "talent"
@@ -4651,7 +4840,8 @@
   function getLegendaryArcTitleId(arcId, game = state.game) {
     if (arcId === "talent") return LEGENDARY_TALENT_TITLES[game?.character?.faction] || null;
     if (arcId === "marineford") return window.BLUE_LEGACY_LEGENDARY_MARINEFORD_TITLES?.[game?.character?.faction] || null;
-    return LEGENDARY_EMPEROR_TITLES[game?.legendaryArcs?.emperor?.emperorId] || null;
+    const emperorId = game?.legendaryArcs?.emperor?.emperorId;
+    return LEGENDARY_EMPEROR_TITLES[emperorId] || null;
   }
 
   function startLegendaryArc(arcId, game = state.game) {
@@ -4823,6 +5013,25 @@
       unlockTitle(titleId, null, game, false);
       arc.titleId = titleId;
       arc.status = "succeeded";
+      if (!arc.titleRevealShown) {
+        const title = game.runTitles.find((item) => getDataId(item) === titleId);
+        const sourceResolutionId = `${game.id}:legendary:${arcId}:title:${titleId}`;
+        queueRewardReveal(
+          { type: "title", data: cloneData(title) },
+          game,
+          {
+            resolutionId: sourceResolutionId,
+            eventId: `legendary-${arcId}-${getDataId(game.character?.faction)}-3`,
+          },
+        );
+        const reveal = game.pendingRewardReveals?.find((item) =>
+          item.type === "title" && item.id === titleId &&
+          item.sourceResolutionId === sourceResolutionId);
+        if (reveal) {
+          reveal.legendaryArcId = arcId;
+          arc.titleRevealPending = true;
+        }
+      }
     } else {
       const failures = arc.performance.entries.filter((entry) =>
         ["failure", "severe_failure"].includes(entry.tier)).length;
@@ -4971,6 +5180,27 @@
       icon: "☆",
       title: "Un rêve hors de portée",
       description: `${careerOpening} ${factionClosing}`,
+    };
+  }
+
+  function prepareFinalCareerScoring(game = state.game) {
+    if (!game?.bossProgress?.finalOutcome || Number(game.month) < CONFIG.maxMonths) return null;
+    const ending = createBossFinalEnding(game);
+    refreshPopularityScore(game);
+    let finalTitle = game.preparedFinalTitle;
+    if (!finalTitle) {
+      finalTitle = determineFinalTitle(ending, game, game.stats.popularity);
+      if (finalTitle) {
+        unlockTitle(getDataId(finalTitle), finalTitle, game, false);
+        game.preparedFinalTitle = cloneData(finalTitle);
+      }
+    }
+    refreshPopularityScore(game);
+    game.finalPopularityScore = clampCareerScore(game.stats.popularity);
+    return {
+      ending,
+      finalTitle: game.preparedFinalTitle,
+      popularity: game.finalPopularityScore,
     };
   }
 
@@ -6320,6 +6550,8 @@
       return false;
     }
 
+    if (cancelEmperorRunKillerAtParadise(game)) saveGame();
+
     if (game.month > CONFIG.maxMonths) {
       return finishAdventure({
         type: "retirement",
@@ -6390,6 +6622,11 @@
         }
       }
       const earnedLegendaryTitle = finalizeLegendaryArc(legendaryArcId, game);
+      if (earnedLegendaryTitle && game.legendaryArcs?.[legendaryArcId]?.titleRevealPending) {
+        saveGame();
+        openScreen(SCREEN.REWARD_REVEAL, { save: false });
+        return true;
+      }
       if (!earnedLegendaryTitle && queueLegendaryConclusion(legendaryArcId, game)) {
         saveGame();
         openScreen(SCREEN.ZONE_TRANSITION, { save: false });
@@ -6401,6 +6638,12 @@
 
     const automaticEnding = checkRunEndingConditions(game);
     if (automaticEnding && !completedBoss) return finishAdventure(automaticEnding);
+
+    if (!completedBoss && queueEmperorRunKillerAfterEvent(completedEvent, game)) {
+      saveGame();
+      openScreen(SCREEN.ZONE_TRANSITION, { save: false });
+      return true;
+    }
 
     if (game.currentAction >= game.actionsThisMonth) {
       return finishMonth({ deferEndingUntilLogbook: completedBoss });
@@ -6642,8 +6885,6 @@
       queueRewardReveal(record, game, { resolutionId, eventId: event.id });
     });
     refreshPopularityScore(game);
-    queueFinalDreamSuccessConclusion(event, resolutionId, game);
-    queueFinalDreamFailureConclusion(event, resolutionId, game);
 
     const statsAfter = getStatsSnapshot(game.stats);
     const statChanges = getStatsDifference(
@@ -6709,6 +6950,11 @@
 
     updateAchievementTelemetry(event, choice, game, outcome);
     checkAchievements(game);
+    if (event.eventType === "decisive" && Number(event.decisiveStage) === 3) {
+      prepareFinalCareerScoring(game);
+      queueFinalDreamSuccessConclusion(event, resolutionId, game);
+      queueFinalDreamFailureConclusion(event, resolutionId, game);
+    }
 
     game.pendingResult = {
       resolutionId,
@@ -6946,63 +7192,6 @@
       }
     }
     return applied;
-  }
-
-  function buildChoiceRewards(choice) {
-    const rewards = [];
-
-    choice.addTraits.forEach((traitId) => {
-      rewards.push({
-        type: "trait",
-        text: `Nouveau trait : ${traitId}`,
-      });
-    });
-
-    if (choice.combatStyle) {
-      rewards.push({
-        type: "combatStyle",
-        text: `Style obtenu : ${choice.combatStyle}`,
-      });
-    }
-
-    if (choice.devilFruit) {
-      const fruit = normalizeDevilFruit(choice.devilFruit);
-
-      rewards.push({
-        type: "devilFruit",
-        text: `Fruit du Démon : ${fruit.name}`,
-      });
-    }
-
-    if (choice.title) {
-      const title = normalizeTitleData(
-        getDataId(choice.title),
-        choice.title,
-      );
-
-      rewards.push({
-        type: "title",
-        text: `Titre obtenu : ${title.name}`,
-      });
-    }
-
-    if (choice.achievement) {
-      rewards.push({
-        type: "achievement",
-        text: "Nouveau succès obtenu",
-      });
-    }
-
-    if (choice.reward) {
-      const reward = normalizeReward(choice.reward);
-
-      rewards.push({
-        type: "reward",
-        text: reward.text,
-      });
-    }
-
-    return rewards;
   }
 
   function markEventAsSeen(event, game = state.game) {
@@ -9585,16 +9774,34 @@
     }
   }
 
+  function completeLegendaryTitleReveal(game, arcId) {
+    const arc = game?.legendaryArcs?.[arcId];
+    if (!arc?.titleRevealPending) return false;
+    arc.titleRevealPending = false;
+    arc.titleRevealShown = true;
+    arc.routeResumed = true;
+    return true;
+  }
+
   function continueAfterRewardReveal() {
     const game = state.game;
     if (!game?.pendingRewardReveals?.length) return false;
     if (dom.continueRewardReveal) dom.continueRewardReveal.disabled = true;
 
-    game.pendingRewardReveals.shift();
+    const consumedReveal = game.pendingRewardReveals.shift();
     saveGame();
     if (game.pendingRewardReveals.length) {
       updateRewardRevealScreen();
       return true;
+    }
+    const legendaryArcId = consumedReveal?.legendaryArcId ||
+      Object.keys(game.legendaryArcs || {}).find((arcId) =>
+        game.legendaryArcs[arcId]?.titleRevealPending);
+    if (legendaryArcId) {
+      completeLegendaryTitleReveal(game, legendaryArcId);
+      saveGame();
+      openScreen(SCREEN.GAME, { save: false });
+      return startNextEvent();
     }
     openScreen(SCREEN.GAME, { save: false });
     return finishEvent();
@@ -9630,7 +9837,7 @@
     refreshPopularityScore(game);
     const frozenPopularity = clampCareerScore(game.stats.popularity);
 
-    const finalTitle =
+    const finalTitle = game.preparedFinalTitle ||
       determineFinalTitle(
         ending,
         game,
@@ -9842,6 +10049,7 @@
       flags: cloneData(game.flags),
       startingStatVariance: cloneData(game.startingStatVariance),
       startingStatVarianceRolled: game.startingStatVarianceRolled === true,
+      startingStatMode: game.startingStatMode || null,
       stats: getStatsSnapshot(game.stats),
       popularityScore,
       popularityText,
@@ -11216,7 +11424,7 @@
     if (dom.pastLifeStartingVariance) {
       dom.pastLifeStartingVariance.hidden = entry.startingStatVarianceRolled !== true;
       dom.pastLifeStartingVariance.innerHTML = entry.startingStatVarianceRolled === true
-        ? `<h4>Variations de départ</h4><div class="starting-variance-list">${createStartingStatVarianceHtml(entry.startingStatVariance)}</div>`
+        ? `<h4>${entry.startingStatMode === "will-of-d" ? "Bonus de la Volonté du D." : "Variations de départ"}</h4><div class="starting-variance-list">${createStartingStatVarianceHtml(entry.startingStatVariance, entry.startingStatMode)}</div>`
         : "";
     }
     if (dom.pastLifeAssets && dom.pastLifeAssetsSection) {
@@ -12742,7 +12950,11 @@
         idempotent: !migratedTwice && rewardProfile.berries === afterFirst,
       };
 
-      saveProfile({ ...createDefaultProfile(), berries: 250 });
+      saveProfile({
+        ...createDefaultProfile(),
+        berries: 250,
+        rewardedAchievementIds: getAllAchievements().map((achievement) => achievement.id),
+      });
       const bought = purchaseShopItem("treasure-map");
       const doubleBuy = purchaseShopItem("treasure-map");
       const afterPurchase = getProfile();
@@ -12874,6 +13086,91 @@
     };
   }
 
+  function runEmperorRunKillerAudit(options = {}) {
+    const runs = Math.max(100000, Math.floor(Number(options.runs) || 100000));
+    const random = createSeededRandom(Number(options.seed) || 19082026);
+    const counts = Object.fromEntries(EMPEROR_RUN_KILLER_IDS.map((id) => [id, 0]));
+    let armed = 0;
+    for (let index = 0; index < runs; index += 1) {
+      const game = { emperorRunKiller: createDisabledEmperorRunKillerState() };
+      const scheduled = scheduleEmperorRunKillerForNewRun(game, random);
+      if (scheduled.armed) {
+        armed += 1;
+        counts[scheduled.emperorId] += 1;
+      }
+    }
+    const legacyDefault = normalizeEmperorRunKillerState(undefined);
+    const persistenceFixture = {
+      armed: true, emperorId: "kaido", triggerMonth: 6,
+      triggered: false, endingCommitted: false, cancelled: false,
+    };
+    const persisted = normalizeEmperorRunKillerState(cloneData(persistenceFixture));
+    const lifecycleGame = {
+      emperorRunKiller: cloneData(persistenceFixture),
+      route: [
+        { id: "east-blue", routeStage: 1 },
+        { id: "starless-sea", routeStage: 2 },
+        { id: "reverse-mountain", routeStage: 3 },
+        { id: "grand-line", routeStage: 4 },
+      ],
+      currentZoneIndex: 2,
+      month: 9,
+      isFinished: false,
+    };
+    const triggeredAfterDelayedReverse = queueEmperorRunKillerAfterEvent(
+      { eventType: "ordinary", tags: [] }, lifecycleGame,
+    );
+    const rerolledOrRepeated = queueEmperorRunKillerAfterEvent(
+      { eventType: "ordinary", tags: [] }, lifecycleGame,
+    );
+    const paradiseGame = {
+      ...lifecycleGame,
+      currentZoneIndex: 3,
+      pendingZoneTransition: null,
+      emperorRunKiller: cloneData(persistenceFixture),
+    };
+    const cancelledAtParadise = cancelEmperorRunKillerAtParadise(paradiseGame);
+    const rate = armed / runs;
+    const report = {
+      runs,
+      armed,
+      rate,
+      expectedRate: CONFIG.emperorRunKillerProbability,
+      emperorCounts: counts,
+      allEmperorsReachable: EMPEROR_RUN_KILLER_IDS.every((id) => counts[id] > 0 && EMPEROR_RUN_KILLER_SCENES[id]),
+      legacySaveDisabled: legacyDefault.armed === false && legacyDefault.emperorId === null,
+      persistenceStable: JSON.stringify(persisted) === JSON.stringify(persistenceFixture),
+      delayedReverseTrigger: triggeredAfterDelayedReverse &&
+        lifecycleGame.pendingZoneTransition?.reason === "emperor-runkiller" && !rerolledOrRepeated,
+      paradiseCancellation: cancelledAtParadise && paradiseGame.emperorRunKiller.cancelled &&
+        !paradiseGame.emperorRunKiller.armed,
+    };
+    report.pass = rate >= 0.0085 && rate <= 0.0115 && report.allEmperorsReachable &&
+      report.legacySaveDisabled && report.persistenceStable && report.delayedReverseTrigger &&
+      report.paradiseCancellation;
+    console.warn("[Blue Legacy] EMPEROR_RUN_KILLER_AUDIT", report);
+    return report;
+  }
+
+  function debugTriggerEmperorRunKiller(emperorId = "buggy") {
+    const game = state.game;
+    if (!game || game.currentEvent || game.pendingResult || game.pendingDialogue ||
+        game.pendingRewardReveals?.length || game.pendingZoneTransition || game.isFinished ||
+        !EMPEROR_RUN_KILLER_IDS.includes(emperorId)) return false;
+    game.emperorRunKiller = {
+      armed: true,
+      emperorId,
+      triggerMonth: Math.max(2, Math.min(8, Number(game.month) || 2)),
+      triggered: false,
+      endingCommitted: false,
+      cancelled: false,
+    };
+    if (!queueEmperorRunKillerAfterEvent({ eventType: "ordinary", tags: [] }, game)) return false;
+    saveGame();
+    openScreen(SCREEN.ZONE_TRANSITION, { save: false });
+    return true;
+  }
+
   function simulateWillOfD({ runs = 100000, seed = 0xD092, pity = true } = {}) {
     const totalRuns = Math.max(1, Math.floor(Number(runs) || 100000));
     const random = createSeededRandom(seed);
@@ -12954,6 +13251,61 @@
     const dStats = getInitialStats(dCharacter, []);
     const dJollyStats = getInitialStats(dCharacter, ["reinforced-jolly-roger"]);
     const coreStats = ["health", "combat", "haki", "intelligence", "charisma"];
+    const varianceSample = { health: -3, combat: 2, haki: 0, intelligence: -1, charisma: 3 };
+    const deterministicValues = Array.from({ length: 7 }, (_, index) =>
+      rollStartingStatVariance(() => (index + 0.01) / 7).health);
+    let statisticalSeed = 0x51A7;
+    const statisticalValues = new Set();
+    for (let index = 0; index < 1000; index += 1) {
+      statisticalSeed = (statisticalSeed * 1664525 + 1013904223) >>> 0;
+      const sample = rollStartingStatVariance(() => statisticalSeed / 4294967296);
+      Object.values(sample).forEach((value) => statisticalValues.add(value));
+    }
+    let dRandomCalls = 0;
+    const dInitialization = createDefaultGameState(dCharacter);
+    initializeStartingStatAdjustment(dInitialization, () => {
+      dRandomCalls += 1;
+      return 0;
+    });
+    const createStartingCase = (hasD, items = []) => {
+      const character = { ...baseCharacter, hasD };
+      const game = createDefaultGameState(character);
+      const beforeVariance = cloneData(game.stats);
+      applyStartingStatVariance(game, varianceSample);
+      const reloaded = normalizeGame(cloneData(game));
+      return {
+        mode: game.startingStatMode,
+        appliedDelta: Object.fromEntries(coreStats.map((stat) => [stat, game.stats[stat] - beforeVariance[stat]])),
+        initialDelta: Object.fromEntries(coreStats.map((stat) => [stat,
+          getInitialStats(character, items)[stat] - getInitialStats(baseCharacter, [])[stat]])),
+        reloadStable: coreStats.every((stat) => reloaded.stats[stat] === game.stats[stat]) &&
+          reloaded.startingStatMode === game.startingStatMode,
+      };
+    };
+    const startingCases = {
+      normal: createStartingCase(false),
+      d: createStartingCase(true),
+      normalJolly: createStartingCase(false, ["reinforced-jolly-roger"]),
+      dJolly: createStartingCase(true, ["reinforced-jolly-roger"]),
+    };
+    const previousGame = state.game;
+    const normalRenderGame = createDefaultGameState(baseCharacter);
+    applyStartingStatVariance(normalRenderGame, varianceSample);
+    state.game = normalRenderGame;
+    updateDRevealScreen();
+    const normalDomValues = [...(dom.startingStatVarianceList?.querySelectorAll("strong") || [])]
+      .map((node) => node.textContent);
+    const dRenderGame = createDefaultGameState(dCharacter);
+    initializeStartingStatAdjustment(dRenderGame);
+    state.game = dRenderGame;
+    updateDRevealScreen();
+    const dDomValues = [...(dom.startingStatVarianceList?.querySelectorAll("strong") || [])]
+      .map((node) => node.textContent);
+    state.game = previousGame;
+    if (!previousGame && dom.startingStatVariance && dom.startingStatVarianceList) {
+      dom.startingStatVariance.hidden = true;
+      dom.startingStatVarianceList.replaceChildren();
+    }
     const factions = ["pirate", "marine", "bounty-hunter", "revolutionary"];
     const factionChecks = factions.map((faction) => {
       const factionCharacter = { ...baseCharacter, faction };
@@ -13017,6 +13369,17 @@
       },
       initialStatDeltas: Object.fromEntries(coreStats.map((stat) => [stat, dStats[stat] - baseStats[stat]])),
       dAndJollyDeltas: Object.fromEntries(coreStats.map((stat) => [stat, dJollyStats[stat] - baseStats[stat]])),
+      startingCases,
+      startingAdjustment: {
+        deterministicValues,
+        statisticalValues: [...statisticalValues].sort((left, right) => left - right),
+        normalHtmlRows: (createStartingStatVarianceHtml(varianceSample, "variance").match(/starting-variance-chip/g) || []).length,
+        dHtmlRows: (createStartingStatVarianceHtml(createNeutralStartingStatVariance(), "will-of-d").match(/starting-variance-chip/g) || []).length,
+        dHtmlBonuses: (createStartingStatVarianceHtml(createNeutralStartingStatVariance(), "will-of-d").match(/<strong>\+5<\/strong>/g) || []).length,
+        dRandomCalls,
+        normalDomValues,
+        dDomValues,
+      },
       untouchedStatDeltas: Object.fromEntries(["bounty", "fortune", "crew", "popularity"].map((stat) => [stat, dStats[stat] - baseStats[stat]])),
       factionChecks,
       resolutionDeltas: dScoreDeltas,
@@ -13033,10 +13396,22 @@
       report.counter.resetAfterD === 0 && report.counter.incrementAfterMiss === 21 &&
       report.counter.guaranteedAt39 && report.names.markerCount === 1 &&
       report.names.pantheonName === namedCharacter.name && report.names.pantheonHasD &&
-      Object.values(report.initialStatDeltas).every((value) => value === 3) &&
-      Object.values(report.dAndJollyDeltas).every((value) => value === 5) &&
+      Object.values(report.initialStatDeltas).every((value) => value === 5) &&
+      Object.values(report.dAndJollyDeltas).every((value) => value === 7) &&
+      JSON.stringify(report.startingCases.normal.appliedDelta) === JSON.stringify(varianceSample) &&
+      Object.values(report.startingCases.d.appliedDelta).every((value) => value === 0) &&
+      report.startingCases.d.mode === "will-of-d" && report.startingCases.normal.mode === "variance" &&
+      Object.values(report.startingCases.d.initialDelta).every((value) => value === 5) &&
+      Object.values(report.startingCases.dJolly.initialDelta).every((value) => value === 7) &&
+      Object.values(report.startingCases).every((test) => test.reloadStable) &&
+      JSON.stringify(report.startingAdjustment.deterministicValues) === JSON.stringify([-3, -2, -1, 0, 1, 2, 3]) &&
+      JSON.stringify(report.startingAdjustment.statisticalValues) === JSON.stringify([-3, -2, -1, 0, 1, 2, 3]) &&
+      report.startingAdjustment.normalHtmlRows === 5 && report.startingAdjustment.dHtmlRows === 5 &&
+      report.startingAdjustment.dHtmlBonuses === 5 && report.startingAdjustment.dRandomCalls === 0 &&
+      JSON.stringify(report.startingAdjustment.normalDomValues) === JSON.stringify(["-3", "+2", "0", "-1", "+3"]) &&
+      JSON.stringify(report.startingAdjustment.dDomValues) === JSON.stringify(["+5", "+5", "+5", "+5", "+5"]) &&
       Object.values(report.untouchedStatDeltas).every((value) => value === 0) &&
-      report.factionChecks.every((row) => row.probability === 0.05 && row.statDeltas.every((value) => value === 3)) &&
+      report.factionChecks.every((row) => row.probability === 0.05 && row.statDeltas.every((value) => value === 5)) &&
       Object.values(report.resolutionDeltas).every((value) => value === 4) &&
       report.dAndEternalPoseOrdinaryDelta === 9 &&
       report.achievements.discoverD === 1 && report.achievements.dAndDream === 1 &&
@@ -13169,6 +13544,28 @@
       report.attributions.achievement === "Écume D. Kenzo" &&
       report.rerollDoesNotAffectD;
     return report;
+  }
+
+  function runHealthEndingAudit() {
+    const cases = [
+      { start: 2, delta: -1, expected: 1, ends: false },
+      { start: 2, delta: -2, expected: 0, ends: true },
+      { start: 2, delta: -5, expected: 0, ends: true },
+      { start: 1, delta: -1, expected: 0, ends: true },
+    ].map((test) => {
+      const game = createDefaultGameState(null);
+      game.stats.health = test.start;
+      applyStatChanges({ health: test.delta }, game.stats, { game, source: "event" });
+      const ending = checkRunEndingConditions(game);
+      return {
+        ...test,
+        actual: game.stats.health,
+        endingType: ending?.type || null,
+        pass: game.stats.health === test.expected && Boolean(ending) === test.ends &&
+          (!test.ends || ending.type === "death"),
+      };
+    });
+    return { pass: cases.every((test) => test.pass), cases };
   }
 
   function runHakiDecisiveAudit() {
@@ -13379,6 +13776,35 @@
     const reloaded = normalizeGame(cloneData(game));
     const reloadEntries = reloaded.legendaryArcs.talent.performance.entries;
 
+    const calendarGame = createDefaultGameState({
+      name: "Audit calendrier", faction: "pirate", dream: "one-piece", origin: "east-blue", traits: [],
+    });
+    calendarGame.route = createSimulationRoute("east-blue");
+    const placeAt = (month, zoneId) => {
+      calendarGame.month = month;
+      calendarGame.currentZoneIndex = calendarGame.route.findIndex((zone) => zone.id === zoneId);
+    };
+    placeAt(11, "grand-line");
+    const talentSelected = evaluateLegendaryArc("talent", calendarGame, () => 0);
+    calendarGame.legendaryArcs.talent.status = "succeeded";
+    placeAt(13, "red-line");
+    const marinefordSelected = evaluateLegendaryArc("marineford", calendarGame, () => 0);
+    calendarGame.legendaryArcs.marineford.status = "succeeded";
+    placeAt(24, "shinsekai");
+    const emperorSelected = evaluateLegendaryArc("emperor", calendarGame, () => 0);
+    calendarGame.legendaryArcs.emperor.status = "succeeded";
+    const finalDreamAvailable = getBossEvents().some((candidate) =>
+      candidate.decisiveStage === 3 && candidate.dreamIds.includes(calendarGame.character.dream) &&
+      (!candidate.factions.length || candidate.factions.includes(calendarGame.character.faction)));
+    const calendar = {
+      talentSelected,
+      marinefordSelected,
+      emperorSelected,
+      finalDreamAvailable,
+      independentStatuses: ["talent", "marineford", "emperor"].every((arcId) =>
+        calendarGame.legendaryArcs[arcId].status === "succeeded"),
+    };
+
     const hakiAudit = runHakiDecisiveAudit();
     const report = {
       guaranteed,
@@ -13388,13 +13814,192 @@
       reloadEntryCount: reloadEntries.length,
       reloadScore: reloaded.legendaryArcs.talent.performance.score,
       hakiPass: hakiAudit.pass,
+      calendar,
     };
     report.pass = Object.values(guaranteed).every((chance) => chance === 1) &&
       twoSuccessChances.talent >= 0.75 && twoSuccessChances.marineford >= 0.70 &&
       twoSuccessChances.emperor >= 0.60 && report.threeMixedChance === 0 &&
       report.threeFailuresChance === 0 && report.reloadEntryCount === 1 &&
-      report.reloadScore === ARC_PERFORMANCE_POINTS.success && report.hakiPass;
+      report.reloadScore === ARC_PERFORMANCE_POINTS.success && report.hakiPass &&
+      Object.values(report.calendar).every(Boolean);
     return report;
+  }
+
+  function runLegendaryTitleRevealAudit() {
+    const factions = ["pirate", "marine", "revolutionary", "bounty-hunter"];
+    const emperorIds = Object.keys(LEGENDARY_EMPEROR_TITLES);
+    const successfulPerformance = normalizeArcPerformance({
+      entries: [1, 2, 3].map((step) => ({
+        resolutionId: `legendary-reveal-audit:${step}`,
+        step,
+        tier: "success",
+        points: ARC_PERFORMANCE_POINTS.success,
+        statScore: 70,
+      })),
+    });
+    const makeGame = (faction, arcId, emperorId = null) => {
+      const game = createDefaultGameState({
+        name: "Audit légendaire", faction, dream: "one-piece",
+        origin: "east-blue", traits: [], hasD: false,
+      });
+      game.month = arcId === "talent" ? 12 : arcId === "marineford" ? 13 : 24;
+      game.legendaryArcs[arcId].status = "in-progress";
+      game.legendaryArcs[arcId].step = 3;
+      game.legendaryArcs[arcId].performance = cloneData(successfulPerformance);
+      game.legendaryArcs[arcId].performance.finalRoll = 0;
+      if (arcId === "emperor") game.legendaryArcs.emperor.emperorId = emperorId;
+      return game;
+    };
+    const runSuccessCase = (arcId, faction, emperorId = null) => {
+      const game = makeGame(faction, arcId, emperorId);
+      const titleId = getLegendaryArcTitleId(arcId, game);
+      const titleData = findTitleData(titleId);
+      const earned = finalizeLegendaryArc(arcId, game, () => 0);
+      const reloadedBeforeReveal = normalizeGame(cloneData(game));
+      const rerunEarned = finalizeLegendaryArc(arcId, reloadedBeforeReveal, () => 0);
+      const queuedBeforeReveal = reloadedBeforeReveal.pendingRewardReveals.filter((reveal) =>
+        reveal.type === "title" && reveal.id === titleId);
+      const reloadKeepsReveal = reloadedBeforeReveal.legendaryArcs[arcId].titleRevealPending === true &&
+        queuedBeforeReveal.length === 1;
+      const consumed = reloadedBeforeReveal.pendingRewardReveals.shift();
+      completeLegendaryTitleReveal(reloadedBeforeReveal, consumed?.legendaryArcId);
+      const reloadedAfterReveal = normalizeGame(cloneData(reloadedBeforeReveal));
+      finalizeLegendaryArc(arcId, reloadedAfterReveal, () => 0);
+      return {
+        arcId, faction, emperorId, titleId,
+        name: titleData?.name || null,
+        rarity: titleData?.rarity || null,
+        earned,
+        rerunEarned,
+        titleCount: game.runTitles.filter((title) => getDataId(title) === titleId).length,
+        appliedEffectCount: game.appliedTitleEffects.filter((id) => id === titleId).length,
+        queuedBeforeReveal: queuedBeforeReveal.length,
+        reloadKeepsReveal,
+        consumedOnce: reloadedAfterReveal.legendaryArcs[arcId].titleRevealShown === true &&
+          reloadedAfterReveal.pendingRewardReveals.length === 0,
+        pass: Boolean(titleData) && earned && rerunEarned &&
+          game.runTitles.filter((title) => getDataId(title) === titleId).length === 1 &&
+          game.appliedTitleEffects.filter((id) => id === titleId).length === 1 &&
+          reloadKeepsReveal &&
+          reloadedAfterReveal.legendaryArcs[arcId].titleRevealShown === true &&
+          reloadedAfterReveal.pendingRewardReveals.length === 0,
+      };
+    };
+    const successes = [
+      ...factions.map((faction) => runSuccessCase("talent", faction)),
+      ...factions.map((faction) => runSuccessCase("marineford", faction)),
+      ...emperorIds.map((emperorId) => runSuccessCase("emperor", "pirate", emperorId)),
+    ];
+    const failures = ["talent", "marineford", "emperor"].map((arcId) => {
+      const game = makeGame("pirate", arcId, arcId === "emperor" ? emperorIds[0] : null);
+      game.legendaryArcs[arcId].performance = normalizeArcPerformance({
+        entries: [1, 2, 3].map((step) => ({
+          resolutionId: `legendary-failure-audit:${arcId}:${step}`,
+          step, tier: "failure", points: ARC_PERFORMANCE_POINTS.failure, statScore: 30,
+        })),
+      });
+      const earned = finalizeLegendaryArc(arcId, game, () => 1);
+      return {
+        arcId, earned,
+        titleCount: game.runTitles.length,
+        revealCount: game.pendingRewardReveals.length,
+        pass: !earned && game.runTitles.length === 0 && game.pendingRewardReveals.length === 0,
+      };
+    });
+    const emperorCoverage = emperorIds.map((emperorId) => {
+      const game = makeGame("pirate", "emperor", emperorId);
+      const events = [1, 2, 3].map((step) => getLegendaryArcEvent("emperor", step, game));
+      const titleId = getLegendaryArcTitleId("emperor", game);
+      const visibleText = events.map((event) => [
+        event?.title, event?.description, event?.introDialogue?.speaker,
+        event?.introDialogue?.role, event?.introDialogue?.text,
+      ].filter(Boolean).join(" ")).join(" ");
+      return {
+        emperorId,
+        name: LEGENDARY_EMPEROR_NAMES[emperorId] || null,
+        header: LEGENDARY_EMPEROR_HEADER_NAMES[emperorId] || null,
+        speakers: events.map((event) => event?.introDialogue?.speaker || null),
+        titleId,
+        titleExists: Boolean(findTitleData(titleId)),
+        containsLegacyLuffyText: emperorId === "whitebeard" &&
+          /Luffy|Mugiwara|Chapeau de paille|Jinbe|Zoro/i.test(visibleText),
+        pass: Boolean(LEGENDARY_EMPEROR_NAMES[emperorId]) &&
+          Boolean(LEGENDARY_EMPEROR_HEADER_NAMES[emperorId]) &&
+          events.every((event) => Boolean(event?.introDialogue?.speaker && event?.introDialogue?.text)) &&
+          Boolean(findTitleData(titleId)) &&
+          !(emperorId === "whitebeard" && /Luffy|Mugiwara|Chapeau de paille|Jinbe|Zoro/i.test(visibleText)),
+      };
+    });
+    const expectedPools = {
+      pirate: ["blackbeard", "kaido", "big-mom", "shanks"],
+      marine: ["whitebeard", "buggy", "blackbeard", "shanks"],
+      "bounty-hunter": ["buggy", "blackbeard", "kaido"],
+      revolutionary: ["blackbeard", "kaido", "big-mom", "shanks", "whitebeard"],
+    };
+    const poolsPass = Object.entries(expectedPools).every(([faction, expected]) =>
+      JSON.stringify(LEGENDARY_EMPERORS[faction]) === JSON.stringify(expected) &&
+      !LEGENDARY_EMPERORS[faction].includes("luffy"));
+    const legacyGame = makeGame("marine", "emperor", "luffy");
+    legacyGame.runTitles = [{
+      id: "adversaire-du-chapeau-de-paille",
+      name: "Adversaire du Chapeau de paille",
+      effects: { immediate: { health: 3, combat: 3, charisma: 3 }, popularity: 3 },
+    }];
+    legacyGame.appliedTitleEffects = ["adversaire-du-chapeau-de-paille"];
+    legacyGame.legendaryArcs.emperor.titleId = "adversaire-du-chapeau-de-paille";
+    legacyGame.currentEvent = cloneData(getLegendaryArcEvents().find((event) =>
+      event.id === "legendary-emperor-marine-1"));
+    legacyGame.currentEventId = legacyGame.currentEvent?.id || null;
+    legacyGame.pendingDialogue = {
+      eventId: legacyGame.currentEventId,
+      index: 0,
+      slides: [{ speaker: "Jinbe", role: "Legacy", text: "Ancien dialogue." }],
+    };
+    const legacyStats = cloneData(legacyGame.stats);
+    const migratedGame = normalizeGame(cloneData(legacyGame));
+    const migratedProfile = normalizeProfile({
+      titles: [
+        { id: "adversaire-du-chapeau-de-paille", name: "Adversaire du Chapeau de paille" },
+        { id: "rival-de-barbe-blanche", name: "Rival de Barbe Blanche" },
+      ],
+      pantheon: [{
+        id: "legacy-luffy-run", name: "Ancienne légende", faction: "marine",
+        stats: legacyStats,
+        runTitles: [{ id: "adversaire-du-chapeau-de-paille", name: "Adversaire du Chapeau de paille" }],
+        legendaryArcs: { emperor: {
+          status: "succeeded", step: 3, emperorId: "luffy",
+          titleId: "adversaire-du-chapeau-de-paille",
+        } },
+      }],
+    });
+    const legacyMigration = {
+      emperorId: migratedGame.legendaryArcs.emperor.emperorId,
+      titleIds: migratedGame.runTitles.map(getDataId),
+      appliedEffectIds: migratedGame.appliedTitleEffects,
+      statsUnchanged: ["health", "combat", "haki", "intelligence", "charisma", "bounty", "fortune", "crew"]
+        .every((stat) => Number(migratedGame.stats[stat]) === Number(legacyStats[stat])),
+      currentSpeaker: migratedGame.pendingDialogue?.slides?.[0]?.speaker || null,
+      profileTitleIds: migratedProfile.titles.map(getDataId),
+      pantheonTitleIds: migratedProfile.pantheon[0]?.runTitles?.map(getDataId) || [],
+      pantheonEmperorId: migratedProfile.pantheon[0]?.legendaryArcs?.emperor?.emperorId || null,
+    };
+    legacyMigration.pass = legacyMigration.emperorId === "whitebeard" &&
+      JSON.stringify(legacyMigration.titleIds) === JSON.stringify(["rival-de-barbe-blanche"]) &&
+      legacyMigration.appliedEffectIds.includes("rival-de-barbe-blanche") &&
+      legacyMigration.statsUnchanged && legacyMigration.currentSpeaker === "Marco" &&
+      JSON.stringify(legacyMigration.profileTitleIds) === JSON.stringify(["rival-de-barbe-blanche"]) &&
+      JSON.stringify(legacyMigration.pantheonTitleIds) === JSON.stringify(["rival-de-barbe-blanche"]) &&
+      legacyMigration.pantheonEmperorId === "whitebeard";
+    return {
+      pass: successes.every((test) => test.pass) && failures.every((test) => test.pass) &&
+        emperorCoverage.every((test) => test.pass) && poolsPass && legacyMigration.pass,
+      successes,
+      failures,
+      emperorCoverage,
+      pools: cloneData(LEGENDARY_EMPERORS),
+      poolsPass,
+      legacyMigration,
+    };
   }
 
   function runFinalDreamResolutionAudit() {
@@ -13460,6 +14065,45 @@
       careerReadiness: cloneData(strongMixed.finalDreamResolution),
     };
     const reloaded = normalizeGame(cloneData(strong));
+    const scoreIdentity = [true, false].map((dreamCompleted) => {
+      const scoreGame = createDefaultGameState({
+        name: "Audit score final", faction: "pirate", dream: "one-piece",
+        origin: "east-blue", traits: [], hasD: false,
+      });
+      scoreGame.month = CONFIG.maxMonths;
+      scoreGame.route = createSimulationRoute("east-blue");
+      scoreGame.currentZoneIndex = scoreGame.route.length - 1;
+      scoreGame.visitedZoneIds = scoreGame.route.map((zone) => zone.id);
+      scoreGame.stats = normalizeStats({
+        ...scoreGame.stats, health: 80, combat: 80, haki: 80,
+        intelligence: 80, charisma: 80, bounty: 5000000, fortune: 150000, crew: 6,
+      });
+      scoreGame.bossProgress.finalOutcome = {
+        bossId: "audit-final-score",
+        bossTitle: "Épreuve finale",
+        choiceText: "Choix d’audit",
+        result: dreamCompleted ? "Le rêve est accompli." : "Le rêve demeure inachevé.",
+        dreamCompleted,
+        dreamId: "one-piece",
+        factionId: "pirate",
+        survived: true,
+        outcomeTier: dreamCompleted ? "success" : "failure",
+      };
+      const prepared = prepareFinalCareerScoring(scoreGame);
+      const resumed = normalizeGame(cloneData(scoreGame));
+      scoreGame.ending = prepared.ending;
+      refreshPopularityScore(scoreGame);
+      const entry = createPantheonEntry(prepared.ending, prepared.finalTitle, scoreGame);
+      return {
+        dreamCompleted,
+        slide: prepared.popularity,
+        pantheon: entry.popularityScore,
+        leaderboard: entry.popularityScore,
+        reload: resumed.stats.popularity,
+        pass: prepared.popularity === entry.popularityScore &&
+          prepared.popularity === resumed.stats.popularity,
+      };
+    });
     const cases = {
       A_successCompletes: isFinalDreamSuccess(strongSuccess, event, strong),
       B_mixedUsesCareer: isFinalDreamSuccess(strongMixed, event, strong) &&
@@ -13473,7 +14117,11 @@
       H_reloadDoesNotReroll: JSON.stringify(reloaded.bossProgress.finalOutcome) ===
         JSON.stringify(strong.bossProgress.finalOutcome),
     };
-    return { pass: Object.values(cases).every(Boolean), cases };
+    return {
+      pass: Object.values(cases).every(Boolean) && scoreIdentity.every((test) => test.pass),
+      cases,
+      scoreIdentity,
+    };
   }
 
   function runCollectionCatalogAudit() {
@@ -13488,12 +14136,12 @@
       "admiral", "fleet-admiral", "reform-the-marines", "greatest-marine-hero",
     ];
     const specialZones = (window.GAME_DATA?.zones || []).filter((zone) => zone.special).map((zone) => zone.id);
-    const richRuns = Array.from({ length: 10 }, (_, index) => ({
+    const richRuns = Array.from({ length: 25 }, (_, index) => ({
       id: `audit-run-${index}`,
       faction: factions[index % factions.length],
       origin: origins[index % origins.length],
-      dream: dreams[index],
-      dreamCompleted: index < 4,
+      dream: dreams[index % dreams.length],
+      dreamCompleted: index < 16,
       hasD: index === 0,
       duration: 24,
       finishedAt: new Date(2025, 0, index + 1).toISOString(),
@@ -13712,9 +14360,13 @@
     simulateWillOfD,
     runWillOfDAudit,
     runCharacterNameAudit,
+    runHealthEndingAudit,
     runHakiDecisiveAudit,
     runArcPerformanceAudit,
+    runLegendaryTitleRevealAudit,
     runFinalDreamResolutionAudit,
+    runEmperorRunKillerAudit,
+    debugTriggerEmperorRunKiller,
     validateRunRewards,
     normalizeRarity,
     getFactionRenownMeta,
@@ -13726,6 +14378,7 @@
     runBlueLegacySelectionSimulations,
     runBalanceSimulation,
     runBalanceAudit,
+    runChoicePositionAudit,
     runBigNewsEditorialAudit,
     getRarityLabel,
     getRarityIcon,
@@ -13770,6 +14423,7 @@
   window.BLUE_LEGACY_DEV = Object.freeze({
     runBalanceSimulation,
     runBalanceAudit,
+    runChoicePositionAudit,
     runBalanceValidation: runBlueLegacyEventAudit,
     getOutcomeTierProbabilities,
     runCareerFinalTitleAudit,
@@ -13777,9 +14431,12 @@
     simulateWillOfD,
     runWillOfDAudit,
     runCharacterNameAudit,
+    runHealthEndingAudit,
     runHakiDecisiveAudit,
     runArcPerformanceAudit,
     runFinalDreamResolutionAudit,
+    runEmperorRunKillerAudit,
+    debugTriggerEmperorRunKiller,
   });
 
   /* ========================================================
@@ -13810,6 +14467,16 @@
       const report = runBalanceSimulation({ runsPerFaction, seed });
       document.documentElement.dataset.balanceAudit = JSON.stringify(report);
     }
+    if (developmentQuery.has("choiceAudit")) {
+      document.documentElement.dataset.choiceAudit = JSON.stringify(runChoicePositionAudit());
+    }
+    if (developmentQuery.has("fullBalanceAudit")) {
+      const runsPerFaction = Math.max(1, Number(developmentQuery.get("runsPerFaction")) || 250);
+      const seed = Number(developmentQuery.get("balanceSeed")) || 16082026;
+      document.documentElement.dataset.fullBalanceAudit = JSON.stringify(
+        runBalanceAudit({ runsPerFaction, seed }),
+      );
+    }
     if (developmentQuery.has("careerTitleAudit")) {
       document.documentElement.dataset.careerTitleAudit = JSON.stringify(runCareerFinalTitleAudit());
     }
@@ -13822,8 +14489,24 @@
     if (developmentQuery.has("dAudit")) {
       document.documentElement.dataset.dAudit = JSON.stringify(runWillOfDAudit());
     }
+    if (developmentQuery.has("legendaryRevealAudit")) {
+      document.documentElement.dataset.legendaryRevealAudit = JSON.stringify(
+        runLegendaryTitleRevealAudit(),
+      );
+    }
     if (developmentQuery.has("nameAudit")) {
       document.documentElement.dataset.nameAudit = JSON.stringify(runCharacterNameAudit());
+    }
+    if (developmentQuery.has("healthAudit")) {
+      document.documentElement.dataset.healthAudit = JSON.stringify(runHealthEndingAudit());
+    }
+    if (developmentQuery.has("emperorRunKillerAudit")) {
+      document.documentElement.dataset.emperorRunKillerAudit = JSON.stringify(
+        runEmperorRunKillerAudit({
+          runs: Number(developmentQuery.get("runs")) || 100000,
+          seed: Number(developmentQuery.get("seed")) || 19082026,
+        }),
+      );
     }
     state.screen = SCREEN.HOME;
 
@@ -13844,6 +14527,42 @@
           viewport: [window.innerWidth, window.innerHeight],
           cards: cards.length,
           cardWidths: cards.map((card) => Math.round(card.getBoundingClientRect().width)),
+          horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        });
+      });
+    }
+    if (developmentQuery.has("dreamConclusionPreview")) {
+      const dreamCompleted = developmentQuery.get("dreamConclusionPreview") !== "failure";
+      const preview = createDefaultGameState({
+        name: "Aperçu", faction: "pirate", dream: "one-piece",
+        origin: "east-blue", traits: [], hasD: false,
+      });
+      preview.month = CONFIG.maxMonths;
+      preview.route = createSimulationRoute("east-blue");
+      preview.currentZoneIndex = preview.route.length - 1;
+      preview.bossProgress.finalOutcome = {
+        bossTitle: "Épreuve finale", choiceText: "Choix d’aperçu",
+        result: dreamCompleted ? "Ton rêve est désormais accompli." : "Ton rêve demeure hors de portée.",
+        dreamCompleted, dreamId: "one-piece", factionId: "pirate", survived: true,
+        outcomeTier: dreamCompleted ? "success" : "failure",
+      };
+      preview.pendingZoneTransition = {
+        ...createZoneTransitionData(getCurrentZone(preview), preview.currentZoneIndex,
+          dreamCompleted ? "dream-success-conclusion" : "dream-failure-conclusion", preview),
+        ...(dreamCompleted ? { description: preview.bossProgress.finalOutcome.result }
+          : getFinalDreamFailureCopy(preview)),
+        buttonLabel: "Découvrir la fin de ma carrière",
+      };
+      state.game = preview;
+      openScreen(SCREEN.ZONE_TRANSITION, { save: false });
+      requestAnimationFrame(() => {
+        const score = dom.dreamConclusionPopularity?.getBoundingClientRect();
+        const asset = dom.transitionFeatureAsset?.getBoundingClientRect();
+        document.documentElement.dataset.dreamConclusionLayoutAudit = JSON.stringify({
+          viewport: [window.innerWidth, window.innerHeight],
+          scoreVisible: !dom.dreamConclusionPopularity?.hidden,
+          score: score ? { left: score.left, right: score.right, top: score.top, bottom: score.bottom } : null,
+          assetBottom: asset?.bottom || 0,
           horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
         });
       });
@@ -14489,6 +15208,7 @@
     const statIds = ["health", "combat", "haki", "intelligence", "charisma", "bounty", "fortune", "crew"];
     return {
       runs: runs.length,
+      maximum: sorted.at(-1) || 0,
       completionRate: mean(runs.map((run) => run.completed ? 1 : 0)),
       popularityMean: mean(sorted), median: percentile(0.5), p10: percentile(0.1), p25: percentile(0.25),
       p75: percentile(0.75), p90: percentile(0.9), p95: percentile(0.95), p99: percentile(0.99),
@@ -14511,6 +15231,58 @@
       titleOccurrences: Object.fromEntries(getAllTitles()
         .filter((title) => !title.finalTitle)
         .map((title) => [title.id, runs.filter((run) => run.titleIds?.includes(title.id)).length])),
+    };
+  }
+
+  function runChoicePositionAudit() {
+    const profiles = {
+      balanced: { health: 50, combat: 50, haki: 50, intelligence: 50, charisma: 50 },
+      combatDefense: { health: 55, combat: 80, haki: 75, intelligence: 35, charisma: 35 },
+      healthDefense: { health: 80, combat: 45, haki: 75, intelligence: 35, charisma: 35 },
+      intelligence: { health: 45, combat: 35, haki: 40, intelligence: 85, charisma: 45 },
+      charisma: { health: 45, combat: 35, haki: 40, intelligence: 45, charisma: 85 },
+      weak: { health: 30, combat: 30, haki: 30, intelligence: 30, charisma: 30 },
+      strong: { health: 80, combat: 80, haki: 80, intelligence: 80, charisma: 80 },
+    };
+    const summarize = (eventType, profileStats) => {
+      const game = createDefaultGameState({
+        name: "Audit choix", faction: "pirate", dream: "one-piece", origin: "east-blue",
+        traits: [], hasD: false,
+      });
+      game.stats = normalizeStats({ ...game.stats, ...profileStats, bounty: 1000000, fortune: 50000, crew: 3 });
+      game.route = [{ id: "grand-line", routeStage: 3 }];
+      const rows = getAllEvents().filter((event) => event.eventType === eventType)
+        .flatMap((event) => event.choices.map((choice, index) => {
+          const probabilities = getOutcomeTierProbabilities(game, event, choice);
+          return {
+            index,
+            score: getEventResolutionScore(game, event, choice),
+            favorable: (probabilities.success || 0) + (probabilities.exceptional_success || 0),
+            unfavorable: (probabilities.failure || 0) + (probabilities.severe_failure || 0),
+          };
+        }));
+      return Object.fromEntries([0, 1, 2].map((index) => {
+        const matches = rows.filter((row) => row.index === index);
+        const mean = (key) => matches.length
+          ? matches.reduce((sum, row) => sum + row[key], 0) / matches.length
+          : null;
+        return [index + 1, { choices: matches.length, resolutionScore: mean("score"), favorable: mean("favorable"), unfavorable: mean("unfavorable") }];
+      }));
+    };
+    const byTypeAndProfile = Object.fromEntries(["ordinary", "risk"].map((eventType) => [
+      eventType,
+      Object.fromEntries(Object.entries(profiles).map(([profile, stats]) => [profile, summarize(eventType, stats)])),
+    ]));
+    const comparableRows = Object.values(byTypeAndProfile).flatMap((byProfile) => Object.values(byProfile));
+    const secondChoiceAdvantages = comparableRows.map((row) =>
+      Number(row[2]?.favorable || 0) - Number(row[1]?.favorable || 0));
+    const averageSecondAdvantage = secondChoiceAdvantages.reduce((sum, value) => sum + value, 0) /
+      Math.max(1, secondChoiceAdvantages.length);
+    return {
+      byTypeAndProfile,
+      averageSecondAdvantage,
+      systemicSecondChoiceBias: averageSecondAdvantage > 0.04,
+      pass: Math.abs(averageSecondAdvantage) <= 0.04,
     };
   }
 
@@ -14578,6 +15350,10 @@
       game.route = Array.from({ length: 6 }, (_, index) => ({ ...zone, routeIndex: index, routeStage: index + 1 }));
       game.month = Math.max(1, Number(event.minMonth) || 12);
       game.currentZoneIndex = getZoneIndexForMonth(game.month);
+      if (event.tags?.includes("canonical-special-arc")) {
+        game.specialZoneId = zoneId;
+        game.specialZoneRouteIndex = game.currentZoneIndex;
+      }
       game.stats = normalizeStats({ health: 100, combat: 100, haki: 100, intelligence: 100,
         charisma: 100, bounty: 20000000, fortune: 1000000, crew: 10, popularity: 100 });
       game.flags = { ...game.flags, ...(event.requiredFlags || {}) };
@@ -14630,9 +15406,20 @@
         writtenButNeverReadByEvent: [...writtenFlags].filter((id) => !readFlags.has(id)),
       },
       simulations: runBalanceSimulation({ runsPerFaction, seed: options.seed || 16082026 }),
+      choicePositions: runChoicePositionAudit(),
+      systems: {
+        health: runHealthEndingAudit(),
+        willOfD: runWillOfDAudit(),
+        shop: runShopSystemAudit(),
+        legendaryArcs: runArcPerformanceAudit(),
+        legendaryTitleReveals: runLegendaryTitleRevealAudit(),
+        finalDream: runFinalDreamResolutionAudit(),
+        emperorRunKiller: runEmperorRunKillerAudit(),
+      },
     };
     report.pass = !report.events.inaccessible.length && !invalidReferences.length &&
-      !report.titles.potentiallyImpossible.length && !report.achievements.impossible.length;
+      !report.titles.potentiallyImpossible.length && !report.achievements.impossible.length &&
+      report.choicePositions.pass && Object.values(report.systems).every((audit) => audit.pass);
     console.warn("[Blue Legacy] BALANCE_AUDIT", report);
     return report;
   }

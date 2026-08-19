@@ -413,10 +413,10 @@
   }
 
   function getRankTierClass(rank) {
-    if (rank === 1) return "leaderboard-rank-mythic";
-    if (rank >= 2 && rank <= 5) return "leaderboard-rank-gold";
-    if (rank >= 6 && rank <= 15) return "leaderboard-rank-silver";
-    if (rank >= 16 && rank <= 50) return "leaderboard-rank-bronze";
+    if (rank >= 1 && rank <= 3) return "leaderboard-rank-mythic";
+    if (rank >= 4 && rank <= 10) return "leaderboard-rank-gold";
+    if (rank >= 11 && rank <= 24) return "leaderboard-rank-silver";
+    if (rank >= 25 && rank <= 50) return "leaderboard-rank-bronze";
     return "";
   }
 
