@@ -179,6 +179,12 @@
     summary: "summary-slide",
   });
 
+  const FACTION_RENOWN_INTERNAL_MAX = 20_000_000;
+  const FACTION_RENOWN_DISPLAY_MAX = 6_000_000_000;
+  const FRENCH_INTEGER_FORMATTER = new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 0,
+  });
+
   const STATS = Object.freeze({
     health: { label: "Santé", icon: "❤️", min: 0, max: 100 },
     combat: { label: "Combat", icon: "⚔️", min: 1, max: 100 },
@@ -187,7 +193,7 @@
     haki: { label: "Défense", icon: "🛡️", min: 1, max: 100 },
     intelligence: { label: "Intelligence", icon: "🧠", min: 1, max: 100 },
     charisma: { label: "Charisme", icon: "✨", min: 1, max: 100 },
-    bounty: { label: "Prime", icon: "☠️", min: 0, max: 20000000, money: true },
+    bounty: { label: "Prime", icon: "☠️", min: 0, max: FACTION_RENOWN_INTERNAL_MAX, money: true },
     fortune: { label: "Fortune", icon: "💰", min: 0, max: 1000000, money: true },
     crew: { label: "Équipage", icon: "👥", min: 0, max: 10 },
     popularity: { label: "Popularité", icon: "⭐", min: 1, max: 100 },
@@ -379,6 +385,7 @@
     game: null,
     result: null,
     selectedPastLifeId: null,
+    pantheonScrollPosition: 0,
     returnScreen: SCREEN.HOME,
     resumeScreen: SCREEN.GAME,
     gameStatsExpanded: false,
@@ -1478,6 +1485,25 @@
     });
   }
 
+  function restoreDocumentScrollAfterScreenChange(scrollTop) {
+    const scrollingElement = document.scrollingElement || document.documentElement;
+    const targetScrollTop = Math.max(0, Number(scrollTop) || 0);
+    const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = "auto";
+
+    const restore = () => {
+      scrollingElement.scrollTop = targetScrollTop;
+      document.body.scrollTop = targetScrollTop;
+      window.scrollTo(0, targetScrollTop);
+    };
+
+    restore();
+    requestAnimationFrame(() => {
+      restore();
+      document.documentElement.style.scrollBehavior = previousScrollBehavior;
+    });
+  }
+
   function openScreen(screenName, options = {}) {
     if (!SCREEN_IDS[screenName]) {
       screenName = SCREEN.HOME;
@@ -1498,7 +1524,12 @@
     showScreen(SCREEN_IDS[screenName]);
     updateScreen(screenName);
 
-    if (shouldResetHomeNavigationScroll(previousScreen, screenName)) {
+    if (previousScreen === SCREEN.PAST_LIFE && screenName === SCREEN.PANTHEON) {
+      restoreDocumentScrollAfterScreenChange(state.pantheonScrollPosition);
+    } else if (
+      shouldResetHomeNavigationScroll(previousScreen, screenName) ||
+      (previousScreen === SCREEN.PANTHEON && screenName === SCREEN.PAST_LIFE)
+    ) {
       resetDocumentScrollAfterScreenChange();
     }
 
@@ -1701,6 +1732,12 @@
     return value === null || !Number.isFinite(Number(value)) ? "—" : money ? `${formatBerryAmount(value)} berrys` : String(Math.floor(Number(value)));
   }
 
+  function renownRecordDisplay(value) {
+    return value === null || !Number.isFinite(Number(value))
+      ? "—"
+      : formatFactionRenownDisplayValue(value);
+  }
+
   function updateStatisticsScreen() {
     if (!dom.statisticsContent) return;
     const profile = getProfile();
@@ -1714,7 +1751,7 @@
     const editIdentityButtonHtml = editing ? "" : `<button class="statistics-edit-button" data-statistics-edit-identity type="button">Modifier</button>`;
     const backgroundsHtml = state.statisticsAppearanceOpen ? `<div class="background-selector" aria-label="Fonds possédés">${ownedBackgrounds.map((item) => `<button type="button" class="background-choice" data-statistics-background="${escapeAttribute(item.id)}" data-background="${escapeAttribute(item.id)}" aria-pressed="${item.id === profile.profileCosmetics.selectedBackground}"><span>${escapeHtml(item.name)}</span><small>${item.id === profile.profileCosmetics.selectedBackground ? "Actif" : "Sélectionner"}</small></button>`).join("")}</div>` : "";
     const dControl = profile.profileCosmetics.ownsCosmeticD ? `<label class="cosmetic-d-toggle"><input type="checkbox" data-statistics-cosmetic-d ${profile.profileCosmetics.showD ? "checked" : ""}> Afficher le D.</label>` : '<p class="locked-cosmetic">🔒 D. cosmétique · À débloquer dans la Boutique</p>';
-    dom.statisticsContent.innerHTML = `<article class="legend-card" data-background="${escapeAttribute(profile.profileCosmetics.selectedBackground)}"><header class="legend-card-header"><div class="legend-card-identity"><p>CARTE DE LÉGENDE</p><h3 id="profile-identity-display"></h3></div><div class="legend-card-header-actions">${editIdentityButtonHtml}<img src="assets/icone.png" alt="Emblème Blue Legacy"></div></header>${identityFormHtml}<p class="legend-popularity">⭐ Record de Popularité : <strong>${recordDisplay(summary.popularity)}${summary.popularity === null ? "" : " / 100"}</strong></p><div class="legend-highlights"><span>🌊 Aventures <strong>${summary.started}</strong></span><span>✨ Rêves accomplis <strong>${summary.dreamsCompleted}</strong></span><span>👑 Runs exceptionnelles <strong>${summary.exceptionalRuns}</strong></span></div><section><h4>Records</h4><div class="legend-records">${recordCells}</div></section><div class="legend-collections"><span>🏆 Succès ${profile.achievements.length}/${getAllAchievements().length}</span><span>🎖️ Titres ${profile.titles.length}/${getAllTitles().length}</span><span>🎒 Objets ${profile.ownedShopItems.length}/${getShopItems().length}</span></div><p class="legend-faction">Voie favorite : <strong>${escapeHtml(summary.favoriteFaction)}</strong></p></article><section class="card-customization"><div><h3>Personnaliser la carte</h3><p>Utilise uniquement les cosmétiques déjà possédés.</p></div><button class="button" data-statistics-toggle-appearance type="button" aria-expanded="${state.statisticsAppearanceOpen}">🎨 Changer le fond</button>${backgroundsHtml}${dControl}</section><section class="detailed-statistics"><h3>Statistiques détaillées</h3><dl><div><dt>Aventures lancées</dt><dd>${summary.started}</dd></div><div><dt>Aventures terminées</dt><dd>${summary.completed}</dd></div><div><dt>Abandons connus</dt><dd>${summary.abandoned}</dd></div><div><dt>Meilleure Fortune</dt><dd>${recordDisplay(summary.bestFortune, true)}</dd></div><div><dt>Record de renommée</dt><dd>${recordDisplay(summary.bestRenown, true)}</dd></div><div><dt>Plus grand équipage</dt><dd>${recordDisplay(summary.largestCrew)}</dd></div><div><dt>Titres maximum dans une run</dt><dd>${recordDisplay(summary.mostTitles)}</dd></div><div><dt>Compagnons maximum</dt><dd>${recordDisplay(summary.mostCompanions)}</dd></div><div><dt>Fruits découverts</dt><dd>${summary.fruitsDiscovered}</dd></div></dl></section>`;
+    dom.statisticsContent.innerHTML = `<article class="legend-card" data-background="${escapeAttribute(profile.profileCosmetics.selectedBackground)}"><header class="legend-card-header"><div class="legend-card-identity"><p>CARTE DE LÉGENDE</p><h3 id="profile-identity-display"></h3></div><div class="legend-card-header-actions">${editIdentityButtonHtml}<img src="assets/icone.png" alt="Emblème Blue Legacy"></div></header>${identityFormHtml}<p class="legend-popularity">⭐ Record de Popularité : <strong>${recordDisplay(summary.popularity)}${summary.popularity === null ? "" : " / 100"}</strong></p><div class="legend-highlights"><span>🌊 Aventures <strong>${summary.started}</strong></span><span>✨ Rêves accomplis <strong>${summary.dreamsCompleted}</strong></span><span>👑 Runs exceptionnelles <strong>${summary.exceptionalRuns}</strong></span></div><section><h4>Records</h4><div class="legend-records">${recordCells}</div></section><div class="legend-collections"><span>🏆 Succès ${profile.achievements.length}/${getAllAchievements().length}</span><span>🎖️ Titres ${profile.titles.length}/${getAllTitles().length}</span><span>🎒 Objets ${profile.ownedShopItems.length}/${getShopItems().length}</span></div><p class="legend-faction">Voie favorite : <strong>${escapeHtml(summary.favoriteFaction)}</strong></p></article><section class="card-customization"><div><h3>Personnaliser la carte</h3><p>Utilise uniquement les cosmétiques déjà possédés.</p></div><button class="button" data-statistics-toggle-appearance type="button" aria-expanded="${state.statisticsAppearanceOpen}">🎨 Changer le fond</button>${backgroundsHtml}${dControl}</section><section class="detailed-statistics"><h3>Statistiques détaillées</h3><dl><div><dt>Aventures lancées</dt><dd>${summary.started}</dd></div><div><dt>Aventures terminées</dt><dd>${summary.completed}</dd></div><div><dt>Abandons connus</dt><dd>${summary.abandoned}</dd></div><div><dt>Meilleure Fortune</dt><dd>${recordDisplay(summary.bestFortune, true)}</dd></div><div><dt>Record de renommée</dt><dd>${renownRecordDisplay(summary.bestRenown)}</dd></div><div><dt>Plus grand équipage</dt><dd>${recordDisplay(summary.largestCrew)}</dd></div><div><dt>Titres maximum dans une run</dt><dd>${recordDisplay(summary.mostTitles)}</dd></div><div><dt>Compagnons maximum</dt><dd>${recordDisplay(summary.mostCompanions)}</dd></div><div><dt>Fruits découverts</dt><dd>${recordDisplay(summary.fruitsDiscovered)}</dd></div></dl></section>`;
     renderPlayerIdentity(document.getElementById("profile-identity-display"), profile);
   }
 
@@ -2840,7 +2877,12 @@
   }
 
   function formatStatValue(key, value) {
-    const stat = getStatDefinition(key);
+    const normalizedKey = normalizeStatKey(key);
+    const stat = getStatDefinition(normalizedKey);
+
+    if (normalizedKey === "bounty") {
+      return formatFactionRenownDisplayValue(value);
+    }
 
     return stat.money
       ? formatMoney(value)
@@ -2849,7 +2891,83 @@
 
   function formatStatDelta(key, value) {
     const number = Number(value) || 0;
+    if (normalizeStatKey(key) === "bounty") {
+      return `${number > 0 ? "+" : ""}${formatFactionRenownDisplayDelta(number)}`;
+    }
     return `${number > 0 ? "+" : ""}${formatStatValue(key, number)}`;
+  }
+
+  function getFactionRenownDisplayValue(value) {
+    const internalValue = Math.max(
+      0,
+      Math.min(FACTION_RENOWN_INTERNAL_MAX, Number(value) || 0),
+    );
+    return Math.round(
+      internalValue / FACTION_RENOWN_INTERNAL_MAX * FACTION_RENOWN_DISPLAY_MAX,
+    );
+  }
+
+  function getFactionRenownDisplayDelta(value) {
+    const internalDelta = Math.max(
+      -FACTION_RENOWN_INTERNAL_MAX,
+      Math.min(FACTION_RENOWN_INTERNAL_MAX, Number(value) || 0),
+    );
+    return Math.round(
+      internalDelta / FACTION_RENOWN_INTERNAL_MAX * FACTION_RENOWN_DISPLAY_MAX,
+    );
+  }
+
+  function formatFactionRenownDisplayValue(value) {
+    return FRENCH_INTEGER_FORMATTER.format(getFactionRenownDisplayValue(value));
+  }
+
+  function formatFactionRenownDisplayDelta(value) {
+    return FRENCH_INTEGER_FORMATTER.format(getFactionRenownDisplayDelta(value));
+  }
+
+  function runFactionRenownDisplayAudit() {
+    const ratios = [0, 0.25, 0.5, 0.75, 1];
+    const conversions = ratios.map((ratio) => {
+      const internal = FACTION_RENOWN_INTERNAL_MAX * ratio;
+      const expected = FACTION_RENOWN_DISPLAY_MAX * ratio;
+      const displayed = getFactionRenownDisplayValue(internal);
+      return { ratio, internal, displayed, expected, pass: displayed === expected };
+    });
+    const factions = ["pirate", "marine", "bounty-hunter", "revolutionary"]
+      .map((faction) => ({ faction, label: getFactionRenownMeta(faction).label }));
+    const historical = normalizeStats({ bounty: FACTION_RENOWN_INTERNAL_MAX / 2 });
+    const scoreSource = {
+      faction: "pirate",
+      stats: historical,
+      month: 12,
+      currentZoneIndex: 2,
+      visitedZoneIds: ["east-blue", "reverse-mountain", "grand-line"],
+      crewMembers: [],
+      runTitles: [],
+      importantEvents: [],
+      flags: {},
+    };
+    const popularityBeforeFormatting = calculateFactionRenownScore(scoreSource);
+    formatFactionRenownDisplayValue(historical.bounty);
+    const popularityAfterFormatting = calculateFactionRenownScore(scoreSource);
+    const checks = {
+      conversions: conversions.every((entry) => entry.pass),
+      maximum: getFactionRenownDisplayValue(FACTION_RENOWN_INTERNAL_MAX + 1) === FACTION_RENOWN_DISPLAY_MAX,
+      minimum: getFactionRenownDisplayValue(-1) === 0,
+      gain: getFactionRenownDisplayDelta(100_000) === 30_000_000,
+      loss: getFactionRenownDisplayDelta(-100_000) === -30_000_000,
+      historicalInternalValuePreserved: historical.bounty === FACTION_RENOWN_INTERNAL_MAX / 2,
+      popularityWeightPreserved: popularityBeforeFormatting === popularityAfterFormatting,
+      factionLabels: factions.map((entry) => entry.label).join("|") === "Prime|Autorité|Renommée|Dangerosité",
+    };
+    return {
+      pass: conversions.every((entry) => entry.pass) && Object.values(checks).every(Boolean),
+      internalMaximum: FACTION_RENOWN_INTERNAL_MAX,
+      displayMaximum: FACTION_RENOWN_DISPLAY_MAX,
+      conversions,
+      factions,
+      checks,
+    };
   }
 
   function getInitialStats(character, equippedShopItems = getProfile().equippedShopItems) {
@@ -10519,6 +10637,12 @@
     }
 
     state.selectedPastLifeId = entryId;
+    state.pantheonScrollPosition = Math.max(
+      0,
+      Number((document.scrollingElement || document.documentElement).scrollTop) ||
+        Number(window.scrollY) ||
+        0,
+    );
 
     openScreen(
       SCREEN.PAST_LIFE,
@@ -11729,7 +11853,7 @@
     dom.pastLives.innerHTML =
       pantheon
         .map(
-          (entry) => {
+          (entry, index) => {
             const popularityScore = clampCareerScore(
               entry.popularityScore ?? calculatePopularityScore(entry),
             );
@@ -11742,26 +11866,34 @@
             const characterName = entry.name || "Légende sans nom";
             const dream = findDreamData(entry.dream, entry.faction);
             const dreamLabel = dream?.label || dream?.name || entry.dream || "Rêve non enregistré";
-            const careerText = entry.popularityText || "Une carrière désormais inscrite dans les mémoires.";
             const dreamCompleted = entry.dreamCompleted === true || entry.ending?.dreamCompleted === true;
+            const factionLabel = getFactionLabel(entry.faction) || "Faction non enregistrée";
+            const registerNumber = pantheon.length - index;
+            const popularityTier =
+              popularityScore >= 95
+                ? "mythic"
+                : popularityScore >= 85
+                  ? "exceptional"
+                  : popularityScore >= 70
+                    ? "renowned"
+                    : "recorded";
             return `
             <button
               class="collection-card past-life-card rarity-${escapeAttribute(rarity)}"
               data-past-life-id="${escapeAttribute(entry.id)}"
               data-rarity="${escapeAttribute(rarity)}"
+              data-popularity-tier="${popularityTier}"
               aria-label="Voir la fiche de ${escapeAttribute(characterName)}"
               type="button"
             >
-              <span class="pantheon-card-header">
+              <span class="pantheon-register-index" aria-hidden="true">${String(registerNumber).padStart(2, "0")}</span>
+
+              <span class="pantheon-card-identity">
                 <span class="pantheon-character-heading">
-                  <span class="pantheon-faction-icon" aria-hidden="true">
-                    ${getFactionIcon(entry.faction)}
-                  </span>
-                  <span class="sr-only">
-                    Voie : ${escapeHtml(getFactionLabel(entry.faction))}.
-                  </span>
-                  <span class="pantheon-character-name" role="heading" aria-level="3">
-                    ${escapeHtml(characterName)}
+                  <span class="pantheon-faction-icon" aria-hidden="true">${getFactionIcon(entry.faction)}</span>
+                  <span class="pantheon-character-copy">
+                    <span class="pantheon-character-name" role="heading" aria-level="3">${escapeHtml(characterName)}</span>
+                    <span class="pantheon-character-faction">${escapeHtml(factionLabel)}</span>
                   </span>
                 </span>
                 <span class="pantheon-card-title">
@@ -11772,26 +11904,23 @@
               <span class="pantheon-card-body">
                 <span class="pantheon-dream${dreamCompleted ? " is-complete" : ""}">
                   <span aria-hidden="true">${dreamCompleted ? "✓" : "✦"}</span>
-                  <span>${dreamCompleted ? "Rêve accompli" : `Rêve non accompli : ${escapeHtml(dreamLabel)}`}</span>
+                  <span class="pantheon-dream-copy">
+                    <small>Rêve</small>
+                    <strong>${escapeHtml(dreamLabel)}</strong>
+                    <em>${dreamCompleted ? "Accompli" : "Non accompli"}</em>
+                  </span>
                 </span>
-                <span class="pantheon-career-text">${escapeHtml(careerText)}</span>
-                ${entry.devilFruit ? `<span class="pantheon-asset-badge">${escapeHtml(entry.devilFruit.icon || "🍈")} ${escapeHtml(entry.devilFruit.name || "Fruit du Démon")}</span>` : ""}
-                ${(entry.crewMembers || []).length ? `<span class="pantheon-asset-badge">👥 ${entry.crewMembers.length} compagnon${entry.crewMembers.length > 1 ? "s" : ""}</span>` : ""}
-                ${Object.values(entry.legendaryArcs || {}).some((arc) => arc && !["unassessed", "not-selected"].includes(arc.status)) ? `<span class="pantheon-asset-badge legendary-exploit-badge">◆ Exploit légendaire</span>` : ""}
               </span>
 
-              <span class="pantheon-card-footer">
-                <span class="pantheon-card-meta">
-                  <span class="pantheon-meta-item pantheon-duration">
-                    <span aria-hidden="true">📅</span>
-                    <span>${escapeHtml(formatPantheonDuration(entry))}</span>
-                  </span>
-                  <span class="pantheon-meta-item pantheon-popularity">
-                    <span aria-hidden="true">⭐</span>
-                    <span>Popularité : ${popularityScore} / 100</span>
-                  </span>
-                </span>
-                <span class="pantheon-card-action" aria-hidden="true">Voir la fiche <span>→</span></span>
+              <span class="pantheon-popularity" aria-label="Popularité : ${popularityScore} sur 100">
+                <small>Popularité</small>
+                <strong>${popularityScore}</strong>
+                <span>/ 100</span>
+              </span>
+
+              <span class="pantheon-card-action" aria-hidden="true">
+                <span>Voir la carrière</span>
+                <b>→</b>
               </span>
             </button>
           `;
@@ -13500,15 +13629,22 @@
         thirdEquipBlocked: !thirdEquip,
       };
 
-      saveProfile({ ...createDefaultProfile(), berries: 500 });
+      saveProfile({ ...createDefaultProfile(), berries: 5599 });
       const cosmeticD = findProfileCosmetic("cosmetic-d");
+      const cosmeticDInsufficientBlocked = !purchaseProfileCosmetic("cosmetic-d");
+      const insufficientProfile = getProfile();
+      insufficientProfile.berries = 5600;
+      saveProfile(insufficientProfile);
       const cosmeticDBought = purchaseProfileCosmetic("cosmetic-d");
       const cosmeticDProfile = getProfile();
+      const cosmeticDReloadedProfile = getProfile();
       results.cosmeticD = {
         catalogPrice: cosmeticD?.price,
+        insufficientBlocked: cosmeticDInsufficientBlocked,
         bought: cosmeticDBought,
         exactBalance: cosmeticDProfile.berries === 0,
         owned: cosmeticDProfile.profileCosmetics.ownsCosmeticD,
+        persisted: cosmeticDReloadedProfile.profileCosmetics.ownsCosmeticD,
       };
 
       const character = { faction: "pirate", origin: "east-blue", dream: "one-piece", hasD: false };
@@ -13636,8 +13772,9 @@
       results.achievements.claimed === 6 && results.achievements.idempotent &&
       results.purchase.bought && results.purchase.doubleBuyBlocked && results.purchase.exactBalance &&
       results.purchase.owned && results.purchase.thirdEquipBlocked &&
-      results.cosmeticD.catalogPrice === 500 && results.cosmeticD.bought &&
-      results.cosmeticD.exactBalance && results.cosmeticD.owned &&
+      results.cosmeticD.catalogPrice === 5600 && results.cosmeticD.insufficientBlocked &&
+      results.cosmeticD.bought && results.cosmeticD.exactBalance &&
+      results.cosmeticD.owned && results.cosmeticD.persisted &&
       results.effects.treasureFortune === 15000 && results.effects.jolly.every((value) => value === 2) &&
       results.effects.eternalOrdinary === 5 && results.effects.eternalRisk === 0 &&
       results.effects.vivreMultiplier === 1.6 && results.effects.chestFirstEvent &&
@@ -15520,6 +15657,9 @@
     if (developmentQuery.has("collectionAudit")) {
       document.documentElement.dataset.collectionAudit = JSON.stringify(runCollectionCatalogAudit());
     }
+    if (developmentQuery.has("renownDisplayAudit")) {
+      document.documentElement.dataset.renownDisplayAudit = JSON.stringify(runFactionRenownDisplayAudit());
+    }
     if (developmentQuery.has("dAudit")) {
       document.documentElement.dataset.dAudit = JSON.stringify(runWillOfDAudit());
     }
@@ -15592,6 +15732,7 @@
         ...(window.GAME_DATA?.crewRecruitments || []),
         ...(window.GAME_DATA?.marineRecruitments || []),
       ].slice(0, 2).map(normalizeCrewMember);
+      preview.stats.bounty = FACTION_RENOWN_INTERNAL_MAX;
       state.game = preview;
       openScreen(SCREEN.GAME, { save: false });
       preview.stats.popularity = 87;
@@ -15615,6 +15756,9 @@
           horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
           popularity: dom.gamePopularityValue?.textContent,
           popularityMatchesSource: Number(dom.gamePopularityValue?.textContent) === preview.stats.popularity,
+          maximumRenownVisible: dom.gameStats?.textContent.includes(
+            formatFactionRenownDisplayValue(FACTION_RENOWN_INTERNAL_MAX),
+          ),
           quickTitles: dom.gameQuickTitles?.children.length || 0,
           equippedItems: dom.gameShopItems?.children.length || 0,
           stats: statsSnapshot,

@@ -85,7 +85,7 @@
     achievement("shinsekai-damaged-ship", "Seul contre la mer", "Un équipage réduit a tout de même atteint le Nouveau Monde.", "crew", "epic", "👤", "Atteindre le Nouveau Monde avec un membre d’équipage ou moins.", { type: "zone-with-stat-at-most", zoneId: "shinsekai", stat: "crew", target: 1 }),
 
     achievement("gather-great-fortune", "Les poches pleines", "Ta Fortune dépasse celle de bien des capitaines.", "fortune", "uncommon", "💰", "Atteindre 150 000 berrys de Fortune.", { type: "stat-at-least", stat: "fortune", target: 150000 }),
-    achievement("pirate-great-bounty", "Le journal parle de toi", "Ta prime pirate est devenue une nouvelle mondiale.", "fortune", "legendary", "☠️", "Atteindre une prime de 5 000 000 en tant que Pirate.", { type: "faction-stat", faction: "pirate", stat: "bounty", minimum: 5000000 }),
+    achievement("pirate-great-bounty", "Le journal parle de toi", "Ta prime pirate est devenue une nouvelle mondiale.", "fortune", "legendary", "☠️", "Atteindre une prime de 1 500 000 000 en tant que Pirate.", { type: "faction-stat", faction: "pirate", stat: "bounty", minimum: 5000000 }),
 
     achievement("survive-first-danger-event", "Le rouge des mers", "Tu as traversé un événement où chaque choix pouvait être le dernier.", "rare-events", "common", "🔴", "Survivre à un premier événement dangereux.", { type: "telemetry-at-least", key: "dangerEventsSurvived", target: 1 }),
     achievement("resolve-three-rare-events", "Quand la mer insiste", "Les rencontres rares ne sont plus de simples rumeurs.", "rare-events", "rare", "🌟", "Résoudre trois événements rares ou très rares dans une aventure.", { type: "telemetry-at-least", key: "rareEventsResolved", target: 3 }, { progressLabel: "Événements rares" }),
