@@ -374,6 +374,7 @@
     returnScreen: SCREEN.HOME,
     resumeScreen: SCREEN.GAME,
     gameStatsExpanded: false,
+    gameCompanionsExpanded: false,
     gameDetailsExpanded: false,
     pendingShopPurchaseId: null,
     pendingCosmeticPurchaseId: null,
@@ -388,6 +389,7 @@
   };
 
   const GAME_STATS_EXPANDED_SESSION_KEY = "blueLegacyGameStatsExpanded";
+  const GAME_COMPANIONS_EXPANDED_SESSION_KEY = "blueLegacyGameCompanionsExpanded";
   const GAME_DETAILS_EXPANDED_SESSION_KEY = "blueLegacyGameDetailsExpanded";
 
   const dom = {};
@@ -454,11 +456,18 @@
     dom.gameContextualAssetFallback = byId("game-contextual-asset-fallback");
     dom.gameRegion = byId("game-region");
     dom.gameCharacterName = byId("game-character-name");
+    dom.gamePopularity = byId("game-popularity");
+    dom.gamePopularityValue = byId("game-popularity-value");
+    dom.gameQuickTitles = byId("game-quick-titles");
+    dom.gameQuickAssetsEmpty = byId("game-quick-assets-empty");
     dom.gameStatsToggle = byId("game-stats-toggle");
     dom.gameStatsPanel = byId("game-stats-panel");
     dom.gameStats = byId("game-stats-list");
     dom.gameDetailsToggle = byId("game-details-toggle");
     dom.gameDetailsPanel = byId("game-details-panel");
+    dom.gameCompanionsToggle = byId("game-companions-toggle");
+    dom.gameCompanionsPanel = byId("game-companions-panel");
+    dom.gameCompanionsEmpty = byId("game-companions-empty");
     dom.gameCareerAssets = byId("game-career-assets");
     dom.gameFruitSection = byId("game-fruit-section");
     dom.gameDevilFruit = byId("game-devil-fruit");
@@ -466,7 +475,6 @@
     dom.gameCrewTitle = byId("game-crew-title");
     dom.gameCrewMembers = byId("game-crew-members");
     dom.gameActiveTitles = byId("game-active-titles");
-    dom.gameShopItemsSection = byId("game-shop-items-section");
     dom.gameShopItems = byId("game-shop-items");
     dom.eventEyebrow = byId("event-eyebrow");
     dom.eventTitle = byId("event-title");
@@ -644,6 +652,12 @@
     };
   }
 
+  const LEGACY_SHOP_ITEM_ID_MAP = Object.freeze({ "straw-hat": "chest" });
+
+  function migrateLegacyShopItemId(itemId) {
+    return LEGACY_SHOP_ITEM_ID_MAP[itemId] || itemId;
+  }
+
   function normalizeFirstUnlockedBy(value, pantheon = []) {
     if (!value || typeof value !== "object") return null;
     const matchingEntry = pantheon.find((entry) =>
@@ -774,10 +788,10 @@
     });
 
     const knownShopIds = new Set(getShopItems().map((item) => item.id));
-    const ownedShopItems = uniqueArray(profile.ownedShopItems)
+    const ownedShopItems = uniqueArray((profile.ownedShopItems || []).map(migrateLegacyShopItemId))
       .filter((id) => knownShopIds.has(id));
     const ownedSet = new Set(ownedShopItems);
-    const equippedShopItems = uniqueArray(profile.equippedShopItems)
+    const equippedShopItems = uniqueArray((profile.equippedShopItems || []).map(migrateLegacyShopItemId))
       .filter((id) => knownShopIds.has(id) && ownedSet.has(id))
       .slice(0, 2);
     const knownBackgrounds = new Set(getProfileCosmetics().filter((item) => item.type === "background").map((item) => item.id));
@@ -2712,8 +2726,10 @@
     }).join("");
   }
 
-  function createStatsHtml(stats = {}, source = state.game) {
+  function createStatsHtml(stats = {}, source = state.game, options = {}) {
+    const excluded = new Set(options.exclude || []);
     return Object.keys(STATS)
+      .filter((key) => !excluded.has(key))
       .map(
         (key) => `
           <article class="stat-card">
@@ -2957,8 +2973,8 @@
       startingStatVarianceRolled: false,
       startingStatMode: null,
       shopEffects: {
-        strawHatTriggered: false,
-        strawHatConsumed: false,
+        chestTriggered: false,
+        chestConsumed: false,
       },
       completionBerriesGranted: 0,
       stats: cloneData(initialStats),
@@ -3166,6 +3182,10 @@
           ? {
               eventId: String(game.pendingDialogue.eventId || ""),
               index: Math.max(0, Math.floor(Number(game.pendingDialogue.index) || 0)),
+              kind: String(game.pendingDialogue.kind || "event-intro"),
+              theme: String(game.pendingDialogue.theme || "default"),
+              resumeAction: String(game.pendingDialogue.resumeAction || "show-event"),
+              companionId: game.pendingDialogue.companionId || null,
               slides: Array.isArray(game.pendingDialogue.slides)
                 ? game.pendingDialogue.slides.filter(Boolean).map((slide) => ({ ...slide }))
                 : [],
@@ -3207,7 +3227,7 @@
       ),
       popularityModifiers: 0,
       activeShopItems: Array.isArray(game.activeShopItems)
-        ? uniqueArray(game.activeShopItems).filter((id) => Boolean(findShopItem(id))).slice(0, 2)
+        ? uniqueArray(game.activeShopItems.map(migrateLegacyShopItemId)).filter((id) => Boolean(findShopItem(id))).slice(0, 2)
         : [],
       shopInitialBonusesApplied: game.shopInitialBonusesApplied !== false,
       startingStatVariance: normalizeStartingStatVariance(game.startingStatVariance),
@@ -3216,8 +3236,8 @@
         ? game.startingStatMode
         : null,
       shopEffects: {
-        strawHatTriggered: Boolean(game.shopEffects?.strawHatTriggered),
-        strawHatConsumed: Boolean(game.shopEffects?.strawHatConsumed),
+        chestTriggered: Boolean(game.shopEffects?.chestTriggered ?? game.shopEffects?.strawHatTriggered),
+        chestConsumed: Boolean(game.shopEffects?.chestConsumed ?? game.shopEffects?.strawHatConsumed),
       },
       completionBerriesGranted: Math.max(0, Math.floor(Number(game.completionBerriesGranted) || 0)),
     };
@@ -4179,12 +4199,16 @@
     const isDreamConclusion = isDreamFailureConclusion || isDreamSuccessConclusion;
     const isDecisiveConclusion = isHakiConclusion || isDreamConclusion;
     const boss = isBossTransition ? game.currentEvent : null;
-    const legendaryArcId = isLegendaryTransition ? game.currentEvent?.legendaryArc : null;
+    const legendaryArcId = isLegendaryTransition
+      ? game.currentEvent?.legendaryArc
+      : isLegendaryConclusion
+        ? pending.arcId
+        : null;
     const legendaryAsset = getLegendaryArcAsset(legendaryArcId);
     const hakiConclusionStage = isHakiConclusion ? getHakiConclusionStage(pending, game) : null;
     const featureAsset = isEmperorRunKiller
       ? LEGENDARY_ARC_ASSETS.emperor
-      : isLegendaryTransition
+      : isLegendaryTransition || isLegendaryConclusion
       ? legendaryAsset
       : isHakiConclusion
         ? getHakiEventAsset(hakiConclusionStage)
@@ -4214,6 +4238,7 @@
     );
     dom.zoneTransitionScreen?.classList.toggle("zone-asset-transition", isGeographicTransition);
     dom.zoneTransitionScreen?.classList.toggle("legendary-asset-intro", isLegendaryTransition);
+    dom.zoneTransitionScreen?.classList.toggle("legendary-asset-conclusion", isLegendaryConclusion);
     dom.zoneTransitionScreen?.classList.toggle("haki-asset-conclusion", isHakiConclusion);
     dom.zoneTransitionScreen?.classList.toggle("dream-asset-conclusion", isDreamConclusion);
     if (dom.zoneTransitionAsset) {
@@ -4349,19 +4374,61 @@
   function queueEventDialogue(event, game = state.game) {
     if (!game || !event) return false;
     const slides = getEventDialogueSlides(event, game);
-    game.pendingDialogue = slides.length ? { eventId: event.id, index: 0, slides } : null;
+    game.pendingDialogue = slides.length ? {
+      eventId: event.id, index: 0, kind: "event-intro", theme: "default",
+      resumeAction: "show-event", companionId: null, slides,
+    } : null;
     return Boolean(slides.length);
+  }
+
+  function getCompanionDialogueData(memberData, moment) {
+    const member = normalizeCrewMember(memberData);
+    const custom = window.BLUE_LEGACY_COMPANION_DIALOGUES?.[member.id];
+    const fallback = moment === "join"
+      ? "Je vous accompagne. Voyons jusqu’où cette route nous mènera."
+      : "On est arrivés jusqu’ici. Maintenant, va jusqu’au bout.";
+    return {
+      eyebrow: moment === "join" ? "Nouveau compagnon" : "Compagnon",
+      speaker: member.name,
+      role: member.rank ? `${member.rank} · ${member.role}` : member.role,
+      text: String(custom?.[moment] || fallback),
+    };
+  }
+
+  function queueCompanionDialogue(memberData, kind, game = state.game) {
+    if (!game || !memberData || game.pendingDialogue) return false;
+    const moment = kind === "companion-final-dream" ? "finalDream" : "join";
+    const member = normalizeCrewMember(memberData);
+    game.pendingDialogue = {
+      eventId: game.currentEvent?.id || "",
+      index: 0,
+      kind,
+      theme: "companion",
+      resumeAction: moment === "join" ? "continue-after-recruitment" : "start-final-dream-event",
+      companionId: member.id,
+      slides: [getCompanionDialogueData(member, moment)],
+    };
+    return true;
+  }
+
+  function queueFinalDreamCompanionDialogue(game = state.game, random = Math.random) {
+    const members = (game?.crewMembers || []).filter(Boolean);
+    if (!game || !members.length || game.pendingDialogue) return false;
+    const member = members[Math.min(members.length - 1, Math.floor(random() * members.length))];
+    return queueCompanionDialogue(member, "companion-final-dream", game);
   }
 
   function updateDialogueScreen() {
     const pending = state.game?.pendingDialogue;
-    if (!pending?.slides?.length || pending.eventId !== state.game?.currentEvent?.id) {
+    const isEventIntro = !pending?.kind || pending.kind === "event-intro";
+    if (!pending?.slides?.length || (isEventIntro && pending.eventId !== state.game?.currentEvent?.id)) {
       if (state.game) state.game.pendingDialogue = null;
       openScreen(SCREEN.GAME, { save: false });
       return;
     }
     const index = Math.min(pending.slides.length - 1, Math.max(0, pending.index || 0));
     const slide = pending.slides[index];
+    if (dom.dialogueScreen) dom.dialogueScreen.dataset.dialogueTheme = pending.theme || "default";
     if (dom.dialogueEyebrow) dom.dialogueEyebrow.textContent = slide.eyebrow;
     if (dom.dialogueSpeaker) dom.dialogueSpeaker.textContent = slide.speaker;
     if (dom.dialogueRole) {
@@ -4374,7 +4441,9 @@
     }
     if (dom.continueDialogue) {
       dom.continueDialogue.disabled = false;
-      dom.continueDialogue.textContent = index + 1 < pending.slides.length ? "Suite" : "Faire face";
+      dom.continueDialogue.textContent = index + 1 < pending.slides.length
+        ? "Suite"
+        : pending.theme === "companion" ? "Continuer" : "Faire face";
     }
   }
 
@@ -4388,8 +4457,19 @@
       updateDialogueScreen();
       return true;
     }
+    const resumeAction = pending.resumeAction || "show-event";
     game.pendingDialogue = null;
     saveGame();
+    if (resumeAction === "continue-after-recruitment") {
+      return continueAfterRecruitmentDialogue(game);
+    }
+    if (resumeAction === "start-final-dream-event") {
+      if (game.currentEvent && queueEventDialogue(game.currentEvent, game)) {
+        saveGame();
+        openScreen(SCREEN.DIALOGUE, { save: false });
+        return true;
+      }
+    }
     openScreen(SCREEN.GAME, { save: false });
     return true;
   }
@@ -5358,9 +5438,12 @@
     game.pendingResult = null;
     game.bossProgress.activeBossId = boss.id;
     game.pendingZoneTransition = null;
-    queueEventDialogue(boss, game);
+    if (!(tier === 3 && queueFinalDreamCompanionDialogue(game))) {
+      queueEventDialogue(boss, game);
+    }
     saveGame();
     openScreen(game.pendingDialogue ? SCREEN.DIALOGUE : SCREEN.GAME, { save: false });
+    saveGame();
     return true;
   }
 
@@ -6422,15 +6505,15 @@
 
   function selectSurpriseEvent(game = state.game) {
     if (!game || game.currentAction > 0) return null;
-    const strawHatActive = game.activeShopItems?.includes("straw-hat");
-    if (game.month === 1 && strawHatActive && !game.character?.devilFruit &&
-        !game.shopEffects?.strawHatConsumed) {
+    const chestActive = game.activeShopItems?.includes("chest");
+    if (game.month === 1 && chestActive && !game.character?.devilFruit &&
+        !game.shopEffects?.chestConsumed) {
       const fruitEvent = createFruitSurpriseEvent(game);
       if (fruitEvent) {
         game.shopEffects = {
           ...(game.shopEffects || {}),
-          strawHatTriggered: true,
-          strawHatConsumed: true,
+          chestTriggered: true,
+          chestConsumed: true,
         };
         game.flags.fruitSurpriseTriggered = true;
         return fruitEvent;
@@ -6636,6 +6719,12 @@
       return startNextEvent();
     }
 
+    if (game.pendingDialogue?.kind === "companion-join") {
+      openScreen(SCREEN.DIALOGUE, { save: false });
+      saveGame();
+      return true;
+    }
+
     const automaticEnding = checkRunEndingConditions(game);
     if (automaticEnding && !completedBoss) return finishAdventure(automaticEnding);
 
@@ -6649,6 +6738,15 @@
       return finishMonth({ deferEndingUntilLogbook: completedBoss });
     }
 
+    return startNextEvent();
+  }
+
+  function continueAfterRecruitmentDialogue(game = state.game) {
+    if (!game || game.isFinished) return false;
+    const automaticEnding = checkRunEndingConditions(game);
+    if (automaticEnding) return finishAdventure(automaticEnding);
+    openScreen(SCREEN.GAME, { save: false });
+    if (game.currentAction >= game.actionsThisMonth) return finishMonth();
     return startNextEvent();
   }
 
@@ -7105,6 +7203,7 @@
         text: `${member.role} recruté : ${member.name}`,
         data: cloneData(member),
       });
+      queueCompanionDialogue(member, "companion-join", game);
     }
 
     if (remaining > 0 && outcome.combatStyle) {
@@ -8819,7 +8918,10 @@
       ? "Moyen d’obtention inconnu"
       : title.unlockHint || "Condition non documentée.";
     const firstUnlockedBy = title.firstUnlockedBy;
-    const immediateEffect = formatEffectsText(title.effects?.immediate || {});
+    const immediateEffect = formatEffectsText({
+      ...(title.effects?.immediate || {}),
+      ...(Number(title.effects?.popularity) ? { popularity: Number(title.effects.popularity) } : {}),
+    });
     const passive = title.effects?.passive;
     const passiveText = passive?.type === "statGainModifier" && STATS[passive.stat]
       ? `Les futurs gains de ${STATS[passive.stat].label} sont renforcés de ${Math.round((Number(passive.value) || 0) * 100)} %.`
@@ -10575,32 +10677,44 @@
       `;
     }
 
+    if (dom.gamePopularityValue) {
+      dom.gamePopularityValue.textContent = String(game.stats.popularity);
+    }
+
     if (dom.gameStats) {
       dom.gameStats.innerHTML =
-        createStatsHtml(game.stats, game);
+        createStatsHtml(game.stats, game, { exclude: ["popularity"] });
     }
     const hasFruit = Boolean(character.devilFruit);
     const hasCrewMembers = Boolean(game.crewMembers?.length);
-    if (dom.gameCareerAssets) dom.gameCareerAssets.hidden = !hasFruit && !hasCrewMembers;
+    if (dom.gameCareerAssets) dom.gameCareerAssets.hidden = !hasFruit;
     if (dom.gameFruitSection) dom.gameFruitSection.hidden = !hasFruit;
     if (dom.gameDevilFruit) dom.gameDevilFruit.innerHTML = createDevilFruitCardHtml(character.devilFruit, true);
-    if (dom.gameCrewSection) dom.gameCrewSection.hidden = !hasCrewMembers;
+    if (dom.gameCrewSection) dom.gameCrewSection.hidden = false;
     if (dom.gameCrewTitle) {
       dom.gameCrewTitle.textContent = character.faction === "marine" ? "⚓ Unité Marine" : "👥 Compagnons";
     }
     if (dom.gameCrewMembers) {
       dom.gameCrewMembers.innerHTML = createCrewMembersHtml(game.crewMembers || [], true);
     }
+    if (dom.gameCompanionsEmpty) dom.gameCompanionsEmpty.hidden = hasCrewMembers;
     if (dom.gameActiveTitles) {
-      const activeTitles = (game.runTitles || []).filter((title) => !title.finalTitle);
+      const activeTitles = game.runTitles || [];
       dom.gameActiveTitles.innerHTML = activeTitles.length
         ? activeTitles.map((title) => createTitleCardHtml(title, { mode: "compact" })).join("")
-        : '<p class="active-titles-empty">Aucun Titre actif pour le moment.</p>';
+        : '<p class="active-titles-empty">Aucun Titre obtenu pour le moment.</p>';
     }
-    if (dom.gameShopItems && dom.gameShopItemsSection) {
-      const activeItems = (game.activeShopItems || []).map(findShopItem).filter(Boolean);
-      dom.gameShopItemsSection.hidden = activeItems.length === 0;
+    const activeItems = (game.activeShopItems || []).map(findShopItem).filter(Boolean);
+    const runTitles = game.runTitles || [];
+    if (dom.gameQuickTitles) {
+      dom.gameQuickTitles.innerHTML = runTitles
+        .map((title) => createTitleCardHtml(title, { mode: "badge" })).join("");
+    }
+    if (dom.gameShopItems) {
       dom.gameShopItems.innerHTML = activeItems.map(createShopItemBadgeHtml).join("");
+    }
+    if (dom.gameQuickAssetsEmpty) {
+      dom.gameQuickAssetsEmpty.hidden = runTitles.length > 0 || activeItems.length > 0;
     }
 
     if (!event) {
@@ -12019,26 +12133,41 @@
     return readExpandedPreference(GAME_DETAILS_EXPANDED_SESSION_KEY);
   }
 
-  function setGameStatsExpanded(expanded, { persist = true } = {}) {
+  function readGameCompanionsExpandedPreference() {
+    return readExpandedPreference(GAME_COMPANIONS_EXPANDED_SESSION_KEY);
+  }
+
+  function applyGamePanelState(panel, expanded, persist = true) {
+    const definitions = {
+      stats: ["gameStatsExpanded", dom.gameStatsPanel, dom.gameStatsToggle, GAME_STATS_EXPANDED_SESSION_KEY, "les statistiques du personnage"],
+      companions: ["gameCompanionsExpanded", dom.gameCompanionsPanel, dom.gameCompanionsToggle, GAME_COMPANIONS_EXPANDED_SESSION_KEY, "les compagnons du personnage"],
+      details: ["gameDetailsExpanded", dom.gameDetailsPanel, dom.gameDetailsToggle, GAME_DETAILS_EXPANDED_SESSION_KEY, "les détails du personnage"],
+    };
+    const definition = definitions[panel];
+    if (!definition) return;
+    const [stateKey, panelElement, toggle, storageKey, label] = definition;
     const nextExpanded = Boolean(expanded);
-    state.gameStatsExpanded = nextExpanded;
-
-    if (dom.gameStatsPanel) dom.gameStatsPanel.hidden = !nextExpanded;
-    if (dom.gameStatsToggle) {
-      dom.gameStatsToggle.setAttribute("aria-expanded", String(nextExpanded));
-      dom.gameStatsToggle.setAttribute(
-        "aria-label",
-        `${nextExpanded ? "Masquer" : "Afficher"} les statistiques du personnage`,
-      );
+    state[stateKey] = nextExpanded;
+    if (panelElement) panelElement.hidden = !nextExpanded;
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", String(nextExpanded));
+      toggle.setAttribute("aria-label", `${nextExpanded ? "Masquer" : "Afficher"} ${label}`);
     }
-
     if (persist) {
-      try {
-        sessionStorage.setItem(GAME_STATS_EXPANDED_SESSION_KEY, String(nextExpanded));
-      } catch (error) {
-        // L’état en mémoire reste suffisant si le stockage de session est indisponible.
-      }
+      try { sessionStorage.setItem(storageKey, String(nextExpanded)); } catch (error) {}
     }
+  }
+
+  function setExclusiveGamePanel(panel, expanded, { persist = true } = {}) {
+    if (expanded) {
+      ["stats", "companions", "details"].filter((name) => name !== panel)
+        .forEach((name) => applyGamePanelState(name, false, persist));
+    }
+    applyGamePanelState(panel, expanded, persist);
+  }
+
+  function setGameStatsExpanded(expanded, { persist = true } = {}) {
+    setExclusiveGamePanel("stats", Boolean(expanded), { persist });
   }
 
   function toggleGameStatsPanel() {
@@ -12046,29 +12175,19 @@
   }
 
   function setGameDetailsExpanded(expanded, { persist = true } = {}) {
-    const nextExpanded = Boolean(expanded);
-    state.gameDetailsExpanded = nextExpanded;
-
-    if (dom.gameDetailsPanel) dom.gameDetailsPanel.hidden = !nextExpanded;
-    if (dom.gameDetailsToggle) {
-      dom.gameDetailsToggle.setAttribute("aria-expanded", String(nextExpanded));
-      dom.gameDetailsToggle.setAttribute(
-        "aria-label",
-        `${nextExpanded ? "Masquer" : "Afficher"} les détails du personnage`,
-      );
-    }
-
-    if (persist) {
-      try {
-        sessionStorage.setItem(GAME_DETAILS_EXPANDED_SESSION_KEY, String(nextExpanded));
-      } catch (error) {
-        // L’état en mémoire reste suffisant si le stockage de session est indisponible.
-      }
-    }
+    setExclusiveGamePanel("details", Boolean(expanded), { persist });
   }
 
   function toggleGameDetailsPanel() {
     setGameDetailsExpanded(!state.gameDetailsExpanded);
+  }
+
+  function setGameCompanionsExpanded(expanded, { persist = true } = {}) {
+    setExclusiveGamePanel("companions", Boolean(expanded), { persist });
+  }
+
+  function toggleGameCompanionsPanel() {
+    setGameCompanionsExpanded(!state.gameCompanionsExpanded);
   }
 
   function bindEvents() {
@@ -12094,6 +12213,11 @@
       event.preventDefault();
       event.stopPropagation();
       toggleGameDetailsPanel();
+    });
+    dom.gameCompanionsToggle?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleGameCompanionsPanel();
     });
 
     dom.pastLifeExportButton?.addEventListener("click", (event) => {
@@ -13002,19 +13126,60 @@
         eternalOrdinary: getEventResolutionScore(scoreGame, ordinaryEvent, {}) - ordinaryBase,
         eternalRisk: getEventResolutionScore(scoreGame, riskEvent, {}) - riskBase,
         vivreMultiplier: findShopItem("vivre-card")?.recruitmentWeightMultiplier,
-        strawFirstEvent: Boolean(findShopItem("straw-hat")?.firstEventFruit),
+        chestFirstEvent: Boolean(findShopItem("chest")?.firstEventFruit),
       };
-      const strawGame = createDefaultGameState(character);
-      strawGame.activeShopItems = ["straw-hat"];
-      strawGame.route = [{ id: "east-blue", name: "East Blue", routeStage: 1 }];
-      strawGame.visitedZoneIds = ["east-blue"];
-      strawGame.currentAction = 0;
-      strawGame.month = 1;
-      const strawEvent = selectSurpriseEvent(strawGame);
-      results.strawHat = {
-        firstType: strawEvent?.eventType || null,
-        triggered: strawGame.shopEffects.strawHatTriggered,
-        consumed: strawGame.shopEffects.strawHatConsumed,
+      const chestGame = createDefaultGameState(character);
+      chestGame.activeShopItems = ["chest"];
+      chestGame.route = [{ id: "east-blue", name: "East Blue", routeStage: 1 }];
+      chestGame.visitedZoneIds = ["east-blue"];
+      chestGame.currentAction = 0;
+      chestGame.month = 1;
+      const chestEvent = selectSurpriseEvent(chestGame);
+      results.chest = {
+        firstType: chestEvent?.eventType || null,
+        triggered: chestGame.shopEffects.chestTriggered,
+        consumed: chestGame.shopEffects.chestConsumed,
+      };
+      const migratedOwned = normalizeProfile({ ownedShopItems: ["straw-hat"] });
+      const migratedEquipped = normalizeProfile({
+        ownedShopItems: ["straw-hat"], equippedShopItems: ["straw-hat"],
+      });
+      const migratedRun = normalizeGame({
+        ...createDefaultGameState(character), activeShopItems: ["straw-hat"],
+        shopEffects: { strawHatTriggered: true, strawHatConsumed: true },
+      });
+      results.chestMigration = {
+        owned: JSON.stringify(migratedOwned.ownedShopItems) === JSON.stringify(["chest"]),
+        equipped: JSON.stringify(migratedEquipped.equippedShopItems) === JSON.stringify(["chest"]),
+        run: JSON.stringify(migratedRun.activeShopItems) === JSON.stringify(["chest"]),
+        effectState: migratedRun.shopEffects.chestTriggered && migratedRun.shopEffects.chestConsumed,
+      };
+      const persistenceGame = createDefaultGameState({
+        ...character,
+        name: "Audit D. Persistance",
+        devilFruit: window.GAME_DATA?.devilFruits?.[0] || null,
+      });
+      persistenceGame.activeShopItems = ["vivre-card", "chest"];
+      persistenceGame.crewMembers = [
+        { id: "audit-navigator", name: "Navigatrice d’audit", role: "Navigatrice", rarity: "rare", icon: "🧭", permanentEffects: { intelligence: 2 } },
+        { id: "audit-doctor", name: "Médecin d’audit", role: "Médecin", rarity: "uncommon", icon: "🩺", permanentEffects: { health: 2 } },
+      ].map(normalizeCrewMember);
+      persistenceGame.stats.crew = persistenceGame.crewMembers.length;
+      const companionsAssigned = persistenceGame.crewMembers.length;
+      persistenceGame.stats.popularity = 87;
+      const persistenceTitle = getAllTitles().find((title) => !title.finalTitle);
+      unlockTitle(persistenceTitle.id, persistenceTitle, persistenceGame, false);
+      const statsBeforeReload = cloneData(persistenceGame.stats);
+      const companionsBeforeReload = persistenceGame.crewMembers.length;
+      const reloadedPersistenceGame = normalizeGame(cloneData(persistenceGame));
+      results.gamePanelPersistence = {
+        popularity: reloadedPersistenceGame.stats.popularity === persistenceGame.stats.popularity,
+        items: JSON.stringify(reloadedPersistenceGame.activeShopItems) === JSON.stringify(["vivre-card", "chest"]),
+        titles: reloadedPersistenceGame.runTitles.length === 1,
+        companions: reloadedPersistenceGame.crewMembers.length === companionsBeforeReload,
+        companionCounts: `${companionsAssigned}/${companionsBeforeReload}/${reloadedPersistenceGame.crewMembers.length}`,
+        fruit: getDataId(reloadedPersistenceGame.character.devilFruit) === getDataId(persistenceGame.character.devilFruit),
+        bonusesNotReapplied: JSON.stringify(reloadedPersistenceGame.stats) === JSON.stringify(statsBeforeReload),
       };
       const itemIds = items.map((item) => item.id);
       const scenarios = [[], ...itemIds.map((id) => [id])];
@@ -13042,7 +13207,7 @@
           items: activeItems,
           ordinarySuccessRate: ordinarySuccesses / 10000,
           recruitmentRate: recruitments / 10000,
-          firstEventFruit: activeItems.includes("straw-hat"),
+          firstEventFruit: activeItems.includes("chest"),
         };
       });
 
@@ -13071,11 +13236,124 @@
       results.cosmeticD.exactBalance && results.cosmeticD.owned &&
       results.effects.treasureFortune === 15000 && results.effects.jolly.every((value) => value === 2) &&
       results.effects.eternalOrdinary === 5 && results.effects.eternalRisk === 0 &&
-      results.effects.vivreMultiplier === 1.6 && results.effects.strawFirstEvent &&
-      results.strawHat.firstType === "surprise-fruit" && results.strawHat.triggered && results.strawHat.consumed &&
+      results.effects.vivreMultiplier === 1.6 && results.effects.chestFirstEvent &&
+      results.chest.firstType === "surprise-fruit" && results.chest.triggered && results.chest.consumed &&
+      Object.values(results.chestMigration).every(Boolean) &&
+      Object.entries(results.gamePanelPersistence)
+        .filter(([key]) => key !== "companionCounts").every(([, value]) => Boolean(value)) &&
       results.simulations.length === 16 && results.simulations.every((row) => row.ordinarySuccessRate < 0.9 && row.recruitmentRate < 0.2) &&
       JSON.stringify(results.completion) === JSON.stringify([30, 40, 40, 50, 0]);
     return results;
+  }
+
+  function runCompanionDialogueAudit() {
+    const catalog = [
+      ...(window.GAME_DATA?.crewRecruitments || []),
+      ...(window.GAME_DATA?.marineRecruitments || []),
+    ].filter((member) => member?.active !== false).map(normalizeCrewMember);
+    const rows = catalog.map((member) => {
+      const custom = window.BLUE_LEGACY_COMPANION_DIALOGUES?.[member.id];
+      const join = getCompanionDialogueData(member, "join");
+      const finalDream = getCompanionDialogueData(member, "finalDream");
+      const brokenPlaceholder = /\{[^}]+\}|undefined|null/i.test(`${join.text} ${finalDream.text}`);
+      return {
+        id: member.id,
+        name: member.name,
+        rarity: member.rarity,
+        factions: member.allowedFactions,
+        role: member.rank ? `${member.rank} · ${member.role}` : member.role,
+        join: join.text,
+        finalDream: finalDream.text,
+        custom: Boolean(custom?.join && custom?.finalDream),
+        valid: Boolean(join.speaker && join.role && join.text && finalDream.speaker &&
+          finalDream.role && finalDream.text && !brokenPlaceholder),
+      };
+    });
+    const makeGame = () => {
+      const game = createDefaultGameState({
+        name: "Audit dialogues", faction: "pirate", dream: "one-piece",
+        origin: "east-blue", traits: [], hasD: false,
+      });
+      game.route = createSimulationRoute("east-blue");
+      game.currentEvent = normalizeEvent({
+        id: "audit-recruitment", title: "Recrutement", eventType: "surprise-recruit",
+        choices: [{ id: "join", text: "Recruter", outcomes: [{ id: "joined", result: "Rejoint." }] }],
+      });
+      game.currentEventId = game.currentEvent.id;
+      return game;
+    };
+    const recruitGame = makeGame();
+    const recruitMember = catalog.find((member) => member.id === "chopper") || catalog[0];
+    recruitGame.stats.crew = 1;
+    const joined = recruitCrewMember(recruitMember, recruitGame, false);
+    const joinQueued = joined && queueCompanionDialogue(recruitMember, "companion-join", recruitGame);
+    const reloadedJoin = normalizeGame(cloneData(recruitGame));
+    const duplicateBlocked = !recruitCrewMember(recruitMember, reloadedJoin, false);
+    const resultPriority = inferPlayableScreen({
+      game: { ...reloadedJoin, pendingResult: { id: "result" }, pendingRewardReveals: [{}] },
+    }) === SCREEN.RESULT;
+    const rewardPriority = inferPlayableScreen({
+      game: { ...reloadedJoin, pendingResult: null, pendingRewardReveals: [{}] },
+    }) === SCREEN.REWARD_REVEAL;
+    const dialogueRestored = inferPlayableScreen({
+      game: { ...reloadedJoin, pendingResult: null, pendingRewardReveals: [] },
+    }) === SCREEN.DIALOGUE;
+    const refusedGame = makeGame();
+    const noJoinDialogueWithoutRecruitment = !refusedGame.pendingDialogue;
+
+    const dreamIds = uniqueArray(getBossEvents()
+      .filter((event) => Number(event.decisiveStage) === 3)
+      .flatMap((event) => event.dreamIds || []));
+    const finalDreams = dreamIds.map((dreamId) => {
+      const game = makeGame();
+      game.character.dream = dreamId;
+      game.crewMembers = [normalizeCrewMember(catalog.find((member) => member.id === "nami") || catalog[0])];
+      game.stats.crew = 1;
+      const event = getBossEvents().find((candidate) =>
+        Number(candidate.decisiveStage) === 3 && candidate.dreamIds?.includes(dreamId));
+      game.currentEvent = localizeBossEvent(event, getCurrentZone(game), 3);
+      game.currentEventId = game.currentEvent.id;
+      const queued = queueFinalDreamCompanionDialogue(game, () => 0);
+      const reloaded = normalizeGame(cloneData(game));
+      return {
+        dreamId,
+        eventId: game.currentEvent.id,
+        queued,
+        oneSlide: game.pendingDialogue?.slides?.length === 1,
+        sameAfterReload: reloaded.pendingDialogue?.companionId === game.pendingDialogue?.companionId &&
+          reloaded.pendingDialogue?.slides?.[0]?.text === game.pendingDialogue?.slides?.[0]?.text,
+      };
+    });
+    const noCompanionGame = makeGame();
+    noCompanionGame.currentEvent.decisiveStage = 3;
+    const noCompanionSkipped = !queueFinalDreamCompanionDialogue(noCompanionGame, () => 0);
+    const report = {
+      companions: rows,
+      total: rows.length,
+      missingCustom: rows.filter((row) => !row.custom).map((row) => row.id),
+      invalid: rows.filter((row) => !row.valid).map((row) => row.id),
+      recruitment: {
+        joined, joinQueued, theme: recruitGame.pendingDialogue?.theme,
+        sameAfterReload: reloadedJoin.pendingDialogue?.companionId === recruitGame.pendingDialogue?.companionId &&
+          reloadedJoin.pendingDialogue?.slides?.[0]?.text === recruitGame.pendingDialogue?.slides?.[0]?.text,
+        duplicateBlocked,
+        noDialogueWithoutRecruitment: noJoinDialogueWithoutRecruitment,
+        resultPriority,
+        rewardPriority,
+        dialogueRestored,
+      },
+      finalDreams,
+      dreamCount: dreamIds.length,
+      noCompanionSkipped,
+    };
+    report.pass = rows.length > 0 && !report.missingCustom.length && !report.invalid.length &&
+      report.recruitment.joined && report.recruitment.joinQueued && report.recruitment.theme === "companion" &&
+      report.recruitment.sameAfterReload && report.recruitment.duplicateBlocked &&
+      report.recruitment.noDialogueWithoutRecruitment && report.recruitment.resultPriority &&
+      report.recruitment.rewardPriority && report.recruitment.dialogueRestored && dreamIds.length === 16 &&
+      finalDreams.every((row) => row.queued && row.oneSlide && row.sameAfterReload) && noCompanionSkipped;
+    console.warn("[Blue Legacy] COMPANION_DIALOGUE_AUDIT", report);
+    return report;
   }
 
   function createSeededRandom(seed = 0xD092) {
@@ -13843,6 +14121,8 @@
         origin: "east-blue", traits: [], hasD: false,
       });
       game.month = arcId === "talent" ? 12 : arcId === "marineford" ? 13 : 24;
+      game.route = createSimulationRoute("east-blue");
+      game.currentZoneIndex = getZoneIndexForMonth(game.month);
       game.legendaryArcs[arcId].status = "in-progress";
       game.legendaryArcs[arcId].step = 3;
       game.legendaryArcs[arcId].performance = cloneData(successfulPerformance);
@@ -13877,12 +14157,16 @@
         reloadKeepsReveal,
         consumedOnce: reloadedAfterReveal.legendaryArcs[arcId].titleRevealShown === true &&
           reloadedAfterReveal.pendingRewardReveals.length === 0,
+        noFailureConclusion: game.pendingZoneTransition?.reason !== "legendary-conclusion" &&
+          reloadedAfterReveal.pendingZoneTransition?.reason !== "legendary-conclusion",
         pass: Boolean(titleData) && earned && rerunEarned &&
           game.runTitles.filter((title) => getDataId(title) === titleId).length === 1 &&
           game.appliedTitleEffects.filter((id) => id === titleId).length === 1 &&
           reloadKeepsReveal &&
           reloadedAfterReveal.legendaryArcs[arcId].titleRevealShown === true &&
-          reloadedAfterReveal.pendingRewardReveals.length === 0,
+          reloadedAfterReveal.pendingRewardReveals.length === 0 &&
+          game.pendingZoneTransition?.reason !== "legendary-conclusion" &&
+          reloadedAfterReveal.pendingZoneTransition?.reason !== "legendary-conclusion",
       };
     };
     const successes = [
@@ -13890,8 +14174,13 @@
       ...factions.map((faction) => runSuccessCase("marineford", faction)),
       ...emperorIds.map((emperorId) => runSuccessCase("emperor", "pirate", emperorId)),
     ];
-    const failures = ["talent", "marineford", "emperor"].map((arcId) => {
-      const game = makeGame("pirate", arcId, arcId === "emperor" ? emperorIds[0] : null);
+    const failures = [
+      ["talent", null],
+      ["marineford", null],
+      ["emperor", emperorIds[0]],
+      ["emperor", emperorIds[1]],
+    ].map(([arcId, emperorId]) => {
+      const game = makeGame("pirate", arcId, emperorId);
       game.legendaryArcs[arcId].performance = normalizeArcPerformance({
         entries: [1, 2, 3].map((step) => ({
           resolutionId: `legendary-failure-audit:${arcId}:${step}`,
@@ -13899,11 +14188,24 @@
         })),
       });
       const earned = finalizeLegendaryArc(arcId, game, () => 1);
+      const conclusionQueued = queueLegendaryConclusion(arcId, game);
+      const pending = cloneData(game.pendingZoneTransition);
+      const asset = getLegendaryArcAsset(pending?.arcId);
+      const reloaded = normalizeGame(cloneData(game));
+      const reloadedAsset = getLegendaryArcAsset(reloaded.pendingZoneTransition?.arcId);
       return {
-        arcId, earned,
+        arcId, emperorId, earned,
         titleCount: game.runTitles.length,
         revealCount: game.pendingRewardReveals.length,
-        pass: !earned && game.runTitles.length === 0 && game.pendingRewardReveals.length === 0,
+        conclusionQueued,
+        pendingReason: pending?.reason,
+        assetPath: asset?.path || null,
+        reloadAssetPath: reloadedAsset?.path || null,
+        genericIconHiddenByClass: pending?.reason === "legendary-conclusion",
+        pass: !earned && game.runTitles.length === 0 && game.pendingRewardReveals.length === 0 &&
+          conclusionQueued && pending?.reason === "legendary-conclusion" &&
+          asset?.path === LEGENDARY_ARC_ASSETS[arcId]?.path &&
+          reloadedAsset?.path === LEGENDARY_ARC_ASSETS[arcId]?.path,
       };
     });
     const emperorCoverage = emperorIds.map((emperorId) => {
@@ -14325,6 +14627,7 @@
     closeGameMenu,
     toggleGameMenu,
     setGameStatsExpanded,
+    setGameCompanionsExpanded,
     setGameDetailsExpanded,
     loadGame,
     saveGame,
@@ -14416,6 +14719,7 @@
     unequipShopItem,
     calculateCompletionBerries,
     runShopSystemAudit,
+    runCompanionDialogueAudit,
     runCollectionCatalogAudit,
     runDivelcaAchievementAudit,
     runDivelcaPersistenceAudit,
@@ -14435,6 +14739,7 @@
     runHakiDecisiveAudit,
     runArcPerformanceAudit,
     runFinalDreamResolutionAudit,
+    runCompanionDialogueAudit,
     runEmperorRunKillerAudit,
     debugTriggerEmperorRunKiller,
   });
@@ -14451,6 +14756,7 @@
       renderIdentity: renderPlayerIdentity,
     });
     setGameStatsExpanded(readGameStatsExpandedPreference(), { persist: false });
+    setGameCompanionsExpanded(readGameCompanionsExpandedPreference(), { persist: false });
     setGameDetailsExpanded(readGameDetailsExpandedPreference(), { persist: false });
     createGameMenu();
     bindEvents();
@@ -14482,6 +14788,9 @@
     }
     if (developmentQuery.has("shopAudit")) {
       document.documentElement.dataset.shopAudit = JSON.stringify(runShopSystemAudit());
+    }
+    if (developmentQuery.has("companionDialogueAudit")) {
+      document.documentElement.dataset.companionDialogueAudit = JSON.stringify(runCompanionDialogueAudit());
     }
     if (developmentQuery.has("collectionAudit")) {
       document.documentElement.dataset.collectionAudit = JSON.stringify(runCollectionCatalogAudit());
@@ -14530,6 +14839,130 @@
           horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
         });
       });
+    }
+    if (developmentQuery.has("gamePanelPreview")) {
+      const preview = createDefaultGameState({
+        name: "Trafalgar D. Long-Nom", faction: "pirate", dream: "one-piece",
+        origin: "east-blue", traits: [], hasD: true,
+        combatStyle: "Sabreur",
+        devilFruit: window.GAME_DATA?.devilFruits?.[0] || null,
+      });
+      preview.route = createSimulationRoute("east-blue");
+      preview.currentZoneIndex = 0;
+      preview.currentEvent = normalizeEvent(getAllEvents()[0]);
+      preview.currentEventId = preview.currentEvent.id;
+      preview.activeShopItems = ["vivre-card", "chest"];
+      preview.runTitles = getAllTitles().slice(0, 2).map((title) => normalizeTitleData(title.id, title));
+      preview.crewMembers = [
+        ...(window.GAME_DATA?.crewRecruitments || []),
+        ...(window.GAME_DATA?.marineRecruitments || []),
+      ].slice(0, 2).map(normalizeCrewMember);
+      state.game = preview;
+      openScreen(SCREEN.GAME, { save: false });
+      preview.stats.popularity = 87;
+      preview.popularityScore = 87;
+      if (dom.gamePopularityValue) dom.gamePopularityValue.textContent = "87";
+      setGameStatsExpanded(true, { persist: false });
+      const statsSnapshot = {
+        visible: !dom.gameStatsPanel?.hidden,
+        excludesPopularity: !dom.gameStats?.textContent.includes("Popularité"),
+      };
+      setGameCompanionsExpanded(true, { persist: false });
+      const companionsSnapshot = {
+        visible: !dom.gameCompanionsPanel?.hidden,
+        count: dom.gameCrewMembers?.children.length || 0,
+        statsClosed: dom.gameStatsPanel?.hidden === true,
+      };
+      setGameDetailsExpanded(true, { persist: false });
+      requestAnimationFrame(() => {
+        document.documentElement.dataset.gamePanelLayoutAudit = JSON.stringify({
+          viewport: [window.innerWidth, window.innerHeight],
+          horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          popularity: dom.gamePopularityValue?.textContent,
+          popularityMatchesSource: Number(dom.gamePopularityValue?.textContent) === preview.stats.popularity,
+          quickTitles: dom.gameQuickTitles?.children.length || 0,
+          equippedItems: dom.gameShopItems?.children.length || 0,
+          stats: statsSnapshot,
+          companions: companionsSnapshot,
+          details: {
+            visible: !dom.gameDetailsPanel?.hidden,
+            fruitVisible: dom.gameFruitSection?.hidden === false,
+            titles: dom.gameActiveTitles?.children.length || 0,
+            companionsAbsent: !dom.gameDetailsPanel?.contains(dom.gameCrewMembers),
+            companionsClosed: dom.gameCompanionsPanel?.hidden === true,
+          },
+          toggleWidths: [...document.querySelectorAll(".character-panel-toggles button")]
+            .map((button) => Math.round(button.getBoundingClientRect().width)),
+        });
+      });
+    }
+    if (developmentQuery.has("companionDialoguePreview")) {
+      const preview = createDefaultGameState({
+        name: "Aperçu dialogue", faction: "pirate", dream: "one-piece",
+        origin: "east-blue", traits: [], hasD: false,
+      });
+      preview.route = createSimulationRoute("east-blue");
+      preview.currentEvent = normalizeEvent(getAllEvents()[0]);
+      preview.currentEventId = preview.currentEvent.id;
+      const member = normalizeCrewMember(
+        (window.GAME_DATA?.crewRecruitments || []).find((candidate) => candidate.id === "nami"),
+      );
+      queueCompanionDialogue(member, "companion-join", preview);
+      state.game = preview;
+      openScreen(SCREEN.DIALOGUE, { save: false });
+      requestAnimationFrame(() => {
+        const speaker = dom.dialogueSpeaker?.getBoundingClientRect();
+        const role = dom.dialogueRole?.getBoundingClientRect();
+        const button = dom.continueDialogue?.getBoundingClientRect();
+        document.documentElement.dataset.companionDialogueLayoutAudit = JSON.stringify({
+          viewport: [window.innerWidth, window.innerHeight],
+          theme: dom.dialogueScreen?.dataset.dialogueTheme,
+          speaker: dom.dialogueSpeaker?.textContent,
+          role: dom.dialogueRole?.textContent,
+          oneSlide: preview.pendingDialogue?.slides?.length === 1,
+          horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          ordered: Boolean(speaker && role && button && speaker.bottom <= role.top + 1 && role.bottom < button.top),
+        });
+      });
+    }
+    if (developmentQuery.has("legendaryConclusionPreview")) {
+      const requestedArc = developmentQuery.get("legendaryConclusionPreview");
+      const arcId = ["talent", "marineford", "emperor"].includes(requestedArc)
+        ? requestedArc : "marineford";
+      const preview = createDefaultGameState({
+        name: "Aperçu conclusion", faction: "pirate", dream: "one-piece",
+        origin: "east-blue", traits: [], hasD: false,
+      });
+      preview.month = arcId === "talent" ? 12 : arcId === "marineford" ? 13 : 24;
+      preview.route = createSimulationRoute("east-blue");
+      preview.currentZoneIndex = getZoneIndexForMonth(preview.month);
+      preview.legendaryArcs[arcId].status = "failed";
+      preview.legendaryArcs[arcId].step = 3;
+      if (arcId === "emperor") {
+        preview.legendaryArcs.emperor.emperorId = developmentQuery.get("emperorId") || "kaido";
+      }
+      queueLegendaryConclusion(arcId, preview);
+      state.game = preview;
+      openScreen(SCREEN.ZONE_TRANSITION, { save: false });
+      const auditLegendaryConclusionLayout = () => requestAnimationFrame(() => {
+        const asset = dom.transitionFeatureAsset?.getBoundingClientRect();
+        const card = dom.zoneTransitionScreen?.querySelector(".zone-transition-card")?.getBoundingClientRect();
+        document.documentElement.dataset.legendaryConclusionLayoutAudit = JSON.stringify({
+          viewport: [window.innerWidth, window.innerHeight],
+          arcId,
+          emperorId: preview.legendaryArcs.emperor.emperorId,
+          expectedAsset: getLegendaryArcAsset(arcId)?.path,
+          renderedAsset: dom.transitionFeatureAsset?.getAttribute("src"),
+          assetVisible: dom.transitionFeatureAsset?.hidden === false && Boolean(asset?.width && asset?.height),
+          assetCentered: Boolean(asset && card &&
+            Math.abs((asset.left + asset.right) / 2 - (card.left + card.right) / 2) <= 2),
+          iconHidden: getComputedStyle(dom.zoneTransitionIcon).display === "none",
+          narrativeTitle: dom.zoneTransitionTitle?.textContent,
+          horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        });
+      });
+      if (dom.transitionFeatureAsset?.complete) auditLegendaryConclusionLayout();
+      else dom.transitionFeatureAsset?.addEventListener("load", auditLegendaryConclusionLayout, { once: true });
     }
     if (developmentQuery.has("dreamConclusionPreview")) {
       const dreamCompleted = developmentQuery.get("dreamConclusionPreview") !== "failure";
@@ -15414,6 +15847,7 @@
         legendaryArcs: runArcPerformanceAudit(),
         legendaryTitleReveals: runLegendaryTitleRevealAudit(),
         finalDream: runFinalDreamResolutionAudit(),
+        companionDialogues: runCompanionDialogueAudit(),
         emperorRunKiller: runEmperorRunKillerAudit(),
       },
     };

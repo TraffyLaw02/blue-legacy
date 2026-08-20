@@ -1895,8 +1895,8 @@ body.has-game-credit #home-screen {
 
 .character-identity-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: start;
   gap: 8px 12px;
 }
 
@@ -1909,16 +1909,70 @@ body.has-game-credit #home-screen {
 }
 
 .character-panel-toggles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.game-popularity {
+  display: grid;
+  min-width: 66px;
+  justify-items: center;
+  color: color-mix(in srgb, var(--gold) 72%, var(--ink));
+  line-height: 1;
+}
+
+.game-popularity strong {
+  font-size: clamp(1.45rem, 5vw, 1.9rem);
+  font-weight: 950;
+}
+
+.game-popularity span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.game-quick-assets {
+  margin-top: 11px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.game-quick-assets h4 {
+  margin: 0 0 7px;
+  font-size: 0.76rem;
+}
+
+.game-quick-assets-list,
+.game-quick-titles,
+#game-shop-items {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 7px;
+  gap: 6px;
+}
+
+.game-quick-assets-empty,
+.game-companions-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.game-quick-titles .title-card-badge {
+  width: auto;
+  max-width: 100%;
 }
 
 .game-stats-toggle {
   display: inline-flex;
   min-width: 44px;
   min-height: 44px;
+  width: 100%;
   padding: 7px 11px;
   color: var(--ocean-deep);
   font: inherit;
@@ -1967,6 +2021,7 @@ body.has-game-credit #home-screen {
 }
 
 .game-stats-panel,
+.game-companions-panel,
 .game-details-panel {
   margin-top: 12px;
 }
@@ -1974,8 +2029,18 @@ body.has-game-credit #home-screen {
 @media (max-width: 430px) {
   .game-stats-toggle {
     min-height: 42px;
-    padding-inline: 10px;
+    padding-inline: 6px;
+    font-size: 0.68rem;
+    gap: 3px;
   }
+
+  .character-panel-toggles { gap: 5px; }
+  .game-stats-toggle-chevron { display: none; }
+}
+
+@media (max-width: 340px) {
+  .character-status { padding-inline: 11px; }
+  .game-stats-toggle { padding-inline: 4px; font-size: 0.64rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2491,8 +2556,14 @@ body.is-boss-danger-event #result-screen .result-card.negative {
 }
 
 .zone-transition-screen.legendary-arc-conclusion .zone-transition-icon {
-  color: #e7e4dc;
-  background: #34383d;
+  display: none;
+}
+
+.zone-transition-screen.legendary-asset-conclusion .transition-feature-asset {
+  width: min(100%, 430px);
+  max-height: clamp(104px, 24vw, 172px);
+  margin-inline: auto;
+  object-fit: contain;
 }
 
 .zone-transition-screen.legendary-arc-conclusion .zone-transition-description {
@@ -3541,6 +3612,33 @@ body.shake #app,
   background: #d2ad63;
   border-color: #765322;
   box-shadow: 0 5px 0 #765322;
+}
+
+.dialogue-screen[data-dialogue-theme="companion"] {
+  --dialogue-ink: #f0faef;
+  background: linear-gradient(145deg, #173b32, #091f1a 72%);
+  border-color: #2f755e;
+}
+
+.dialogue-screen[data-dialogue-theme="companion"] .dialogue-card {
+  background: linear-gradient(155deg, rgba(31, 72, 59, 0.98), rgba(14, 38, 31, 0.99));
+  border-color: #72bd84;
+  box-shadow: 0 7px 0 #06140f, 0 24px 48px rgba(0, 0, 0, 0.34);
+}
+
+.dialogue-screen[data-dialogue-theme="companion"] :is(.dialogue-eyebrow, .dialogue-progress) {
+  color: #9bd3a6;
+}
+
+.dialogue-screen[data-dialogue-theme="companion"] .dialogue-role {
+  color: #b8d8c4;
+}
+
+.dialogue-screen[data-dialogue-theme="companion"] .dialogue-continue-button {
+  color: #092016;
+  background: #8bce96;
+  border-color: #397a4b;
+  box-shadow: 0 5px 0 #285d39;
 }
 
 .reduced-motion .dialogue-card { animation: none; }

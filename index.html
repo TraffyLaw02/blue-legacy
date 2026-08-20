@@ -366,9 +366,26 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <aside aria-label="État du personnage" class="character-status" id="character-status">
 <div class="character-identity-row">
 <h3 id="game-character-name">Nom du personnage</h3>
-<div class="character-panel-toggles">
+<div class="game-popularity" id="game-popularity" aria-live="polite">
+<strong id="game-popularity-value">1</strong>
+<span>Popularité</span>
+</div>
+</div>
+<section class="game-quick-assets" id="game-quick-assets" aria-labelledby="game-quick-assets-title">
+<h4 id="game-quick-assets-title">Titres et objets équipés</h4>
+<div class="game-quick-assets-list">
+<div class="game-quick-titles" id="game-quick-titles"></div>
+<div id="game-shop-items"></div>
+<p class="game-quick-assets-empty" id="game-quick-assets-empty" hidden>Aucun titre ou objet pour le moment.</p>
+</div>
+</section>
+<div class="character-panel-toggles" role="group" aria-label="Informations du personnage">
 <button aria-controls="game-stats-panel" aria-expanded="false" class="game-stats-toggle" id="game-stats-toggle" type="button">
 <span>Statistiques</span>
+<span aria-hidden="true" class="game-stats-toggle-chevron">⌄</span>
+</button>
+<button aria-controls="game-companions-panel" aria-expanded="false" class="game-stats-toggle" id="game-companions-toggle" type="button">
+<span>Compagnons</span>
 <span aria-hidden="true" class="game-stats-toggle-chevron">⌄</span>
 </button>
 <button aria-controls="game-details-panel" aria-expanded="false" class="game-stats-toggle" id="game-details-toggle" type="button">
@@ -376,9 +393,15 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <span aria-hidden="true" class="game-stats-toggle-chevron">⌄</span>
 </button>
 </div>
-</div>
 <div class="game-stats-panel" hidden="" id="game-stats-panel">
 <div class="stats-grid" id="game-stats-list"></div>
+</div>
+<div class="game-companions-panel" hidden id="game-companions-panel">
+<section class="career-asset-section" id="game-crew-section">
+<h4 id="game-crew-title">👥 Compagnons</h4>
+<div class="crew-badge-list" id="game-crew-members"></div>
+<p class="game-companions-empty" id="game-companions-empty" hidden>Aucun compagnon pour le moment.</p>
+</section>
 </div>
 <div class="game-details-panel" hidden="" id="game-details-panel">
 <div class="career-assets" id="game-career-assets" hidden="">
@@ -386,20 +409,12 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h4>🍈 Fruit du Démon</h4>
 <div id="game-devil-fruit"></div>
 </section>
-<section class="career-asset-section" id="game-crew-section" hidden="">
-<h4 id="game-crew-title">👥 Compagnons</h4>
-<div class="crew-badge-list" id="game-crew-members"></div>
-</section>
 </div>
 <section class="active-titles" aria-labelledby="active-titles-title">
-<h4 id="active-titles-title">🎖️ Titres actuels</h4>
+<h4 id="active-titles-title">🎖️ Titres obtenus</h4>
 <div class="active-titles-list" id="game-active-titles"></div>
 </section>
 </div>
-<section class="game-shop-items" id="game-shop-items-section" aria-labelledby="game-shop-items-title" hidden>
-<h4 id="game-shop-items-title">🎒 Objets équipés</h4>
-<div id="game-shop-items"></div>
-</section>
 </aside>
 <section aria-live="polite" class="event-container" id="event-container">
 <p class="eyebrow" id="event-eyebrow">Événement</p>
