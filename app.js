@@ -1445,10 +1445,45 @@
     }
   }
 
+  const HOME_SECONDARY_SCREENS = new Set([
+    SCREEN.PANTHEON,
+    SCREEN.ACHIEVEMENTS,
+    SCREEN.TITLES,
+    SCREEN.SHOP,
+    SCREEN.STATISTICS,
+  ]);
+
+  function shouldResetHomeNavigationScroll(previousScreen, nextScreen) {
+    return (
+      (previousScreen === SCREEN.HOME && HOME_SECONDARY_SCREENS.has(nextScreen)) ||
+      (nextScreen === SCREEN.HOME && HOME_SECONDARY_SCREENS.has(previousScreen))
+    );
+  }
+
+  function resetDocumentScrollAfterScreenChange() {
+    const scrollingElement = document.scrollingElement || document.documentElement;
+    const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = "auto";
+
+    const reset = () => {
+      scrollingElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
+    };
+
+    reset();
+    requestAnimationFrame(() => {
+      reset();
+      document.documentElement.style.scrollBehavior = previousScrollBehavior;
+    });
+  }
+
   function openScreen(screenName, options = {}) {
     if (!SCREEN_IDS[screenName]) {
       screenName = SCREEN.HOME;
     }
+
+    const previousScreen = state.screen;
 
     if (options.returnScreen) {
       state.returnScreen = options.returnScreen;
@@ -1462,6 +1497,10 @@
 
     showScreen(SCREEN_IDS[screenName]);
     updateScreen(screenName);
+
+    if (shouldResetHomeNavigationScroll(previousScreen, screenName)) {
+      resetDocumentScrollAfterScreenChange();
+    }
 
     if (state.game && options.save !== false) {
       saveGame();
@@ -3204,6 +3243,7 @@
       pendingZoneTransition: null,
       pendingDialogue: null,
       pendingRewardReveals: [],
+      temperamentSequenceVersion: 1,
       emperorRunKiller: createDisabledEmperorRunKillerState(),
       preparedFinalTitle: null,
       finalPopularityScore: null,
@@ -3414,6 +3454,7 @@
         chestConsumed: Boolean(game.shopEffects?.chestConsumed ?? game.shopEffects?.strawHatConsumed),
       },
       completionBerriesGranted: Math.max(0, Math.floor(Number(game.completionBerriesGranted) || 0)),
+      temperamentSequenceVersion: Number(game.temperamentSequenceVersion) >= 1 ? 1 : 0,
     };
     if (hadLegacyEmperorTitle &&
         !normalized.appliedTitleEffects.includes("rival-de-barbe-blanche")) {
@@ -3476,6 +3517,19 @@
     });
 
     repairGameRoute(normalized);
+    if (normalized.temperamentSequenceVersion < 1) {
+      const reverseMountainIndex = normalized.route.findIndex((zone) => zone.id === "reverse-mountain");
+      const pendingReverseMountainArrival =
+        normalized.pendingZoneTransition?.zoneId === "reverse-mountain" &&
+        normalized.pendingZoneTransition?.reason === "zone-change";
+      if (reverseMountainIndex >= 0 &&
+          normalized.currentZoneIndex >= reverseMountainIndex &&
+          !pendingReverseMountainArrival) {
+        normalized.flags.reverseMountainTemperamentEventCompleted = true;
+        normalized.flags.reverseMountainTemperamentSkippedForLegacySave = true;
+      }
+      normalized.temperamentSequenceVersion = 1;
+    }
     normalized.runTitles.forEach((title) => {
       if (normalized.isFinished) {
         if (!normalized.appliedTitleEffects.includes(title.id)) {
@@ -3486,7 +3540,7 @@
       }
     });
     if (normalized.currentEvent?.id && !normalized.pendingResult) {
-      const catalogEvent = getAllEvents().find(
+      const catalogEvent = [getReverseMountainTemperamentEvent(), ...getAllEvents()].filter(Boolean).find(
         (event) => event.id === normalized.currentEvent.id,
       );
       if (catalogEvent && isSpecialZoneEvent(catalogEvent)) {
@@ -4555,6 +4609,33 @@
     return Boolean(slides.length);
   }
 
+  function queueTemperamentConclusionDialogue(event, choice, outcome, game = state.game) {
+    if (!game || !event?.tags?.includes("temperament-event")) return false;
+    const faction = game.character?.faction || "pirate";
+    const temperament = String(choice?.id || "").replace("temperament-", "");
+    const tier = outcome?.resolvedOutcomeTier || outcome?.outcomeTier || inferOutcomeTier(outcome || {});
+    const resultKey = ["success", "exceptional_success"].includes(tier) ? "success" : "failure";
+    const text = event.conclusionDialogue?.[faction]?.[temperament]?.[resultKey];
+    if (!text) return false;
+    const speakers = {
+      pirate: ["Shanks le Roux", "Empereur"],
+      marine: ["Monkey D. Garp", "Héros de la Marine"],
+      revolutionary: ["Monkey D. Dragon", "Chef de l’Armée révolutionnaire"],
+      "bounty-hunter": ["Jean Ango", "Chasseur de primes"],
+    };
+    const [speaker, role] = speakers[faction] || speakers.pirate;
+    game.pendingDialogue = {
+      eventId: event.id,
+      index: 0,
+      kind: "event-conclusion",
+      theme: "default",
+      resumeAction: "finish-event",
+      companionId: null,
+      slides: [{ eyebrow: "Une dernière parole", speaker, role, text }],
+    };
+    return true;
+  }
+
   function getCompanionDialogueData(memberData, moment) {
     const member = normalizeCrewMember(memberData);
     const custom = window.BLUE_LEGACY_COMPANION_DIALOGUES?.[member.id];
@@ -4644,6 +4725,10 @@
         return true;
       }
     }
+    if (resumeAction === "finish-event") {
+      openScreen(SCREEN.GAME, { save: false });
+      return finishEvent();
+    }
     openScreen(SCREEN.GAME, { save: false });
     return true;
   }
@@ -4656,6 +4741,7 @@
       dom.continueZoneTransition.disabled = true;
     }
     const transitionReason = game.pendingZoneTransition.reason;
+    const transitionZoneId = game.pendingZoneTransition.zoneId || getPendingTransitionZone(game)?.id || null;
     const transitionEmperorId = game.pendingZoneTransition.emperorId || null;
     const conclusionArcId = game.pendingZoneTransition.arcId || null;
     game.pendingZoneTransition = null;
@@ -4679,6 +4765,16 @@
         arc.conclusionPending = false;
         arc.conclusionShown = true;
         arc.routeResumed = true;
+      }
+    }
+    if (transitionReason === "zone-change" &&
+        transitionZoneId === "reverse-mountain" &&
+        game.temperamentSequenceVersion >= 1 &&
+        game.flags?.reverseMountainTemperamentEventCompleted !== true) {
+      const temperamentEvent = getReverseMountainTemperamentEvent();
+      if (temperamentEvent) {
+        game.flags.reverseMountainTemperamentEventStarted = true;
+        return startEvent(temperamentEvent);
       }
     }
     saveGame();
@@ -5636,6 +5732,11 @@
       .map(normalizeEvent);
   }
 
+  function getReverseMountainTemperamentEvent() {
+    const source = window.BLUE_LEGACY_REVERSE_MOUNTAIN_TEMPERAMENT_EVENT;
+    return source ? normalizeEvent(source) : null;
+  }
+
   function normalizeEventType(event = {}) {
     if (EVENT_TYPE_META[event.eventType]) return event.eventType;
     if (event.bossEvent) return "decisive";
@@ -5744,6 +5845,8 @@
       decisiveKind: event?.decisiveKind || event?.bossType || "",
       intro: event?.intro || "",
       introDialogue: cloneData(event?.introDialogue || null),
+      conclusionDialogue: cloneData(event?.conclusionDialogue || null),
+      noActionCost: Boolean(event?.noActionCost),
       rarity: event?.rarity || "common",
 
       priority: Number(event?.priority) || 0,
@@ -6066,7 +6169,7 @@
     const category = event?.resolutionCategory === "social" ? "social" : "action";
     const broadDecisiveWeights = event?.eventType === "decisive" && (
       Number(event?.decisiveStage) === 3 || event?.tags?.includes("haki-awakening")
-    );
+    ) || event?.tags?.includes("temperament-event");
     const allowed = broadDecisiveWeights
       ? new Set(["health", "combat", "haki", "charisma", "intelligence", "renown"])
       : category === "action"
@@ -6113,6 +6216,17 @@
 
   function getOutcomeTierProbabilities(game = state.game, event = null, choice = null) {
     const score = getEventResolutionScore(game, event, choice);
+    if (event?.tags?.includes("temperament-event")) {
+      const success = Math.max(0.85, Math.min(0.90, 0.82 + score * 0.002));
+      return {
+        score,
+        exceptional_success: 0,
+        success,
+        mixed: 0,
+        failure: 1 - success,
+        severe_failure: 0,
+      };
+    }
     const family = ["ordinary", "risk", "decisive", "legendary"].includes(event?.eventType)
       ? (event.eventType === "legendary" ? "risk" : event.eventType)
       : "surprise";
@@ -6851,7 +6965,7 @@
     game.currentEventId = null;
     game.currentChoiceIndex = null;
     game.pendingResult = null;
-    if (!legendaryArcId) game.currentAction += 1;
+    if (!legendaryArcId && !completedEvent?.noActionCost) game.currentAction += 1;
 
     state.result = null;
 
@@ -7111,6 +7225,7 @@
     const rewards = applyOutcomeMajorRewards(outcome, game);
     queueRewardReveals(rewards, game, { resolutionId, eventId: event.id });
     queueHakiConclusion(event, outcome, rewards, resolutionId, game);
+    queueTemperamentConclusionDialogue(event, choice, outcome, game);
 
     const dreamProgress = getOutcomeDreamProgress(outcome, game);
     if (dreamProgress) {
@@ -7553,6 +7668,13 @@
     if (game.pendingRewardReveals?.length) {
       openScreen(SCREEN.REWARD_REVEAL);
       state.isContinuingResult = false;
+      return true;
+    }
+
+    if (game.pendingDialogue?.kind === "event-conclusion") {
+      openScreen(SCREEN.DIALOGUE, { save: false });
+      state.isContinuingResult = false;
+      saveGame();
       return true;
     }
 
@@ -9318,7 +9440,7 @@
     "has-d", "stat-at-least", "max-stat-at-least", "finished-stat-at-most",
     "zone-with-stat-at-most", "telemetry-at-least", "has-fruit",
     "finished-with-fruit", "unique-fruits", "zone-without-fruit",
-    "d-and-dream-completed", "titles-unlocked", "has-title", "has-any-title",
+    "d-and-dream-completed", "titles-unlocked", "specific-titles-collected", "has-title", "has-any-title",
     "legendary-companion-recruited", "shop-items-owned", "finished-with-shop-items",
     "finished-popularity", "legendary-arc-encountered", "legendary-arc-title",
     "both-legendary-arcs", "three-legendary-arcs",
@@ -9454,6 +9576,16 @@
       case "titles-unlocked":
         current = profile.titles?.length || 0;
         break;
+      case "specific-titles-collected": {
+        const requiredTitleIds = uniqueArray(condition.titleIds || []);
+        const collectedTitleIds = new Set([
+          ...(profile.titles || []).map(getDataId),
+          ...(game?.runTitles || []).map(getDataId),
+        ]);
+        current = requiredTitleIds.filter((titleId) => collectedTitleIds.has(titleId)).length;
+        target = Number(condition.target) || requiredTitleIds.length || 1;
+        break;
+      }
       case "has-title": {
         const titleId = condition.titleId;
         current = runs.some((run) => (run.runTitles || []).some((title) => getDataId(title) === titleId)) ||
@@ -9775,6 +9907,7 @@
       if (originalProfile === null) localStorage.removeItem(CONFIG.profileKey);
       else localStorage.setItem(CONFIG.profileKey, originalProfile);
     }
+
   }
 
   /* ========================================================
@@ -10078,6 +10211,11 @@
       saveGame();
       openScreen(SCREEN.GAME, { save: false });
       return startNextEvent();
+    }
+    if (game.pendingDialogue?.kind === "event-conclusion") {
+      saveGame();
+      openScreen(SCREEN.DIALOGUE, { save: false });
+      return true;
     }
     openScreen(SCREEN.GAME, { save: false });
     return finishEvent();
@@ -13622,6 +13760,314 @@
     return report;
   }
 
+  function runReverseMountainTemperamentAudit() {
+    const event = getReverseMountainTemperamentEvent();
+    const titleIds = ["temperament-cunning", "temperament-brawler", "temperament-calm"];
+    const factions = ["pirate", "marine", "bounty-hunter", "revolutionary"];
+    const character = {
+      name: "Audit Tempérament", faction: "pirate", dream: "one-piece",
+      origin: "east-blue", traits: [], hasD: false,
+    };
+    const probabilityGame = createDefaultGameState(character);
+    probabilityGame.route = [{ id: "reverse-mountain", name: "Reverse Mountain", routeStage: 2 }];
+    probabilityGame.currentZoneIndex = 0;
+    probabilityGame.stats = normalizeStats({
+      ...probabilityGame.stats,
+      health: 24, combat: 24, haki: 24, intelligence: 24, charisma: 24,
+    });
+    const favorableRates = (event?.choices || []).map((choice) => {
+      const probabilities = getOutcomeTierProbabilities(probabilityGame, event, choice);
+      return probabilities.success + probabilities.exceptional_success;
+    });
+    const simulatedRates = (event?.choices || []).map((choice, choiceIndex) => {
+      const originalRandom = Math.random;
+      const random = createSeededRandom(20082026 + choiceIndex);
+      let successes = 0;
+      try {
+        Math.random = random;
+        for (let index = 0; index < 10000; index += 1) {
+          const outcome = selectOutcome(choice, probabilityGame, event);
+          if (["success", "exceptional_success"].includes(outcome.resolvedOutcomeTier)) successes += 1;
+        }
+      } finally {
+        Math.random = originalRandom;
+      }
+      return successes / 10000;
+    });
+
+    const bonusChecks = Object.fromEntries(titleIds.map((titleId) => {
+      const game = createDefaultGameState(character);
+      refreshPopularityScore(game);
+      const before = getStatsSnapshot(game.stats);
+      const firstUnlock = unlockTitle(titleId, findTitleData(titleId), game, false);
+      const afterFirst = getStatsSnapshot(game.stats);
+      const reloaded = normalizeGame(cloneData(game));
+      const afterReload = getStatsSnapshot(reloaded.stats);
+      const statChanges = getStatsDifference(before, afterFirst);
+      return [titleId, {
+        firstUnlock,
+        appliedOnce: JSON.stringify(afterFirst) === JSON.stringify(afterReload),
+        changes: Object.fromEntries(Object.entries(statChanges)
+          .filter(([statId]) => ["health", "combat", "haki", "intelligence", "charisma"].includes(statId))),
+        popularityRecalculation: Number(statChanges.popularity) || 0,
+      }];
+    }));
+
+    const routeGame = createDefaultGameState(character);
+    routeGame.route = generateRoute(character);
+    const reverseIndex = routeGame.route.findIndex((zone) => zone.id === "reverse-mountain");
+    const monthForIndex = (wantedIndex) => {
+      for (let month = 1; month <= CONFIG.maxMonths; month += 1) {
+        if (getZoneIndexForMonth(month) === wantedIndex) return month;
+      }
+      return 1;
+    };
+    const makeLegacy = (zoneIndex, pendingTransition = null) => {
+      const legacy = cloneData(routeGame);
+      delete legacy.temperamentSequenceVersion;
+      legacy.month = monthForIndex(zoneIndex);
+      legacy.currentZoneIndex = zoneIndex;
+      legacy.pendingZoneTransition = pendingTransition;
+      return normalizeGame(legacy);
+    };
+    const legacyBefore = makeLegacy(Math.max(0, reverseIndex - 1));
+    const legacyBeyond = makeLegacy(Math.min(routeGame.route.length - 1, reverseIndex + 1));
+    const legacyArrival = makeLegacy(reverseIndex, {
+      zoneId: "reverse-mountain", routeIndex: reverseIndex, reason: "zone-change",
+    });
+
+    const reloadGame = createDefaultGameState(character);
+    reloadGame.route = cloneData(routeGame.route);
+    reloadGame.currentZoneIndex = reverseIndex;
+    reloadGame.currentEvent = cloneData(event);
+    reloadGame.currentEventId = event?.id || null;
+    reloadGame.pendingDialogue = {
+      eventId: event?.id || "", index: 1, kind: "event-intro", theme: "default",
+      resumeAction: "show-event", companionId: null,
+      slides: cloneData(event?.introDialogue?.pirate || []),
+    };
+    const reloadedBeforeChoice = normalizeGame(reloadGame);
+
+    const achievement = findAchievementData("three-temperaments");
+    const progressProfile = createDefaultProfile();
+    progressProfile.titles = titleIds.slice(0, 2).map((id) => findTitleData(id));
+    const thirdTitleGame = createDefaultGameState(character);
+    unlockTitle(titleIds[2], findTitleData(titleIds[2]), thirdTitleGame, false);
+    const achievementProgress = getAchievementProgress(achievement, progressProfile, thirdTitleGame);
+
+    const outcomeMatrix = Object.fromEntries(factions.flatMap((faction) =>
+      event.choices.map((choice, choiceIndex) => {
+        const game = createDefaultGameState({ ...character, faction });
+        game.route = [{ id: "reverse-mountain", name: "Reverse Mountain", routeStage: 2 }];
+        game.currentZoneIndex = 0;
+        const originalRandom = Math.random;
+        let success;
+        let failure;
+        try {
+          Math.random = () => 0.01;
+          success = selectOutcome(choice, game, event);
+          Math.random = () => 0.999999;
+          failure = selectOutcome(choice, game, event);
+        } finally {
+          Math.random = originalRandom;
+        }
+        const key = `${faction}:${choice.id}`;
+        return [key, {
+          successTitle: getDataId(success?.titles?.[0]),
+          successTier: success?.resolvedOutcomeTier,
+          failureHasTitle: Boolean(failure?.titles?.length),
+          failureTier: failure?.resolvedOutcomeTier,
+          conclusionSuccess: Boolean(event.conclusionDialogue?.[faction]?.[choice.id.replace("temperament-", "")]?.success),
+          conclusionFailure: Boolean(event.conclusionDialogue?.[faction]?.[choice.id.replace("temperament-", "")]?.failure),
+          expectedTitle: titleIds[choiceIndex],
+        }];
+      })));
+
+    const originalGame = state.game;
+    const originalResult = state.result;
+    const originalScreen = state.screen;
+    const originalRandom = Math.random;
+    const originalSave = localStorage.getItem(CONFIG.saveKey);
+    const originalProfile = localStorage.getItem(CONFIG.profileKey);
+    let reloadFlow;
+    let responsiveLayout;
+    try {
+      const flowGame = createDefaultGameState(character);
+      flowGame.route = [{ id: "reverse-mountain", name: "Reverse Mountain", routeStage: 2 }];
+      flowGame.currentZoneIndex = 0;
+      flowGame.currentEvent = cloneData(event);
+      flowGame.currentEventId = event.id;
+      flowGame.flags.reverseMountainTemperamentEventStarted = true;
+      state.game = flowGame;
+      state.result = null;
+      state.screen = SCREEN.GAME;
+      openScreen(SCREEN.GAME, { save: false });
+      const choiceButtons = [...(dom.eventChoices?.querySelectorAll("[data-event-choice-index]") || [])];
+      const choiceRects = choiceButtons.map((button) => button.getBoundingClientRect());
+      const eventLayout = {
+        choiceCount: choiceButtons.length,
+        noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        choicesInsideViewport: choiceRects.every((rect) => rect.left >= -0.5 && rect.right <= window.innerWidth + 0.5),
+        labelsComplete: choiceButtons.every((button) => button.textContent.trim().length >= 25),
+      };
+      queueEventDialogue(event, flowGame);
+      openScreen(SCREEN.DIALOGUE, { save: false });
+      const dialogueRect = dom.dialogueScreen?.querySelector(".dialogue-card")?.getBoundingClientRect();
+      const dialogueLayout = {
+        noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        insideViewport: Boolean(dialogueRect) && dialogueRect.left >= -0.5 && dialogueRect.right <= window.innerWidth + 0.5,
+        textVisible: Boolean(dom.dialogueText?.textContent.trim()),
+      };
+      responsiveLayout = {
+        viewportWidth: window.innerWidth,
+        event: eventLayout,
+        dialogue: dialogueLayout,
+      };
+      flowGame.pendingDialogue = null;
+      openScreen(SCREEN.GAME, { save: false });
+      Math.random = () => 0.01;
+      const resolved = resolveChoice(0);
+      const statsAfterChoice = getStatsSnapshot(state.game.stats);
+      const reloadedResult = normalizeGame(cloneData(state.game));
+      const resultStable = reloadedResult.pendingResult?.resolutionId === state.game.pendingResult?.resolutionId &&
+        JSON.stringify(getStatsSnapshot(reloadedResult.stats)) === JSON.stringify(statsAfterChoice) &&
+        reloadedResult.runTitles.filter((title) => getDataId(title) === "temperament-cunning").length === 1;
+
+      state.game = reloadedResult;
+      state.result = cloneData(reloadedResult.pendingResult);
+      state.screen = SCREEN.RESULT;
+      const resultContinued = continueAfterResult();
+      const rewardScreenReached = state.screen === SCREEN.REWARD_REVEAL && state.game.pendingRewardReveals.length === 1;
+      const reloadedReward = normalizeGame(cloneData(state.game));
+      const rewardReloadStable = reloadedReward.pendingRewardReveals.length === 1 && !reloadedReward.pendingResult;
+      const rewardReloadCount = reloadedReward.pendingRewardReveals.length;
+      const rewardReloadHasResult = Boolean(reloadedReward.pendingResult);
+
+      state.game = reloadedReward;
+      state.screen = SCREEN.REWARD_REVEAL;
+      const rewardContinued = continueAfterRewardReveal();
+      const conclusionReached = state.screen === SCREEN.DIALOGUE && state.game.pendingDialogue?.kind === "event-conclusion";
+      const reloadedConclusion = normalizeGame(cloneData(state.game));
+      const conclusionReloadStable = reloadedConclusion.pendingDialogue?.kind === "event-conclusion";
+      const conclusionReloadKind = reloadedConclusion.pendingDialogue?.kind || null;
+
+      state.game = reloadedConclusion;
+      state.screen = SCREEN.DIALOGUE;
+      const actionBeforeConclusion = state.game.currentAction;
+      const dialogueContinued = continueAfterDialogue();
+      reloadFlow = {
+        resolved,
+        completedFlag: reloadedResult.flags.reverseMountainTemperamentEventCompleted === true,
+        resultStable,
+        resultContinued,
+        rewardScreenReached,
+        rewardReloadStable,
+        rewardReloadCount,
+        rewardReloadHasResult,
+        rewardContinued,
+        conclusionReached,
+        conclusionReloadStable,
+        conclusionReloadKind,
+        dialogueContinued,
+        noActionConsumed: state.game.currentAction === actionBeforeConclusion,
+        temperamentCleared: state.game.currentEvent?.id !== event.id,
+      };
+    } finally {
+      Math.random = originalRandom;
+      state.game = originalGame;
+      state.result = originalResult;
+      state.screen = originalScreen;
+      if (originalSave === null) localStorage.removeItem(CONFIG.saveKey);
+      else localStorage.setItem(CONFIG.saveKey, originalSave);
+      if (originalProfile === null) localStorage.removeItem(CONFIG.profileKey);
+      else localStorage.setItem(CONFIG.profileKey, originalProfile);
+    }
+
+    const persistenceProfileBefore = localStorage.getItem(CONFIG.profileKey);
+    const persistenceSaveBefore = localStorage.getItem(CONFIG.saveKey);
+    let achievementPersistence;
+    try {
+      const profile = createDefaultProfile();
+      profile.titles = titleIds.slice(0, 2).map((id) => findTitleData(id));
+      localStorage.setItem(CONFIG.profileKey, JSON.stringify(profile));
+      const game = createDefaultGameState(character);
+      unlockTitle(titleIds[2], findTitleData(titleIds[2]), game, false);
+      const firstUnlocks = checkAchievements(game);
+      const afterFirst = getProfile();
+      const berriesAfterFirst = afterFirst.berries;
+      const secondUnlocks = checkAchievements(normalizeGame(cloneData(game)));
+      const afterSecond = getProfile();
+      achievementPersistence = {
+        unlockedOnce: firstUnlocks.includes("three-temperaments") && !secondUnlocks.includes("three-temperaments"),
+        oneRecord: afterSecond.achievements.filter((record) => getDataId(record) === "three-temperaments").length === 1,
+        oneRewardRecord: afterSecond.rewardedAchievementIds.filter((id) => id === "three-temperaments").length === 1,
+        paidOnce: berriesAfterFirst === 85 && afterSecond.berries === berriesAfterFirst,
+      };
+    } finally {
+      if (persistenceProfileBefore === null) localStorage.removeItem(CONFIG.profileKey);
+      else localStorage.setItem(CONFIG.profileKey, persistenceProfileBefore);
+      if (persistenceSaveBefore === null) localStorage.removeItem(CONFIG.saveKey);
+      else localStorage.setItem(CONFIG.saveKey, persistenceSaveBefore);
+    }
+
+    const expectedBonuses = {
+      "temperament-cunning": { intelligence: 2, charisma: 1 },
+      "temperament-brawler": { health: 1, combat: 2 },
+      "temperament-calm": { haki: 2, intelligence: 1 },
+    };
+    const checks = {
+      eventIdentity: event?.id === "reverse-mountain-temperament" && event?.title === "Une question de tempérament",
+      threeBalancedChoices: event?.choices?.length === 3 && favorableRates.every((rate) => rate >= 0.85 && rate <= 0.90) &&
+        Math.max(...favorableRates) - Math.min(...favorableRates) <= 0.02,
+      simulatedFailureIsRare: simulatedRates.every((rate) => rate >= 0.84 && rate <= 0.90) &&
+        Math.max(...simulatedRates) - Math.min(...simulatedRates) <= 0.02,
+      fourFactionDialogues: factions.every((faction) => event?.introDialogue?.[faction]?.length >= 2 && event?.conclusionDialogue?.[faction]),
+      titleMapping: event?.choices?.every((choice, index) =>
+        choice.outcomes.some((outcome) => outcome.outcomeTier === "success" && outcome.titles.includes(titleIds[index])) &&
+        choice.outcomes.some((outcome) => outcome.outcomeTier === "failure" && !outcome.titles.length)),
+      fourFactionOutcomeMatrix: Object.values(outcomeMatrix).every((row) =>
+        row.successTitle === row.expectedTitle && row.successTier === "success" &&
+        !row.failureHasTitle && row.failureTier === "failure" &&
+        row.conclusionSuccess && row.conclusionFailure),
+      exactBonuses: Object.entries(bonusChecks).every(([id, result]) => {
+        const expected = expectedBonuses[id];
+        return result.firstUnlock && result.appliedOnce &&
+          Object.keys(result.changes).length === Object.keys(expected).length &&
+          Object.entries(expected).every(([statId, value]) => result.changes[statId] === value);
+      }),
+      noActionCost: event?.noActionCost === true,
+      reloadBeforeChoice: reloadedBeforeChoice.currentEvent?.id === event?.id &&
+        reloadedBeforeChoice.pendingDialogue?.index === 1,
+      legacyBeforeEligible: legacyBefore.flags.reverseMountainTemperamentEventCompleted !== true,
+      legacyArrivalEligible: legacyArrival.flags.reverseMountainTemperamentEventCompleted !== true,
+      legacyBeyondSkipped: legacyBeyond.flags.reverseMountainTemperamentEventCompleted === true &&
+        legacyBeyond.flags.reverseMountainTemperamentSkippedForLegacySave === true,
+      achievementProgress: achievementProgress.current === 3 && achievementProgress.target === 3 && achievementProgress.unlocked,
+      achievementReward: getAchievementBerryReward(achievement) === 85,
+      achievementPersistence: Object.values(achievementPersistence).every(Boolean),
+      responsiveLayout: responsiveLayout.event.choiceCount === 3 &&
+        Object.entries(responsiveLayout.event).filter(([key]) => key !== "choiceCount").every(([, value]) => value === true) &&
+        Object.values(responsiveLayout.dialogue).every(Boolean),
+      reloadFlow: [
+        "resolved", "completedFlag", "resultStable", "resultContinued", "rewardScreenReached",
+        "rewardReloadStable", "rewardContinued", "conclusionReached", "conclusionReloadStable",
+        "dialogueContinued", "noActionConsumed", "temperamentCleared",
+      ].every((key) => reloadFlow[key] === true),
+    };
+    return {
+      pass: Object.values(checks).every(Boolean),
+      checks,
+      favorableRates,
+      simulatedRates,
+      bonusChecks,
+      achievementProgress,
+      achievementPersistence,
+      outcomeMatrix,
+      reloadFlow,
+      responsiveLayout,
+    };
+  }
+
   function createSeededRandom(seed = 0xD092) {
     let value = Number(seed) >>> 0;
     return () => {
@@ -14826,7 +15272,7 @@
         positive: Boolean(title.condition({ ...createEventContext(game), game })),
       };
     });
-    const eventTitleIds = new Set([...getAllEvents(), ...getBossEvents()].flatMap((event) =>
+    const eventTitleIds = new Set([...getAllEvents(), ...getBossEvents(), getReverseMountainTemperamentEvent()].filter(Boolean).flatMap((event) =>
       event.choices.flatMap((choice) => choice.outcomes.flatMap((outcome) => outcome.titles.map(getDataId))),
     ));
     const titleSourceRows = titles.filter((title) => !title.finalTitle && typeof title.condition !== "function")
@@ -14986,6 +15432,7 @@
     calculateCompletionBerries,
     runShopSystemAudit,
     runCompanionDialogueAudit,
+    runReverseMountainTemperamentAudit,
     runCollectionCatalogAudit,
     runDivelcaAchievementAudit,
     runDivelcaPersistenceAudit,
@@ -15014,6 +15461,7 @@
     runArcPerformanceAudit,
     runFinalDreamResolutionAudit,
     runCompanionDialogueAudit,
+    runReverseMountainTemperamentAudit,
     runEmperorRunKillerAudit,
     debugTriggerEmperorRunKiller,
   });
@@ -15065,6 +15513,9 @@
     }
     if (developmentQuery.has("companionDialogueAudit")) {
       document.documentElement.dataset.companionDialogueAudit = JSON.stringify(runCompanionDialogueAudit());
+    }
+    if (developmentQuery.has("temperamentAudit")) {
+      document.documentElement.dataset.temperamentAudit = JSON.stringify(runReverseMountainTemperamentAudit());
     }
     if (developmentQuery.has("collectionAudit")) {
       document.documentElement.dataset.collectionAudit = JSON.stringify(runCollectionCatalogAudit());
@@ -15291,7 +15742,7 @@
       new URLSearchParams(window.location.search).has("audit");
     if (!auditEnabled) return;
 
-    const events = [...getAllEvents(), ...getBossEvents()];
+    const events = [...getAllEvents(), ...getBossEvents(), getReverseMountainTemperamentEvent()].filter(Boolean);
     const seenEventIds = new Set();
     const structuralWarnings = [];
     const removedNpcNamePattern =

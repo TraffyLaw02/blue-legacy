@@ -6036,6 +6036,134 @@ const COMMON_EVENTS = [
       .flatMap(([faction, stories]) => stories.map((story, index) =>
         createLegendaryArcEvent(arcId, faction, index + 1, story)))));
 
+  const REVERSE_MOUNTAIN_TEMPERAMENT_EVENT = Object.freeze({
+    id: "reverse-mountain-temperament",
+    title: "Une question de tempérament",
+    description: "Une figure respectée te demande quelle attitude adopter lorsque la guerre menace de tout faire basculer.",
+    category: "narrative",
+    eventType: "ordinary",
+    resolutionCategory: "social",
+    rarity: "uncommon",
+    unique: true,
+    mandatory: true,
+    important: true,
+    noActionCost: true,
+    tags: ["reverse-mountain-arrival", "temperament-event"],
+    loreCharacters: ["Shanks", "Benn Beckman", "Garp", "Bogard", "Dragon", "Sabo", "Jean Ango"],
+    introDialogue: {
+      pirate: [
+        { speaker: "Benn Beckman", role: "Bras droit du Roux", text: "Une guerre mal engagée est souvent perdue avant que les armes ne parlent." },
+        { speaker: "Shanks le Roux", role: "Empereur", text: "Peut-être. Mais il faut aussi savoir avancer au bon moment." },
+        { speaker: "Shanks le Roux", role: "Empereur", text: "Et toi ? Quand tout le monde se prépare à se battre, comment agis-tu ?" },
+      ],
+      marine: [
+        { speaker: "Bogard", role: "Officier de la Marine", text: "En temps de guerre, tenir sa ligne empêche souvent une bataille de devenir une déroute." },
+        { speaker: "Monkey D. Garp", role: "Héros de la Marine", text: "Bwahaha ! Et parfois, rester bien rangé est le meilleur moyen de se faire encercler !" },
+        { speaker: "Monkey D. Garp", role: "Héros de la Marine", text: "Toi, là. Quand les canons commencent à tirer, tu fais quoi ?" },
+      ],
+      revolutionary: [
+        { speaker: "Sabo", role: "Chef d’état-major", text: "Frapper avant que l’ennemi consolide ses lignes peut épargner un long conflit aux civils." },
+        { speaker: "Monkey D. Dragon", role: "Chef de l’Armée révolutionnaire", text: "Aucune guerre ne présente deux fois la même situation." },
+        { speaker: "Monkey D. Dragon", role: "Chef de l’Armée révolutionnaire", text: "Quelle approche choisirais-tu lorsque tout peut basculer ?" },
+      ],
+      "bounty-hunter": [
+        { speaker: "Un jeune chasseur de primes", role: "Chasseur de primes", text: "Quand plusieurs groupes traquent la même cible, le premier qui attaque devrait avoir l’avantage, non ?" },
+        { speaker: "Jean Ango", role: "Chasseur de primes", text: "Seulement s’il n’a pas annoncé son approche à toute l’île." },
+        { speaker: "Jean Ango", role: "Chasseur de primes", text: "Et toi ? En pleine guerre, comment prendrais-tu l’avantage ?" },
+      ],
+    },
+    conclusionDialogue: {
+      pirate: {
+        cunning: {
+          success: "Hé hé… trouver la faille avant de tirer, ça se tient. Garde les yeux ouverts sur Grand Line.",
+          failure: "L’idée n’est pas mauvaise. Apprends juste à mieux cacher ton jeu. Bonne route.",
+        },
+        brawler: {
+          success: "Hé hé… tu sais quand avancer. N’oublie simplement pas ceux qui avancent avec toi.",
+          failure: "Tu as de l’élan, mais choisis mieux l’instant. Grand Line te l’apprendra vite.",
+        },
+        calm: {
+          success: "Hé hé… garder la tête froide au milieu du vacarme, c’est une vraie force. Bonne route.",
+          failure: "Observer est utile, tant que l’occasion ne passe pas devant toi. Tu trouveras ton rythme.",
+        },
+      },
+      marine: {
+        cunning: {
+          success: "Bwahaha ! Tu cherches la faille avant le choc. Maintenant, sois capable de la voir sous le feu !",
+          failure: "Ton plan manque encore de mordant. Reprends-le avant que l’ennemi ne le fasse à ta place !",
+        },
+        brawler: {
+          success: "Bwahaha ! Au moins, tu sais avancer ! Tâche maintenant de rester debout quand les canons tirent.",
+          failure: "Foncer ne suffit pas si ta ligne casse derrière toi. Entraîne-toi et recommence !",
+        },
+        calm: {
+          success: "Bwahaha ! Tu ne gaspilles pas tes forces. Attends le bon moment, puis ne tremble pas.",
+          failure: "Rester calme ne veut pas dire rester immobile. Apprends à reconnaître l’instant d’agir !",
+        },
+      },
+      revolutionary: {
+        cunning: {
+          success: "Une faille bien exploitée peut abréger une guerre. N’oublie jamais qui subira ton plan.",
+          failure: "Une ruse prévisible expose ceux qu’elle devait protéger. Affine-la avant de l’employer.",
+        },
+        brawler: {
+          success: "L’initiative peut empêcher un conflit de s’étendre. Assure-toi que son prix reste juste.",
+          failure: "Une attaque trop tôt offre l’initiative à l’ennemi. Apprends à mesurer son coût.",
+        },
+        calm: {
+          success: "Observer avant d’agir préserve des vies. Lorsque l’instant viendra, assume pleinement ta décision.",
+          failure: "L’attente n’a de valeur que si elle prépare une décision. Garde cela en tête.",
+        },
+      },
+      "bounty-hunter": {
+        cunning: {
+          success: "Bien. Une cible qui regarde devant elle ne voit pas le piège se refermer sur le côté.",
+          failure: "Une ruse annoncée n’est plus une ruse. Travaille ton approche avant le prochain contrat.",
+        },
+        brawler: {
+          success: "Une frappe nette peut finir la chasse avant l’arrivée des concurrents. Ne rate pas la première.",
+          failure: "Tu as montré ta force trop tôt. Une cible avertie coûte toujours plus cher à prendre.",
+        },
+        calm: {
+          success: "Attendre que la cible se découvre économise les coups et les erreurs. Bonne chasse.",
+          failure: "Tu as attendu sans assez lire le terrain. La patience doit produire une ouverture.",
+        },
+      },
+    },
+    choices: [
+      {
+        id: "temperament-cunning",
+        text: "Contourner l’ennemi et frapper là où il ne s’y attend pas",
+        choiceTag: "Tactique",
+        resolutionWeights: { intelligence: 0.6, charisma: 0.4 },
+        outcomes: [
+          { id: "cunning-success", outcomeTier: "success", result: "Tu retournes le terrain dans ton raisonnement et montres comment forcer l’adversaire à exposer sa faiblesse.", titles: ["temperament-cunning"], flags: { reverseMountainTemperamentEventCompleted: true, reverseMountainTemperament: "cunning", reverseMountainTemperamentSucceeded: true } },
+          { id: "cunning-failure", outcomeTier: "failure", result: "Ton idée possède une faille trop visible ; le mentor la relève avant même la fin de ton explication.", effects: { charisma: -1 }, flags: { reverseMountainTemperamentEventCompleted: true, reverseMountainTemperament: "cunning", reverseMountainTemperamentSucceeded: false } },
+        ],
+      },
+      {
+        id: "temperament-brawler",
+        text: "Percer la ligne adverse avant qu’elle ne puisse réagir",
+        choiceTag: "Initiative",
+        resolutionWeights: { combat: 0.6, health: 0.4 },
+        outcomes: [
+          { id: "brawler-success", outcomeTier: "success", result: "Tu défends une attaque nette, lancée avant que l’ennemi puisse organiser sa riposte.", titles: ["temperament-brawler"], flags: { reverseMountainTemperamentEventCompleted: true, reverseMountainTemperament: "brawler", reverseMountainTemperamentSucceeded: true } },
+          { id: "brawler-failure", outcomeTier: "failure", result: "Ton assaut théorique ouvre ta propre ligne ; le mentor arrête la démonstration avant qu’elle ne tourne au désastre.", effects: { health: -1 }, flags: { reverseMountainTemperamentEventCompleted: true, reverseMountainTemperament: "brawler", reverseMountainTemperamentSucceeded: false } },
+        ],
+      },
+      {
+        id: "temperament-calm",
+        text: "Tenir sa position et attendre l’ouverture",
+        choiceTag: "Sang-froid",
+        resolutionWeights: { haki: 0.6, intelligence: 0.4 },
+        outcomes: [
+          { id: "calm-success", outcomeTier: "success", result: "Tu identifies le moment où l’adversaire s’épuise et expliques comment tenir jusqu’à cette ouverture.", titles: ["temperament-calm"], flags: { reverseMountainTemperamentEventCompleted: true, reverseMountainTemperament: "calm", reverseMountainTemperamentSucceeded: true } },
+          { id: "calm-failure", outcomeTier: "failure", result: "Ton attente laisse passer l’occasion décisive ; le mentor t’invite à mieux distinguer patience et immobilité.", effects: { intelligence: -1 }, flags: { reverseMountainTemperamentEventCompleted: true, reverseMountainTemperament: "calm", reverseMountainTemperamentSucceeded: false } },
+        ],
+      },
+    ],
+  });
+
   const ALL_EVENTS = Object.freeze([
     ...COMMON_EVENTS,
     ...RESTORED_COMMON_EVENTS,
@@ -6282,6 +6410,7 @@ const COMMON_EVENTS = [
   ]);
 
   window.SEA_OF_LEGENDS_EVENTS = ALL_EVENTS;
+  window.BLUE_LEGACY_REVERSE_MOUNTAIN_TEMPERAMENT_EVENT = REVERSE_MOUNTAIN_TEMPERAMENT_EVENT;
   window.BLUE_LEGACY_LEGENDARY_ARC_EVENTS = LEGENDARY_ARC_EVENTS;
   window.BLUE_LEGACY_LEGENDARY_MARINEFORD_TITLES = LEGENDARY_MARINEFORD_TITLES;
   window.BLUE_LEGACY_DECISIVE_EVENTS = BOSS_EVENTS;

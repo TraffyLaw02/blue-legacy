@@ -115,6 +115,7 @@
     achievement("encounter-three-legendary-arcs", "Trois pages de légende", "Talent, Marineford et un Empereur ont marqué une même carrière.", "challenges", "mythic", "◆", "Rencontrer les trois arcs légendaires dans une même carrière.", { type: "three-legendary-arcs" }, { secret: true }),
 
     achievement("unlock-ten-titles", "Collection de légendes", "Ta collection rassemble déjà de nombreuses identités remarquables.", "collection", "rare", "🎖️", "Débloquer dix Titres.", { type: "titles-unlocked", target: 10 }, { progressLabel: "Titres débloqués" }),
+    achievement("three-temperaments", "Trois tempéraments", "Rusé, Bagarreur et Calme ont chacun marqué l’une de tes aventures.", "collection", "rare", "🎭", "Obtenir les Titres Rusé, Bagarreur et Calme.", { type: "specific-titles-collected", titleIds: ["temperament-cunning", "temperament-brawler", "temperament-calm"], target: 3 }, { progressLabel: "Tempéraments découverts" }),
     achievement("record-ten-lives", "Une mer de souvenirs", "Le Panthéon raconte désormais une véritable génération d’aventuriers.", "collection", "legendary", "👑", "Condition secrète", { type: "runs-completed", target: 10 }, { secret: true, progressLabel: "Anciennes vies" }),
   ];
 
