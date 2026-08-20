@@ -4,11 +4,19 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <meta content="Blue Legacy, une aventure narrative sur les mers." name="description"/>
+<!-- À mettre à jour lors de chaque déploiement public afin d’invalider le cache. -->
+<meta content="2026-08-20-01" name="blue-legacy-build"/>
 <title>Blue Legacy — 1.0.1</title>
-<link rel="icon" type="image/png" href="assets/icone.png?v=101"/>
-<link rel="shortcut icon" type="image/png" href="assets/icone.png?v=101"/>
-<link rel="apple-touch-icon" href="assets/icone.png?v=101"/>
-<link href="style.css" rel="stylesheet"/>
+<script>
+/* Les ressources locales reprennent automatiquement la build du meta tag ci-dessus. */
+window.BLUE_LEGACY_CURRENT_BUILD = document.querySelector('meta[name="blue-legacy-build"]').content;
+document.write(
+  '<link rel="icon" type="image/png" href="assets/icone.png?v=' + encodeURIComponent(window.BLUE_LEGACY_CURRENT_BUILD) + '">' +
+  '<link rel="shortcut icon" type="image/png" href="assets/icone.png?v=' + encodeURIComponent(window.BLUE_LEGACY_CURRENT_BUILD) + '">' +
+  '<link rel="apple-touch-icon" href="assets/icone.png?v=' + encodeURIComponent(window.BLUE_LEGACY_CURRENT_BUILD) + '">' +
+  '<link rel="stylesheet" href="style.css?v=' + encodeURIComponent(window.BLUE_LEGACY_CURRENT_BUILD) + '">'
+);
+</script>
 </head>
 <body>
 <div id="app">
@@ -514,7 +522,15 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h2 id="achievements-title">🏆 Succès</h2>
 </div>
 </header>
-<p class="achievements-collection-summary" id="achievements-collection-summary">0 succès débloqué sur 0</p>
+<div class="collection-navigation achievements-navigation" aria-label="Navigation des Succès">
+<p class="achievements-collection-summary collection-navigation-summary" id="achievements-collection-summary" aria-live="polite">0 succès débloqué sur 0</p>
+<div class="collection-filter-group" aria-label="Filtrer les Succès par statut" role="group">
+<button class="collection-filter-button is-active" data-achievement-filter="all" type="button" aria-pressed="true">Tous</button>
+<button class="collection-filter-button" data-achievement-filter="locked" type="button" aria-pressed="false">À faire</button>
+<button class="collection-filter-button" data-achievement-filter="unlocked" type="button" aria-pressed="false">Débloqués</button>
+<button class="collection-filter-button" data-achievement-filter="near" type="button" aria-pressed="false">Proches</button>
+</div>
+</div>
 <div class="achievement-collection" id="achievements-list"></div>
 </section>
 <!-- TITRES -->
@@ -526,7 +542,20 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h2 id="titles-title">🎖️ Titres</h2>
 </div>
 </header>
-<p class="titles-collection-summary" id="titles-collection-summary">Collection : 0 / 0</p>
+<div class="collection-navigation titles-navigation" aria-label="Navigation des Titres">
+<p class="titles-collection-summary collection-navigation-summary" id="titles-collection-summary" aria-live="polite">0 / 0 obtenus</p>
+<div class="collection-filter-group" aria-label="Filtrer les Titres par statut" role="group">
+<button class="collection-filter-button is-active" data-title-status-filter="all" type="button" aria-pressed="true">Tous</button>
+<button class="collection-filter-button" data-title-status-filter="unlocked" type="button" aria-pressed="false">Obtenus</button>
+<button class="collection-filter-button" data-title-status-filter="locked" type="button" aria-pressed="false">À découvrir</button>
+</div>
+<div class="titles-filter-tools">
+<label class="collection-select-label" for="titles-rarity-filter"><span>Rareté</span><select id="titles-rarity-filter">
+<option value="all">Toutes</option><option value="common">Commun</option><option value="uncommon">Peu commun</option><option value="rare">Rare</option><option value="epic">Épique</option><option value="legendary">Légendaire</option><option value="mythic">Mythique</option>
+</select></label>
+<label class="collection-search-label" for="titles-search"><span class="sr-only">Rechercher un titre</span><input id="titles-search" type="search" placeholder="Rechercher un titre" autocomplete="off"></label>
+</div>
+</div>
 <div class="title-collection" id="titles-list"></div>
 </section>
 <!-- PANTHÉON -->
@@ -713,13 +742,13 @@ window.addEventListener("error", function (event) {
   document.documentElement.dataset.bootErrors = JSON.stringify(window.__blueLegacyBootErrors);
 });
 </script>
-<script src="data.js"></script>
-<script src="events.js"></script>
-<script src="titles.js"></script>
-<script src="achievements.js"></script>
-<script src="shop.js"></script>
-<script src="assets/vendor/html2canvas.min.js"></script>
-<script src="leaderboard.js"></script>
-<script src="app.js"></script>
+<script>
+[
+  "data.js", "events.js", "titles.js", "achievements.js", "shop.js",
+  "assets/vendor/html2canvas.min.js", "leaderboard.js", "app.js"
+].forEach(function (source) {
+  document.write('<script src="' + source + '?v=' + encodeURIComponent(window.BLUE_LEGACY_CURRENT_BUILD) + '"><\/script>');
+});
+</script>
 </body>
 </html>

@@ -4,6 +4,8 @@ Construisez votre légende sur les mers, une décision à la fois.
 
 Version actuelle : 1.0.1
 
+Maintenance des publications : à chaque nouvelle build publique, mettre à jour la build dans `index.html` et `version.json`, puis publier ces fichiers ensemble.
+
 ## Présentation
 
 Blue Legacy est un roguelite narratif jouable dans le navigateur, dans un univers inspiré de *One Piece*. Chaque carrière se déroule sur 24 mois et raconte une nouvelle légende façonnée par les choix du joueur et leurs conséquences.

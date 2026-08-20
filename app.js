@@ -41,6 +41,14 @@
     maxMajorRewards: 2,
     emperorRunKillerProbability: 0.01,
   });
+  const CURRENT_BUILD = window.BLUE_LEGACY_CURRENT_BUILD ||
+    document.querySelector('meta[name="blue-legacy-build"]')?.content || "unknown";
+  const PRODUCTION_HOSTNAMES = new Set(["bluelegacy.fr", "www.bluelegacy.fr"]);
+  const isProductionHostname = (hostname) => PRODUCTION_HOSTNAMES.has(String(hostname || "").toLowerCase());
+  const IS_PRODUCTION = isProductionHostname(window.location.hostname);
+  const BUILD_UPDATE_CHECK_INTERVAL = 15 * 60 * 1000;
+  const BUILD_UPDATE_FETCH_TIMEOUT = 8000;
+  const BUILD_UPDATE_RELOAD_SESSION_KEY = "blueLegacyLastAutomaticBuildReload";
 
   const RESOLUTION_DEBUG = false;
 
@@ -386,6 +394,9 @@
     isContinuingResult: false,
     isResettingProfile: false,
     profileResetCompletedAt: 0,
+    pendingCriticalWrites: 0,
+    titleFilters: { status: "all", rarity: "all", search: "" },
+    achievementFilter: "all",
   };
 
   const GAME_STATS_EXPANDED_SESSION_KEY = "blueLegacyGameStatsExpanded";
@@ -534,6 +545,8 @@
 
     dom.achievements = byId("achievements-list");
     dom.achievementsSummary = byId("achievements-collection-summary");
+    dom.titlesRarityFilter = byId("titles-rarity-filter");
+    dom.titlesSearch = byId("titles-search");
     dom.titles = byId("titles-list");
     dom.titlesSummary = byId("titles-collection-summary");
     dom.pastLives = byId("past-lives-list");
@@ -1242,6 +1255,165 @@
      NAVIGATION
   ======================================================== */
 
+  const buildUpdateState = {
+    updateAvailable: false,
+    remoteBuild: null,
+    notifiedBuild: null,
+    checkPromise: null,
+    initialized: false,
+  };
+
+  function getBuildUpdateStatus() {
+    return {
+      currentBuild: CURRENT_BUILD,
+      isProduction: IS_PRODUCTION,
+      updateAvailable: buildUpdateState.updateAvailable,
+      remoteBuild: buildUpdateState.remoteBuild,
+      pendingCriticalWrites: state.pendingCriticalWrites,
+      activeRun: hasActiveRunForBuildUpdate(),
+      reloadSafe: isBuildUpdateReloadSafe(),
+    };
+  }
+
+  function trackCriticalOperation(operation) {
+    if (!operation || typeof operation.then !== "function") return operation;
+    state.pendingCriticalWrites += 1;
+    return Promise.resolve(operation).finally(() => {
+      state.pendingCriticalWrites = Math.max(0, state.pendingCriticalWrites - 1);
+      maybeApplyPendingBuildUpdate();
+    });
+  }
+
+  function hasActiveRunForBuildUpdate() {
+    return Boolean(state.game) || hasSavedGame();
+  }
+
+  function isBuildUpdateReloadSafe() {
+    return state.screen === SCREEN.HOME &&
+      (!state.game || hasSavedGame()) &&
+      state.pendingCriticalWrites === 0 &&
+      !state.isResettingProfile &&
+      !state.isResolvingEvent &&
+      !state.isContinuingResult;
+  }
+
+  function showBuildUpdateNotification(manualReloadSuggested = false) {
+    const remoteBuild = buildUpdateState.remoteBuild;
+    if (!remoteBuild) return;
+    const existing = document.querySelector(".build-update-toast");
+    if (existing) {
+      existing.querySelector(".build-update-toast-message").textContent = manualReloadSuggested
+        ? "Une mise à jour est disponible. Rechargez la page si nécessaire."
+        : "Une nouvelle version de Blue Legacy est disponible. Elle sera chargée au prochain retour au menu.";
+      buildUpdateState.notifiedBuild = remoteBuild;
+      return;
+    }
+    if (buildUpdateState.notifiedBuild === remoteBuild) return;
+    buildUpdateState.notifiedBuild = remoteBuild;
+    const toast = document.createElement("div");
+    toast.className = "build-update-toast";
+    toast.setAttribute("role", "status");
+    toast.innerHTML = `
+      <span aria-hidden="true">⛵</span>
+      <span class="build-update-toast-message"></span>
+      <button type="button" aria-label="Fermer la notification">×</button>
+    `;
+    toast.querySelector(".build-update-toast-message").textContent = manualReloadSuggested
+      ? "Une mise à jour est disponible. Rechargez la page si nécessaire."
+      : "Une nouvelle version de Blue Legacy est disponible. Elle sera chargée au prochain retour au menu.";
+    toast.querySelector("button").addEventListener("click", () => toast.remove(), { once: true });
+    document.body.append(toast);
+  }
+
+  function performBuildUpdateReload(remoteBuild) {
+    try {
+      sessionStorage.setItem(BUILD_UPDATE_RELOAD_SESSION_KEY, remoteBuild);
+    } catch (error) {
+      // Le stockage de session peut être indisponible en navigation privée.
+    }
+    const reloadUrl = new URL(window.location.href);
+    reloadUrl.searchParams.set("bl-build", remoteBuild);
+    window.location.replace(reloadUrl.href);
+  }
+
+  function maybeApplyPendingBuildUpdate() {
+    if (!IS_PRODUCTION || !buildUpdateState.updateAvailable || !buildUpdateState.remoteBuild) return false;
+    if (!isBuildUpdateReloadSafe()) {
+      showBuildUpdateNotification(false);
+      return false;
+    }
+    let lastAttemptedBuild = null;
+    try {
+      lastAttemptedBuild = sessionStorage.getItem(BUILD_UPDATE_RELOAD_SESSION_KEY);
+    } catch (error) {
+      // Le paramètre d’URL ci-dessous sert aussi de garde si sessionStorage est indisponible.
+    }
+    lastAttemptedBuild ||= new URL(window.location.href).searchParams.get("bl-build");
+    if (lastAttemptedBuild === buildUpdateState.remoteBuild) {
+      showBuildUpdateNotification(true);
+      return false;
+    }
+    performBuildUpdateReload(buildUpdateState.remoteBuild);
+    return true;
+  }
+
+  async function checkForBuildUpdate() {
+    if (!IS_PRODUCTION) return { checked: false, reason: "non-production" };
+    if (buildUpdateState.checkPromise) return buildUpdateState.checkPromise;
+    buildUpdateState.checkPromise = (async () => {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), BUILD_UPDATE_FETCH_TIMEOUT);
+      try {
+        const versionUrl = new URL("version.json", document.baseURI);
+        versionUrl.searchParams.set("t", Date.now());
+        const response = await fetch(versionUrl.href, {
+          cache: "no-store",
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const remote = await response.json();
+        const remoteBuild = String(remote?.build || "").trim();
+        if (!remoteBuild) throw new Error("Build distante absente");
+        if (remoteBuild === CURRENT_BUILD) {
+          buildUpdateState.updateAvailable = false;
+          buildUpdateState.remoteBuild = null;
+          document.querySelector(".build-update-toast")?.remove();
+          try {
+            if (sessionStorage.getItem(BUILD_UPDATE_RELOAD_SESSION_KEY) === CURRENT_BUILD) {
+              sessionStorage.removeItem(BUILD_UPDATE_RELOAD_SESSION_KEY);
+            }
+          } catch (error) {
+            // Aucun impact sur le jeu si le stockage de session est indisponible.
+          }
+          return { checked: true, updateAvailable: false, remoteBuild };
+        }
+        buildUpdateState.updateAvailable = true;
+        buildUpdateState.remoteBuild = remoteBuild;
+        maybeApplyPendingBuildUpdate();
+        return { checked: true, updateAvailable: true, remoteBuild };
+      } catch (error) {
+        return { checked: false, reason: error?.name === "AbortError" ? "timeout" : "network-error" };
+      } finally {
+        window.clearTimeout(timeout);
+        buildUpdateState.checkPromise = null;
+      }
+    })();
+    return buildUpdateState.checkPromise;
+  }
+
+  function initializeBuildUpdateMonitoring() {
+    if (!IS_PRODUCTION || buildUpdateState.initialized) return false;
+    buildUpdateState.initialized = true;
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") void checkForBuildUpdate();
+    });
+    window.setInterval(() => void checkForBuildUpdate(), BUILD_UPDATE_CHECK_INTERVAL);
+    void checkForBuildUpdate();
+    return true;
+  }
+
   function showScreen(screenId) {
     if (
       screenId !== SCREEN_IDS[SCREEN.GAME] &&
@@ -1294,6 +1466,7 @@
     if (state.game && options.save !== false) {
       saveGame();
     }
+    if (screenName === SCREEN.HOME) maybeApplyPendingBuildUpdate();
   }
 
   function isPlayableScreen(screenName) {
@@ -1331,6 +1504,7 @@
     state.screen = SCREEN.HOME;
     showScreen(SCREEN_IDS[SCREEN.HOME]);
     updateHomeScreen();
+    maybeApplyPendingBuildUpdate();
     return true;
   }
 
@@ -1524,16 +1698,16 @@
       const isEquipped = equipped.has(item.id);
       const missing = Math.max(0, item.price - profile.berries);
       const status = isEquipped ? "Équipé" : isOwned ? "Possédé" : missing ? "Solde insuffisant" : "Non acheté";
-      let action = `<button class="button button-primary" data-shop-buy="${escapeAttribute(item.id)}" type="button">Acheter pour ${formatBerryAmount(item.price)} berrys</button>`;
+      let action = `<button class="button button-primary" data-shop-buy="${escapeAttribute(item.id)}" type="button">Acheter</button>`;
       if (!isOwned && missing) {
-        action = `<button class="button" type="button" disabled>Il manque ${formatBerryAmount(missing)} berrys</button>`;
+        action = `<button class="button" type="button" disabled title="Il manque ${formatBerryAmount(missing)} berrys" aria-label="Il manque ${formatBerryAmount(missing)} berrys">Berrys insuffisants</button>`;
       } else if (isEquipped) {
         action = `<button class="button" data-shop-unequip="${escapeAttribute(item.id)}" type="button">Retirer</button>`;
       } else if (isOwned) {
         const full = equipped.size >= 2;
-        action = `<button class="button button-primary" data-shop-equip="${escapeAttribute(item.id)}" type="button" ${full ? "disabled" : ""}>${full ? "Limite de deux atteinte" : "Équiper"}</button>`;
+        action = `<button class="button button-primary" data-shop-equip="${escapeAttribute(item.id)}" type="button" ${full ? 'disabled aria-label="Limite de deux objets atteinte" title="Limite de deux objets atteinte"' : ""}>${full ? "Limite atteinte" : "Équiper"}</button>`;
       }
-      return `<article class="shop-item-card" data-rarity="${escapeAttribute(item.rarity)}">
+      return `<article class="shop-item-card${isOwned ? " is-owned" : ""}${isEquipped ? " is-equipped" : ""}" data-rarity="${escapeAttribute(item.rarity)}">
         <header class="shop-item-heading"><span class="shop-item-icon" aria-hidden="true">${escapeHtml(item.icon)}</span><div><span class="shop-item-rarity">${escapeHtml(getRarityLabel(item.rarity))}</span><h3>${escapeHtml(item.name)}</h3></div></header>
         <p>${escapeHtml(item.description)}</p>
         <p class="shop-item-effect"><strong>Effet</strong>${escapeHtml(item.effect)}</p>
@@ -1546,8 +1720,8 @@
         const isOwned = isBackground ? profile.profileCosmetics.ownedBackgrounds.includes(item.id) : profile.profileCosmetics.ownsCosmeticD;
         const missing = Math.max(0, item.price - profile.berries);
         const preview = isBackground ? `<span class="cosmetic-preview" data-background="${escapeAttribute(item.id)}" aria-hidden="true"></span>` : '<span class="cosmetic-preview cosmetic-d-preview" aria-hidden="true">D.</span>';
-        const action = isOwned ? '<span class="shop-cosmetic-owned">Possédé · À utiliser depuis Statistiques</span>' : missing ? `<button class="button" disabled>Il manque ${formatBerryAmount(missing)} berrys</button>` : `<button class="button button-primary" data-cosmetic-buy="${escapeAttribute(item.id)}" type="button">Acheter pour ${formatBerryAmount(item.price)} berrys</button>`;
-        return `<article class="shop-item-card cosmetic-shop-card" data-rarity="${escapeAttribute(item.rarity)}"><header class="shop-item-heading">${preview}<div><span class="shop-item-rarity">${escapeHtml(getRarityLabel(item.rarity))}</span><h3>${escapeHtml(item.name)}</h3></div></header><p>${escapeHtml(item.description)}</p><footer><strong class="shop-item-price">${item.price ? `💰 ${formatBerryAmount(item.price)}` : "Gratuit"}</strong>${action}</footer></article>`;
+        const action = isOwned ? '<span class="shop-cosmetic-owned">Possédé · À utiliser depuis Statistiques</span>' : missing ? `<button class="button" disabled title="Il manque ${formatBerryAmount(missing)} berrys" aria-label="Il manque ${formatBerryAmount(missing)} berrys">Berrys insuffisants</button>` : `<button class="button button-primary" data-cosmetic-buy="${escapeAttribute(item.id)}" type="button">Acheter</button>`;
+        return `<article class="shop-item-card cosmetic-shop-card${isOwned ? " is-owned" : ""}" data-rarity="${escapeAttribute(item.rarity)}"><header class="shop-item-heading">${preview}<div><span class="shop-item-rarity">${escapeHtml(getRarityLabel(item.rarity))}</span><h3>${escapeHtml(item.name)}</h3></div></header><p>${escapeHtml(item.description)}</p><footer><strong class="shop-item-price">${item.price ? `💰 ${formatBerryAmount(item.price)}` : "Gratuit"}</strong>${action}</footer></article>`;
       }).join("");
     }
   }
@@ -10007,7 +10181,7 @@
     );
 
     // La carrière locale est déjà enregistrée et affichée avant tout accès réseau.
-    void window.BlueLegacyLeaderboard?.submitCareer({
+    void trackCriticalOperation(window.BlueLegacyLeaderboard?.submitCareer({
       playerFirstName: profile.playerIdentity?.firstName,
       playerLastName: profile.playerIdentity?.lastName,
       playerDCosmetic:
@@ -10022,7 +10196,7 @@
       dreamCompleted: pantheonEntry.dreamCompleted === true,
       score: pantheonEntry.popularityScore,
       finishedAt: pantheonEntry.finishedAt,
-    });
+    }));
 
     return true;
   }
@@ -11077,6 +11251,38 @@
      COLLECTIONS
   ======================================================== */
 
+  const NEAR_ACHIEVEMENT_THRESHOLD = 0.6;
+
+  function updateCollectionFilterControls() {
+    document.querySelectorAll("[data-title-status-filter]").forEach((button) => {
+      const active = button.dataset.titleStatusFilter === state.titleFilters.status;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    document.querySelectorAll("[data-achievement-filter]").forEach((button) => {
+      const active = button.dataset.achievementFilter === state.achievementFilter;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    if (dom.titlesRarityFilter) {
+      dom.titlesRarityFilter.value = state.titleFilters.rarity;
+      dom.titlesRarityFilter.closest(".collection-select-label")?.setAttribute(
+        "data-rarity", state.titleFilters.rarity,
+      );
+    }
+    if (dom.titlesSearch && dom.titlesSearch.value !== state.titleFilters.search) {
+      dom.titlesSearch.value = state.titleFilters.search;
+    }
+  }
+
+  function isAchievementNearCompletion(achievement, record, progress) {
+    if (record || achievement?.secret || !progress) return false;
+    const current = Number(progress.current);
+    const target = Number(progress.target);
+    return Number.isFinite(current) && Number.isFinite(target) && target > 1 && current > 0 &&
+      current < target && current / target >= NEAR_ACHIEVEMENT_THRESHOLD;
+  }
+
   function updateAchievementsScreen() {
     if (!dom.achievements) {
       return;
@@ -11106,17 +11312,33 @@
     ).length;
     if (dom.achievementsSummary) {
       dom.achievementsSummary.textContent =
-        `${unlockedCount} succès débloqué${unlockedCount > 1 ? "s" : ""} sur ${achievements.length}`;
+        `${unlockedCount} / ${achievements.length} débloqués`;
+    }
+
+    updateCollectionFilterControls();
+
+    const achievementRows = achievements.map((achievement, catalogIndex) => ({
+      achievement,
+      catalogIndex,
+      record: getAchievementRecord(profile, getDataId(achievement)),
+      progress: getAchievementProgress(achievement, profile, state.game),
+    }));
+    const visibleAchievementRows = achievementRows.filter(({ achievement, record, progress }) => {
+      if (state.achievementFilter === "unlocked") return Boolean(record);
+      if (state.achievementFilter === "locked") return !record;
+      if (state.achievementFilter === "near") {
+        return isAchievementNearCompletion(achievement, record, progress);
+      }
+      return true;
+    });
+
+    if (!visibleAchievementRows.length) {
+      dom.achievements.innerHTML = '<p class="collection-filter-empty" role="status">Aucun succès dans cette catégorie.</p>';
+      return;
     }
 
     dom.achievements.innerHTML = categoryOrder.map((categoryId) => {
-      const categoryAchievements = achievements
-        .map((achievement, catalogIndex) => ({
-          achievement,
-          catalogIndex,
-          record: getAchievementRecord(profile, getDataId(achievement)),
-          progress: getAchievementProgress(achievement, profile, state.game),
-        }))
+      const categoryAchievements = visibleAchievementRows
         .filter(({ achievement }) => achievement.category === categoryId)
         .sort((left, right) => {
           const unlockDifference = Number(Boolean(right.record)) - Number(Boolean(left.record));
@@ -11222,8 +11444,10 @@
 
     if (dom.titlesSummary) {
       dom.titlesSummary.textContent =
-        `Collection : ${unlockedCount} / ${modernTitles.length}`;
+        `${unlockedCount} / ${modernTitles.length} obtenus`;
     }
+
+    updateCollectionFilterControls();
 
     const rarityRank = (title) =>
       TITLE_RARITIES[normalizeRarity(title.rarity)].rank;
@@ -11240,8 +11464,28 @@
       );
     };
 
+    const normalizedSearch = slugify(state.titleFilters.search);
+    const visibleTitles = uniqueTitles.filter((titleData) => {
+      const title = normalizeTitleData(getDataId(titleData), titleData);
+      const unlocked = unlockedById.has(getDataId(titleData));
+      if (state.titleFilters.status === "unlocked" && !unlocked) return false;
+      if (state.titleFilters.status === "locked" && unlocked) return false;
+      if (state.titleFilters.rarity !== "all" &&
+          normalizeRarity(title.rarity) !== state.titleFilters.rarity) return false;
+      if (!normalizedSearch) return true;
+      const visibleSearchText = !unlocked && title.secret
+        ? "titre secret"
+        : [title.name, title.description, getTitleCategoryLabel(title.category)].filter(Boolean).join(" ");
+      return slugify(visibleSearchText).includes(normalizedSearch);
+    });
+
+    if (!visibleTitles.length) {
+      dom.titles.innerHTML = '<p class="collection-filter-empty" role="status">Aucun titre ne correspond à ces filtres.</p>';
+      return;
+    }
+
     const grouped = new Map();
-    uniqueTitles.forEach((titleData) => {
+    visibleTitles.forEach((titleData) => {
       const title = normalizeTitleData(getDataId(titleData), titleData);
       if (!grouped.has(title.category)) grouped.set(title.category, []);
       grouped.get(title.category).push(titleData);
@@ -12225,6 +12469,11 @@
       exportPastLifeCareer();
     });
 
+    dom.titlesSearch?.addEventListener("input", (event) => {
+      state.titleFilters.search = event.target.value;
+      updateTitlesScreen();
+    });
+
     dom.startAdventure?.addEventListener(
       "click",
       (event) => {
@@ -12535,6 +12784,17 @@
       return;
     }
 
+    if (target.dataset.titleStatusFilter) {
+      state.titleFilters.status = target.dataset.titleStatusFilter;
+      updateTitlesScreen();
+      return;
+    }
+    if (target.dataset.achievementFilter) {
+      state.achievementFilter = target.dataset.achievementFilter;
+      updateAchievementsScreen();
+      return;
+    }
+
     const menuAction = target.dataset.gameMenuAction;
     if (menuAction) {
       event.preventDefault();
@@ -12636,6 +12896,12 @@
 
   function handleDocumentChange(event) {
     const target = event.target;
+
+    if (target === dom.titlesRarityFilter) {
+      state.titleFilters.rarity = target.value;
+      updateTitlesScreen();
+      return;
+    }
 
     if (target.matches("[data-statistics-cosmetic-d]")) {
       const profile = getProfile();
@@ -14724,6 +14990,14 @@
     runDivelcaAchievementAudit,
     runDivelcaPersistenceAudit,
   });
+  window.BLUE_LEGACY_BUILD = Object.freeze({
+    version: CONFIG.version,
+    currentBuild: CURRENT_BUILD,
+    isProduction: IS_PRODUCTION,
+    isProductionHostname,
+    check: checkForBuildUpdate,
+    getStatus: getBuildUpdateStatus,
+  });
   window.BLUE_LEGACY_DEV = Object.freeze({
     runBalanceSimulation,
     runBalanceAudit,
@@ -14827,7 +15101,8 @@
         save: false,
       },
     );
-    void synchronizeExistingPublicProfile();
+    void trackCriticalOperation(synchronizeExistingPublicProfile());
+    initializeBuildUpdateMonitoring();
     if (developmentQuery.has("shopPreview")) {
       openScreen(SCREEN.SHOP, { save: false });
       requestAnimationFrame(() => {
@@ -14836,7 +15111,16 @@
           viewport: [window.innerWidth, window.innerHeight],
           cards: cards.length,
           cardWidths: cards.map((card) => Math.round(card.getBoundingClientRect().width)),
-          horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          cardHeights: cards.map((card) => Math.round(card.getBoundingClientRect().height)),
+          items: cards.map((card) => ({
+            name: card.querySelector("h3")?.textContent,
+            icon: card.querySelector(".shop-item-icon")?.textContent || null,
+            price: card.querySelector(".shop-item-price")?.textContent,
+            action: card.querySelector("button")?.textContent || card.querySelector(".shop-cosmetic-owned")?.textContent,
+          })),
+          catalogHeight: Math.round([...document.querySelectorAll(".shop-catalog-section")]
+            .reduce((height, section) => height + section.getBoundingClientRect().height, 0)),
+          horizontalOverflow: document.body.scrollWidth > window.innerWidth,
         });
       });
     }
