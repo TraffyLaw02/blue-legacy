@@ -11188,13 +11188,13 @@
     }
 
     if (dom.runProgress) {
-      const elapsedMonths = clamp((Number(game.month) || 1) - 1, 0, CONFIG.maxMonths - 1);
-      const actionProgress = clamp(
+      const elapsedMonths = clampNumber((Number(game.month) || 1) - 1, 0, CONFIG.maxMonths - 1);
+      const actionProgress = clampNumber(
         (Number(game.currentAction) || 0) / Math.max(1, Number(game.actionsThisMonth) || 1),
         0,
         1,
       );
-      const progress = clamp(((elapsedMonths + actionProgress) / CONFIG.maxMonths) * 100, 0, 100);
+      const progress = clampNumber(((elapsedMonths + actionProgress) / CONFIG.maxMonths) * 100, 0, 100);
       const roundedProgress = Math.round(progress);
       dom.runProgress.style.setProperty("--run-progress", `${progress}%`);
       dom.runProgress.setAttribute("aria-valuenow", String(roundedProgress));
@@ -13457,6 +13457,14 @@
     return Array.isArray(array)
       ? [...new Set(array)]
       : [];
+  }
+
+  function clampNumber(value, minimum, maximum) {
+    const numericValue = Number(value);
+    const safeMinimum = Number(minimum);
+    const safeMaximum = Number(maximum);
+    if (!Number.isFinite(numericValue)) return Number.isFinite(safeMinimum) ? safeMinimum : 0;
+    return Math.min(safeMaximum, Math.max(safeMinimum, numericValue));
   }
 
   function getRandomItem(array) {
