@@ -2031,6 +2031,40 @@ body.has-game-credit #home-screen {
   padding: 15px;
 }
 
+.run-progress {
+  --run-progress: 0%;
+  margin: 8px 10px 12px;
+  padding-inline: 11px;
+}
+
+.run-progress-track {
+  position: relative;
+  display: block;
+  height: 5px;
+  background: #c8dbe5;
+  border: 1px solid #7ba2b8;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 2px rgba(16, 45, 64, .2);
+}
+
+.run-progress-fill {
+  display: block;
+  width: var(--run-progress);
+  height: 100%;
+  background: linear-gradient(90deg, #2387b8, #5bbde2);
+  border-radius: inherit;
+}
+
+.run-progress-boat {
+  position: absolute;
+  top: 50%;
+  left: var(--run-progress);
+  font-size: 18px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(16, 45, 64, .3));
+  transform: translate(-50%, -57%);
+}
+
 .character-identity-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
@@ -2628,8 +2662,28 @@ body.is-boss-danger-event #result-screen .result-card.negative {
 }
 
 .zone-transition-screen.haki-asset-conclusion :is(.zone-transition-icon, .zone-transition-eyebrow),
+.zone-transition-screen.haki-asset-intro .zone-transition-icon,
 .zone-transition-screen.dream-asset-conclusion :is(.zone-transition-icon, .zone-transition-eyebrow) {
   display: none;
+}
+
+.zone-transition-screen.haki-intro {
+  --zone-primary: #5f4708;
+  --zone-secondary: #f8e7a4;
+  --zone-accent: #d6a91f;
+  --zone-text: #2b2108;
+  min-height: 100dvh;
+  background: linear-gradient(155deg, #fff8dc 0%, #e8c75e 58%, #8b6812 100%);
+}
+
+.zone-transition-screen.haki-asset-intro .transition-feature-asset {
+  width: min(100%, 470px);
+  max-height: clamp(130px, 28vh, 210px);
+}
+
+.zone-transition-screen.haki-asset-intro .zone-transition-description {
+  max-width: 48ch;
+  margin-inline: auto;
 }
 
 .zone-transition-screen.dream-asset-conclusion #zone-transition-title {
@@ -3823,6 +3877,11 @@ body.shake #app,
   .game-zone-asset {
     width: min(76vw, 230px);
     max-height: 74px;
+  }
+
+  .run-progress {
+    margin: 7px 5px 11px;
+    padding-inline: 10px;
   }
 }
 

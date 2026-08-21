@@ -467,6 +467,7 @@
     dom.beginGame = byId("begin-game-btn");
 
     dom.gameDate = byId("game-date");
+    dom.runProgress = byId("run-progress");
     dom.gameZone = byId("game-screen-title");
     dom.gameZoneAsset = byId("game-zone-asset");
     dom.gameContextualAssetSlot = byId("game-contextual-asset-slot");
@@ -645,6 +646,7 @@
       achievements: [],
       titles: [],
       pantheon: [],
+      pantheonHistory: null,
       runsSinceLastD: 0,
       berries: 0,
       ownedShopItems: [],
@@ -829,6 +831,7 @@
       achievements: normalizeAchievementRecords(profile.achievements, pantheon),
       titles,
       pantheon,
+      pantheonHistory: normalizePantheonHistory(profile.pantheonHistory),
       runsSinceLastD: Math.max(
         0,
         Math.floor(Number(profile.runsSinceLastD) || 0),
@@ -1640,30 +1643,102 @@
     return valid.length ? Math.max(...valid) : null;
   }
 
+  function normalizePantheonHistory(value = {}) {
+    const source = value && typeof value === "object" ? value : {};
+    const numericRecord = (record = {}) => Object.fromEntries(
+      Object.entries(record).map(([key, amount]) => [key, Math.max(0, Number(amount) || 0)]),
+    );
+    return {
+      archivedRuns: Math.max(0, Math.floor(Number(source.archivedRuns) || 0)),
+      dreamsCompleted: Math.max(0, Math.floor(Number(source.dreamsCompleted) || 0)),
+      exceptionalRuns: Math.max(0, Math.floor(Number(source.exceptionalRuns) || 0)),
+      popularity: Number.isFinite(Number(source.popularity)) ? Number(source.popularity) : null,
+      coreRecords: numericRecord(source.coreRecords),
+      bestFortune: Number.isFinite(Number(source.bestFortune)) ? Number(source.bestFortune) : null,
+      bestRenown: Number.isFinite(Number(source.bestRenown)) ? Number(source.bestRenown) : null,
+      largestCrew: Number.isFinite(Number(source.largestCrew)) ? Number(source.largestCrew) : null,
+      mostTitles: Number.isFinite(Number(source.mostTitles)) ? Number(source.mostTitles) : null,
+      mostCompanions: Number.isFinite(Number(source.mostCompanions)) ? Number(source.mostCompanions) : null,
+      factionCounts: numericRecord(source.factionCounts),
+      fruitIds: uniqueArray(source.fruitIds || []),
+      originIds: uniqueArray(source.originIds || []),
+      dreamIds: uniqueArray(source.dreamIds || []),
+      completedDreamIds: uniqueArray(source.completedDreamIds || []),
+      visitedZoneIds: uniqueArray(source.visitedZoneIds || []),
+    };
+  }
+
+  function archivePantheonEntry(profile, run) {
+    if (!profile || !run) return;
+    const history = normalizePantheonHistory(profile.pantheonHistory);
+    const stat = (key) => Number(run.finalStats?.[key] ?? run.stats?.[key]);
+    const keepMax = (current, candidate) => Number.isFinite(candidate)
+      ? (Number.isFinite(current) ? Math.max(current, candidate) : candidate)
+      : current;
+    history.archivedRuns += 1;
+    history.dreamsCompleted += run.dreamCompleted === true ? 1 : 0;
+    const popularity = Number(run.popularityScore ?? stat("popularity"));
+    history.exceptionalRuns += popularity >= 95 ? 1 : 0;
+    history.popularity = keepMax(history.popularity, popularity);
+    ["health", "combat", "haki", "intelligence", "charisma"].forEach((key) => {
+      history.coreRecords[key] = keepMax(history.coreRecords[key], stat(key));
+    });
+    history.bestFortune = keepMax(history.bestFortune, stat("fortune"));
+    history.bestRenown = keepMax(history.bestRenown, stat("bounty"));
+    history.largestCrew = keepMax(history.largestCrew, Math.max(Number(stat("crew")) || 0, run.crewMembers?.length || 0));
+    history.mostTitles = keepMax(history.mostTitles, run.runTitles?.length || 0);
+    history.mostCompanions = keepMax(history.mostCompanions, run.crewMembers?.length || 0);
+    const factionId = getDataId(run.faction);
+    if (FACTION_META[factionId]) history.factionCounts[factionId] = (history.factionCounts[factionId] || 0) + 1;
+    history.fruitIds = uniqueArray([...history.fruitIds, getDataId(run.devilFruit)].filter(Boolean));
+    history.originIds = uniqueArray([...history.originIds, getDataId(run.origin)].filter(Boolean));
+    history.dreamIds = uniqueArray([...history.dreamIds, getDataId(run.dream)].filter(Boolean));
+    if (run.dreamCompleted === true) {
+      history.completedDreamIds = uniqueArray([...history.completedDreamIds, getDataId(run.dream)].filter(Boolean));
+    }
+    history.visitedZoneIds = uniqueArray([...history.visitedZoneIds, ...(run.visitedZoneIds || [])].filter(Boolean));
+    profile.pantheonHistory = history;
+  }
+
+  function retainPantheonCareers(profile) {
+    const runs = (profile?.pantheon || []).filter(Boolean);
+    if (runs.length <= 15) return runs;
+    const recent = new Set(runs.slice(0, 15));
+    const top = [...runs]
+      .map((run, index) => ({ run, index, score: Number(run.popularityScore ?? run.stats?.popularity) || 0 }))
+      .sort((left, right) => right.score - left.score || left.index - right.index)
+      .slice(0, 3);
+    const retained = new Set([...recent, ...top.map(({ run }) => run)]);
+    runs.filter((run) => !retained.has(run)).forEach((run) => archivePantheonEntry(profile, run));
+    profile.pantheon = runs.filter((run) => retained.has(run));
+    return profile.pantheon;
+  }
+
   function calculateProfileStatistics(profile = getProfile()) {
     const runs = (profile.pantheon || []).filter(Boolean);
+    const history = normalizePantheonHistory(profile.pantheonHistory);
     const value = (run, key) => Number(run.finalStats?.[key] ?? run.stats?.[key]);
     const coreRecords = Object.fromEntries(["health", "combat", "haki", "intelligence", "charisma"]
-      .map((key) => [key, finiteRecord(runs.map((run) => value(run, key)))]));
-    const popularity = finiteRecord(runs.map((run) => Number(run.popularityScore ?? value(run, "popularity"))));
+      .map((key) => [key, finiteRecord([history.coreRecords[key], ...runs.map((run) => value(run, key))])]));
+    const popularity = finiteRecord([history.popularity, ...runs.map((run) => Number(run.popularityScore ?? value(run, "popularity")))]);
     const factionCounts = runs.reduce((counts, run) => {
       const id = getDataId(run.faction); if (FACTION_META[id]) counts[id] = (counts[id] || 0) + 1; return counts;
-    }, {});
+    }, { ...history.factionCounts });
     const maxFaction = finiteRecord(Object.values(factionCounts)) || 0;
     const favorites = Object.keys(factionCounts).filter((id) => factionCounts[id] === maxFaction);
-    const fruitIds = new Set(runs.map((run) => getDataId(run.devilFruit)).filter(Boolean));
+    const fruitIds = new Set([...history.fruitIds, ...runs.map((run) => getDataId(run.devilFruit))].filter(Boolean));
     return {
       started: Math.max(runs.length, Number(profile.statistics?.startedAdventures) || 0),
-      completed: runs.length,
+      completed: Math.max(runs.length + history.archivedRuns, Number(profile.statistics?.completedAdventures) || 0),
       abandoned: Math.max(0, Number(profile.statistics?.abandonedAdventures) || 0),
-      dreamsCompleted: runs.filter((run) => run.dreamCompleted === true).length,
-      exceptionalRuns: runs.filter((run) => Number(run.popularityScore ?? value(run, "popularity")) >= 95).length,
+      dreamsCompleted: history.dreamsCompleted + runs.filter((run) => run.dreamCompleted === true).length,
+      exceptionalRuns: history.exceptionalRuns + runs.filter((run) => Number(run.popularityScore ?? value(run, "popularity")) >= 95).length,
       popularity, coreRecords,
-      bestFortune: finiteRecord(runs.map((run) => value(run, "fortune"))),
-      bestRenown: finiteRecord(runs.map((run) => value(run, "bounty"))),
-      largestCrew: finiteRecord(runs.map((run) => Math.max(Number(value(run, "crew")) || 0, run.crewMembers?.length || 0))),
-      mostTitles: finiteRecord(runs.map((run) => run.runTitles?.length || 0)),
-      mostCompanions: finiteRecord(runs.map((run) => run.crewMembers?.length || 0)),
+      bestFortune: finiteRecord([history.bestFortune, ...runs.map((run) => value(run, "fortune"))]),
+      bestRenown: finiteRecord([history.bestRenown, ...runs.map((run) => value(run, "bounty"))]),
+      largestCrew: finiteRecord([history.largestCrew, ...runs.map((run) => Math.max(Number(value(run, "crew")) || 0, run.crewMembers?.length || 0))]),
+      mostTitles: finiteRecord([history.mostTitles, ...runs.map((run) => run.runTitles?.length || 0)]),
+      mostCompanions: finiteRecord([history.mostCompanions, ...runs.map((run) => run.crewMembers?.length || 0)]),
       favoriteFaction: favorites.length === 1 ? FACTION_META[favorites[0]].label : "Équilibre",
       fruitsDiscovered: fruitIds.size,
     };
@@ -4539,6 +4614,7 @@
     const isLegendaryTransition = pending.reason === "legendary-arc";
     const isLegendaryConclusion = pending.reason === "legendary-conclusion";
     const isHakiConclusion = pending.reason === "haki-conclusion";
+    const isHakiIntro = pending.reason === "haki-intro";
     const isDreamFailureConclusion = pending.reason === "dream-failure-conclusion";
     const isDreamSuccessConclusion = pending.reason === "dream-success-conclusion";
     const isEmperorRunKiller = pending.reason === "emperor-runkiller";
@@ -4552,10 +4628,13 @@
         : null;
     const legendaryAsset = getLegendaryArcAsset(legendaryArcId);
     const hakiConclusionStage = isHakiConclusion ? getHakiConclusionStage(pending, game) : null;
+    const hakiIntroStage = isHakiIntro ? Number(pending.hakiStage) : null;
     const featureAsset = isEmperorRunKiller
       ? LEGENDARY_ARC_ASSETS.emperor
       : isLegendaryTransition || isLegendaryConclusion
       ? legendaryAsset
+      : isHakiIntro
+        ? getHakiEventAsset(hakiIntroStage)
       : isHakiConclusion
         ? getHakiEventAsset(hakiConclusionStage)
         : isDreamSuccessConclusion
@@ -4575,6 +4654,7 @@
     dom.zoneTransitionScreen?.classList.toggle("legendary-arc-transition", isLegendaryTransition || isLegendaryConclusion);
     dom.zoneTransitionScreen?.classList.toggle("legendary-arc-conclusion", isLegendaryConclusion);
     dom.zoneTransitionScreen?.classList.toggle("haki-conclusion", isHakiConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("haki-intro", isHakiIntro);
     dom.zoneTransitionScreen?.classList.toggle("dream-failure-conclusion", isDreamFailureConclusion);
     dom.zoneTransitionScreen?.classList.toggle("dream-success-conclusion", isDreamSuccessConclusion);
     dom.zoneTransitionScreen?.classList.toggle("emperor-runkiller", isEmperorRunKiller);
@@ -4586,6 +4666,7 @@
     dom.zoneTransitionScreen?.classList.toggle("legendary-asset-intro", isLegendaryTransition);
     dom.zoneTransitionScreen?.classList.toggle("legendary-asset-conclusion", isLegendaryConclusion);
     dom.zoneTransitionScreen?.classList.toggle("haki-asset-conclusion", isHakiConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("haki-asset-intro", isHakiIntro);
     dom.zoneTransitionScreen?.classList.toggle("dream-asset-conclusion", isDreamConclusion);
     if (dom.zoneTransitionAsset) {
       dom.zoneTransitionAsset.hidden = !isGeographicTransition;
@@ -4622,7 +4703,7 @@
     }
 
     if (dom.zoneTransitionIcon) {
-      dom.zoneTransitionIcon.textContent = isEmperorRunKiller ? "☠" : isLegendaryTransition || isLegendaryConclusion ? "◆" : isDecisiveConclusion
+      dom.zoneTransitionIcon.textContent = isEmperorRunKiller ? "☠" : isLegendaryTransition || isLegendaryConclusion ? "◆" : isHakiIntro ? "" : isDecisiveConclusion
         ? pending.icon || "✦"
         : isBossTransition
         ? (boss?.decisiveStage === 3 ? "👑" : "⭐")
@@ -4630,16 +4711,16 @@
     }
     if (dom.zoneTransitionEyebrow) {
       dom.zoneTransitionEyebrow.textContent =
-        isEmperorRunKiller ? pending.eyebrow || "Empereur" : isLegendaryTransition ? "Événement légendaire" : isLegendaryConclusion ? "Arc légendaire" : isDecisiveConclusion
+        isEmperorRunKiller ? pending.eyebrow || "Empereur" : isLegendaryTransition ? "Événement légendaire" : isLegendaryConclusion ? "Arc légendaire" : isHakiIntro ? "Épreuve décisive" : isDecisiveConclusion
           ? pending.eyebrow || "Épreuve décisive"
           : isBossTransition
           ? "Événement décisif"
           : special ? "Étape inattendue • Zone spéciale" : "Nouvelle zone";
     }
     if (dom.zoneTransitionProgress) {
-      dom.zoneTransitionProgress.hidden = isEmperorRunKiller || isLegendaryTransition || isLegendaryConclusion || isDecisiveConclusion;
+      dom.zoneTransitionProgress.hidden = isEmperorRunKiller || isLegendaryTransition || isLegendaryConclusion || isHakiIntro || isDecisiveConclusion;
       dom.zoneTransitionProgress.textContent =
-        isEmperorRunKiller || isLegendaryTransition || isLegendaryConclusion || isDecisiveConclusion
+        isEmperorRunKiller || isLegendaryTransition || isLegendaryConclusion || isHakiIntro || isDecisiveConclusion
           ? ""
           : isBossTransition
           ? `${zone.name} • Événement décisif`
@@ -4649,6 +4730,7 @@
       dom.zoneTransitionTitle.textContent = isEmperorRunKiller ? pending.title
         : isLegendaryTransition
         ? legendaryAsset?.label || "Événement légendaire"
+        : isHakiIntro ? featureAsset?.label || `L’Éveil — Partie ${hakiIntroStage}`
         : isDreamSuccessConclusion ? DREAM_CONCLUSION_ASSETS.success.label
         : isDreamFailureConclusion ? DREAM_CONCLUSION_ASSETS.failure.label
         : isLegendaryConclusion || isDecisiveConclusion
@@ -4666,6 +4748,10 @@
             : game.currentEvent?.legendaryArc === "marineford"
               ? "La guerre n’a jamais vraiment quitté cette forteresse."
               : `${LEGENDARY_EMPEROR_NAMES[game.legendaryArcs?.emperor?.emperorId] || "Un Empereur"} bloque désormais ta route.`)
+          : isHakiIntro
+          ? (hakiIntroStage === 2
+              ? "Ta volonté atteint un nouveau seuil."
+              : "Quelque chose s’éveille au cœur de l’épreuve.")
           : isLegendaryConclusion || isDecisiveConclusion
           ? pending.description || "La bataille s’achève et ta route reprend."
           : isBossTransition
@@ -4912,7 +4998,7 @@
       return startNextEvent();
     }
     openScreen(game.pendingDialogue ? SCREEN.DIALOGUE : SCREEN.GAME, { save: false });
-    if (["boss-event", "legendary-arc"].includes(transitionReason)) {
+    if (["boss-event", "legendary-arc", "haki-intro"].includes(transitionReason)) {
       return true;
     }
     if (transitionReason === "legendary-conclusion") return startNextEvent();
@@ -5829,8 +5915,17 @@
     if (!(tier === 3 && queueFinalDreamCompanionDialogue(game))) {
       queueEventDialogue(boss, game);
     }
+    const hakiStage = getHakiEventStage(boss);
+    if (hakiStage) {
+      game.pendingZoneTransition = {
+        ...createZoneTransitionData(zone, game.currentZoneIndex, "haki-intro", game),
+        hakiStage,
+      };
+    }
     saveGame();
-    openScreen(game.pendingDialogue ? SCREEN.DIALOGUE : SCREEN.GAME, { save: false });
+    openScreen(game.pendingZoneTransition
+      ? SCREEN.ZONE_TRANSITION
+      : game.pendingDialogue ? SCREEN.DIALOGUE : SCREEN.GAME, { save: false });
     saveGame();
     return true;
   }
@@ -9566,6 +9661,7 @@
 
   function getAchievementProgress(achievement, profile = getProfile(), game = state.game) {
     const condition = achievement?.condition || {};
+    const history = normalizePantheonHistory(profile.pantheonHistory);
     const runs = getAchievementRuns(profile, game);
     const finishedRuns = runs.filter((run) =>
       Boolean(run?.isFinished || run?.finishedAt || run?.endingType || run?.ending),
@@ -9588,7 +9684,10 @@
         break;
       }
       case "runs-completed":
-        current = (profile.pantheon?.length || 0) +
+        current = Math.max(
+          profile.pantheon?.length || 0,
+          Number(profile.statistics?.completedAdventures) || 0,
+        ) +
           (game?.isFinished && !profile.pantheon?.some((entry) => entry.id === game.id) ? 1 : 0);
         break;
       case "final-month":
@@ -9597,21 +9696,22 @@
         ));
         break;
       case "zone-visited":
-        current = runs.some((run) => visited(run, condition.zoneId)) ? 1 : 0;
+        current = history.visitedZoneIds.includes(condition.zoneId) || runs.some((run) => visited(run, condition.zoneId)) ? 1 : 0;
         break;
       case "origins-played":
-        current = uniqueValues(runs.map((run) => run.origin || run.character?.origin));
+        current = uniqueValues([...history.originIds, ...runs.map((run) => run.origin || run.character?.origin)]);
         break;
       case "factions-played":
-        current = uniqueValues(finishedRuns.map((run) => run.faction || run.character?.faction));
+        current = uniqueValues([...Object.keys(history.factionCounts), ...finishedRuns.map((run) => run.faction || run.character?.faction)]);
         break;
       case "special-zones-visited": {
         const specialIds = new Set(
           (window.GAME_DATA?.zones || []).filter((zone) => zone.special).map((zone) => zone.id),
         );
-        current = uniqueValues(runs.flatMap((run) =>
-          (run.visitedZoneIds || []).filter((id) => specialIds.has(id)),
-        ));
+        current = uniqueValues([
+          ...history.visitedZoneIds.filter((id) => specialIds.has(id)),
+          ...runs.flatMap((run) => (run.visitedZoneIds || []).filter((id) => specialIds.has(id))),
+        ]);
         break;
       }
       case "faction-stat":
@@ -9630,14 +9730,14 @@
         ) ? 1 : 0;
         break;
       case "dreams-completed":
-        current = finishedRuns.filter((run) =>
+        current = history.dreamsCompleted + finishedRuns.filter((run) =>
           Boolean(run.dreamCompleted || run.ending?.dreamCompleted),
         ).length;
         break;
       case "unique-dreams-completed":
-        current = uniqueValues(finishedRuns
+        current = uniqueValues([...history.completedDreamIds, ...finishedRuns
           .filter((run) => run.dreamCompleted || run.ending?.dreamCompleted)
-          .map((run) => run.dream || run.character?.dream));
+          .map((run) => run.dream || run.character?.dream)]);
         break;
       case "has-d":
         current = runs.some((run) => Boolean(run.hasD || run.character?.hasD)) ? 1 : 0;
@@ -9675,9 +9775,9 @@
         current = finishedRuns.some((run) => Boolean(run.devilFruit || run.character?.devilFruit)) ? 1 : 0;
         break;
       case "unique-fruits":
-        current = uniqueValues(finishedRuns.map((run) =>
+        current = uniqueValues([...history.fruitIds, ...finishedRuns.map((run) =>
           getDataId(run.devilFruit || run.character?.devilFruit),
-        ));
+        )]);
         break;
       case "zone-without-fruit":
         current = runs.some((run) =>
@@ -10619,8 +10719,38 @@
     }
 
     profile.pantheon.unshift(entry);
+    retainPantheonCareers(profile);
 
     return true;
+  }
+
+  function runPantheonRetentionAudit() {
+    const profile = createDefaultProfile();
+    profile.statistics.completedAdventures = 20;
+    profile.pantheon = Array.from({ length: 20 }, (_, index) => ({
+      id: `retention-${index}`,
+      finishedAt: new Date(2026, 0, 20 - index).toISOString(),
+      faction: ["pirate", "marine", "bounty-hunter", "revolutionary"][index % 4],
+      origin: "east-blue",
+      dream: `dream-${index}`,
+      dreamCompleted: index % 2 === 0,
+      popularityScore: index >= 15 ? 100 - index : 50 - index,
+      stats: { ...createDefaultStats(), popularity: index >= 15 ? 100 - index : 50 - index },
+      visitedZoneIds: ["east-blue", "reverse-mountain"],
+    }));
+    const expectedRecentIds = profile.pantheon.slice(0, 15).map((run) => run.id);
+    const expectedHistoricalTopIds = ["retention-15", "retention-16", "retention-17"];
+    retainPantheonCareers(profile);
+    const retainedIds = profile.pantheon.map((run) => run.id);
+    const checks = {
+      maximum18: retainedIds.length === 18,
+      noDuplicates: new Set(retainedIds).size === retainedIds.length,
+      recent15: expectedRecentIds.every((id) => retainedIds.includes(id)),
+      historicalTop3: expectedHistoricalTopIds.every((id) => retainedIds.includes(id)),
+      archived2: profile.pantheonHistory?.archivedRuns === 2,
+      completedCounter: calculateProfileStatistics(profile).completed === 20,
+    };
+    return { pass: Object.values(checks).every(Boolean), checks, retainedIds };
   }
 
   function openPastLife(entryId) {
@@ -11055,6 +11185,20 @@
     if (dom.gameDate) {
       dom.gameDate.textContent =
         `Mois ${game.month}`;
+    }
+
+    if (dom.runProgress) {
+      const elapsedMonths = clamp((Number(game.month) || 1) - 1, 0, CONFIG.maxMonths - 1);
+      const actionProgress = clamp(
+        (Number(game.currentAction) || 0) / Math.max(1, Number(game.actionsThisMonth) || 1),
+        0,
+        1,
+      );
+      const progress = clamp(((elapsedMonths + actionProgress) / CONFIG.maxMonths) * 100, 0, 100);
+      const roundedProgress = Math.round(progress);
+      dom.runProgress.style.setProperty("--run-progress", `${progress}%`);
+      dom.runProgress.setAttribute("aria-valuenow", String(roundedProgress));
+      dom.runProgress.setAttribute("aria-label", `Progression de l’aventure : ${roundedProgress} %`);
     }
 
     if (dom.gameZone) {
@@ -15562,6 +15706,7 @@
     renderPlayerIdentity,
     formatProfileIdentity,
     runProfileStatisticsAudit,
+    runPantheonRetentionAudit,
     purchaseProfileCosmetic,
     purchaseShopItem,
     equipShopItem,

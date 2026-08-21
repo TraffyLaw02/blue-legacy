@@ -3032,11 +3032,11 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "bounty-hunter-grand-line-forged-contract", path: PATHS.BOUNTY_HUNTER,
       title: "La signature à l’encre lavable",
-      description: "Une courtière méticuleuse aux boucles d’oreilles en forme de reçus, repère un contrat falsifié visant un marchand sans prime. Le commanditaire a déjà payé la moitié.",
+      description: "Un avis falsifié vise un marchand qui n’a jamais été recherché. Le numéro du mandat appartient à un pirate déjà capturé, mais le commanditaire a payé la moitié d’avance.",
       rarity: EVENT_RARITY.COMMON, tags: ["contract", "fraud", "contact"],
       choices: [
         { id: "trace-client", text: "Remonter jusqu’au faux commanditaire", choiceTag: "Prudence",
-          success: { result: "La courtière suit les numéros de série des billets jusqu’à un réseau de racket.", effects: { fortune: 10000, popularity: 2 }, requiredTraits: ["patient"], flags: { exposedWashinkContract: true, alliedWithSiaLedger: true } },
+          success: { result: "Les numéros de série des billets conduisent aux racketteurs qui fabriquent les faux avis.", effects: { fortune: 10000, popularity: 2 }, requiredTraits: ["patient"], flags: { exposedWashinkContract: true, alliedWithSiaLedger: true } },
           setback: { result: "L’encre disparaît avec les preuves et le commanditaire ferme son bureau.", effects: { fortune: -5000, morale: -2 }, flags: { lostForgedContractTrail: true } } },
         { id: "warn-target", text: "Prévenir discrètement le marchand", choiceTag: "Honneur",
           success: { result: "Le marchand organise un faux enlèvement qui attire les racketteurs.", effects: { morale: 3, fortune: 7000 }, requiredTraits: ["rusé"], flags: { protectedFalselyTargetedMerchant: true } },
@@ -3046,11 +3046,11 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "bounty-hunter-grand-line-many-competitors", path: PATHS.BOUNTY_HUNTER,
       title: "La prime aux vingt chasseurs",
-      description: "Une prime exceptionnelle attire vingt chasseurs dans la même auberge. Un chasseur rival, ton rival à la veste quadrillée, a réservé toutes les sorties sauf la fenêtre des cuisines.",
+      description: "Une prime exceptionnelle attire vingt chasseurs dans la même auberge. Ton rival a surveillé toutes les sorties, sauf la fenêtre des cuisines.",
       rarity: EVENT_RARITY.COMMON, tags: ["competitors", "bounty", "rival"],
       choices: [
         { id: "share-information", text: "Proposer une chasse coordonnée", choiceTag: "Diplomatie",
-          success: { result: "Les chasseurs encerclent la cible et la courtière répartit la récompense sans perdre un berry.", effects: { fortune: 12000, morale: 3 }, minimumStats: { popularity: 45 }, flags: { coordinatedTwentyHunters: true } },
+          success: { result: "Les chasseurs encerclent la cible puis font valider leurs parts par la Marine.", effects: { fortune: 12000, morale: 3 }, minimumStats: { popularity: 45 }, flags: { coordinatedTwentyHunters: true } },
           setback: { result: "Le chasseur rival transmet trois horaires différents et arrive seul au bon rendez-vous.", effects: { morale: -3 }, flags: { deceivedByNilsSquare: true } } },
         { id: "take-kitchen-route", text: "Passer par la fenêtre des cuisines", choiceTag: "Intuition",
           success: { result: "Tu devances le chasseur rival et trouves la cible cachée dans un chariot de desserts.", effects: { fortune: 15000, popularity: 2 }, requiredFlags: { defeatedByJaskoRival: true }, flags: { outpacedNilsSquare: true } },
@@ -3064,7 +3064,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["marine", "payment", "bureaucracy"],
       choices: [
         { id: "follow-procedure", text: "Retrouver le formulaire réglementaire", choiceTag: "Patience",
-          success: { result: "La courtière découvre le formulaire sous la tasse de l’intendant et obtient le paiement complet.", effects: { fortune: 15000, morale: 2 }, requiredTraits: ["patient"], flags: { masteredMarineBountyForms: true } },
+          success: { result: "Le formulaire réglementaire dormait sous la tasse de l’intendant. La base verse enfin la totalité de la prime.", effects: { fortune: 15000, morale: 2 }, requiredTraits: ["patient"], flags: { masteredMarineBountyForms: true } },
           setback: { result: "Le bureau ferme pendant que tu attends devant le bon guichet.", effects: { morale: -3, fortune: -3000 }, flags: { marinePaymentDelayed: true } } },
         { id: "negotiate-officer", text: "Demander audience à l’officier de quart", choiceTag: "Diplomatie",
           success: { result: "L’officier valide la prise et te confie une ligne directe pour les futurs contrats.", effects: { fortune: 12000, popularity: 2 }, minimumStats: { popularity: 50 }, flags: { marineBountyContact: true } },
@@ -3088,11 +3088,11 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "bounty-hunter-grand-line-storm-hunt", path: PATHS.BOUNTY_HUNTER,
       title: "La chasse dans la pluie horizontale",
-      description: "La cible traverse une tempête dont la pluie tombe alternativement de gauche à droite. La pisteuse affirme pouvoir suivre les traces laissées sur les nuages.",
+      description: "La cible traverse une tempête dont les vents changent brutalement de direction. Les débris laissés dans son sillage offrent la seule piste fiable.",
       rarity: EVENT_RARITY.COMMON, tags: ["storm", "hunt", "tracker"],
       choices: [
         { id: "follow-ora", text: "Suivre les indications de la pisteuse", choiceTag: "Intuition",
-          success: { result: "La pisteuse retrouve la cible et accepte de devenir ta pisteuse, à condition de ne jamais expliquer comment.", effects: { crew: 1, ship: 1 }, minimumStats: { morale: 50 }, flags: { recruitedOraPaleyeTracker: true, caughtCloudstepTarget: true }, important: true },
+          success: { result: "La pisteuse retrouve la cible et accepte de poursuivre la route à tes côtés.", effects: { crew: 1, ship: 1 }, minimumStats: { morale: 50 }, flags: { recruitedOraPaleyeTracker: true, caughtCloudstepTarget: true }, important: true },
           setback: { result: "Les traces appartenaient à un troupeau d’oiseaux très organisé.", effects: { ship: -2, morale: 1 }, flags: { followedStormBirdTracks: true } } },
         { id: "cut-through-storm", text: "Couper directement à travers le front", choiceTag: "Audace",
           success: { result: "La manœuvre intercepte la cible au moment où elle croyait avoir disparu.", effects: { fortune: 12000, ship: -1 }, minimumStats: { ship: 4 }, flags: { interceptedHorizontalRainTarget: true } },
@@ -3102,7 +3102,7 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "bounty-hunter-grand-line-recruitable-target", path: PATHS.BOUNTY_HUNTER,
       title: "La tireuse sans crime",
-      description: "Une tireuse recherchée possède une prime pour avoir refusé d’abattre des civils. Elle vise ton chapeau à chaque phrase et ne le manque jamais.",
+      description: "Une tireuse est recherchée depuis qu’elle a refusé d’abattre des civils pour couvrir la fuite de son capitaine. Son ancien équipage l’accuse désormais du massacre qu’elle a empêché.",
       rarity: EVENT_RARITY.COMMON, tags: ["target", "recruitment", "sniper"],
       important: true,
       choices: [
@@ -3117,7 +3117,7 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "bounty-hunter-grand-line-jasko-callback", path: PATHS.BOUNTY_HUNTER,
       title: "Le chasseur rival au bout de la piste",
-      description: "Le chasseur rival revendique la même cible et porte encore les traces de votre course à Reverse Mountain. Il propose une dernière association, sourire compris mais confiance non fournie.",
+      description: "Le rival croisé à Reverse Mountain revendique la même cible. Blessé et à court de vivres, il propose de partager la capture sans cacher qu’il tentera de te devancer.",
       rarity: EVENT_RARITY.COMMON, tags: ["callback", "competitor", "rival"],
       choices: [
         { id: "honor-old-deal", text: "Reprendre le partage convenu", choiceTag: "Diplomatie",
@@ -3189,11 +3189,11 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "bounty-hunter-grand-line-port-azur-information-market", path: PATHS.BOUNTY_HUNTER,
       title: "La criée aux secrets",
-      description: "À Port-Azur, les informations sont vendues à la criée. Un lot contient la route de trois cibles et le nom de la personne qui t’a trahi.",
+      description: "À Port-Azur, un receleur met aux enchères les itinéraires de trois pirates recherchés. Parmi les documents figure le nom de celui qui a vendu ta propre route.",
       zones: ["port-azur"], rarity: EVENT_RARITY.UNCOMMON, tags: ["information", "market", "betrayal"],
       choices: [
         { id: "buy-lot", text: "Miser sur le lot complet", choiceTag: "Quitte ou double",
-          success: { result: "Deux pistes sont authentiques et la troisième révèle un réseau de contrats truqués.", effects: { fortune: 12000, popularity: 2 }, minimumStats: { fortune: 10000 }, flags: { boughtPortAzurSecretLot: true, knowsContractForgerNetwork: true } },
+          success: { result: "Deux pistes sont authentiques ; la troisième mène directement à l’atelier qui fabrique les faux avis.", effects: { fortune: 12000, popularity: 2 }, minimumStats: { fortune: 10000 }, flags: { boughtPortAzurSecretLot: true, knowsContractForgerNetwork: true } },
           setback: { result: "La salle pousse les enchères jusqu’à vider ta bourse pour des noms périmés.", effects: { fortune: -12000, morale: -2 }, flags: { overpaidForOldSecrets: true } } },
         { id: "watch-bidders", text: "Observer qui veut faire disparaître le lot", choiceTag: "Intuition",
           success: { result: "La courtière identifie le courtier corrompu sous un chapeau si large qu’il bloque deux rangées.", effects: { morale: 2 }, requiredFlags: { uncoveredCalameTrafficking: true }, flags: { linkedCalameToForgedContracts: true } },
@@ -3233,13 +3233,13 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "bounty-hunter-grand-line-rare-protected-pirate", path: PATHS.BOUNTY_HUNTER,
       title: "La prime que personne ne paiera",
-      description: "Un pirate à la prime immense est secrètement protégé par des fonctionnaires et des courtiers. La courtière découvre que chaque chasseur victorieux a ensuite disparu.",
+      description: "Un pirate à la prime immense paie des fonctionnaires pour effacer ses déplacements. Les dossiers montrent que chaque chasseur ayant tenté de le livrer a ensuite disparu.",
       rarity: EVENT_RARITY.RARE, tags: ["protected-target", "conspiracy", "career"],
       important: true,
       choices: [
         { id: "capture-publicly", text: "Organiser une capture impossible à étouffer", choiceTag: "Audace",
           success: { result: "La chute du pirate est diffusée par Escargophone avant que ses protecteurs réagissent.", effects: { fortune: 20000, popularity: 5 }, minimumStats: { combat: 25, popularity: 70 }, flags: { publiclyCapturedProtectedPirate: true, offendedProtectedPirateNetwork: true }, important: true },
-          setback: { result: "La cible s’échappe et ses protecteurs détruisent officiellement le contrat.", effects: { health: -7, popularity: -3 }, flags: { huntedByProtectedPirateNetwork: true } } },
+          setback: { result: "La cible s’échappe et les fonctionnaires corrompus font annuler officiellement le contrat.", effects: { health: -7, popularity: -3 }, flags: { huntedByProtectedPirateNetwork: true } } },
         { id: "sell-proof", text: "Vendre les preuves à une faction rivale", choiceTag: "Pragmatisme",
           success: { result: "Les documents rapportent gros et déclenchent une lutte interne chez les protecteurs.", effects: { fortune: 20000 }, requiredTraits: ["opportuniste"], flags: { soldProtectedPirateEvidence: true } },
           setback: { result: "L’acheteur travaille pour le réseau et récupère toutes les copies.", effects: { fortune: -8000, morale: -3 }, flags: { evidenceTakenByProtectedNetwork: true } } },
@@ -3250,12 +3250,12 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "bounty-hunter-grand-line-very-rare-career-contract", path: PATHS.BOUNTY_HUNTER,
       title: "Le contrat qui change une carrière",
-      description: "Un mandat scellé vise le courtier corrompu lui-même et promet une somme capable de rendre tout autre contrat dérisoire. Trois gouvernements nient simultanément l’avoir émis.",
+      description: "Un mandat scellé vise le faussaire qui vend de faux avis depuis Port-Azur. Trois royaumes ont signé la prime, puis nient simultanément l’avoir émise.",
       rarity: EVENT_RARITY.VERY_RARE, tags: ["contract", "broker", "career"],
       important: true,
       choices: [
         { id: "hunt-calame", text: "Accepter la chasse malgré les démentis", choiceTag: "Sans retour",
-          success: { result: "Le courtier corrompu est capturé avec ses registres. Les chasseurs de Paradise connaissent désormais ton nom.", effects: { fortune: 25000, popularity: 5, combat: 2 }, minimumStats: { combat: 26, popularity: 80 }, flags: { capturedBrokerCalame: true, masterGrandLineHunterReputation: true }, important: true },
+          success: { result: "Le faussaire est capturé avec ses registres. Les chasseurs de Paradise connaissent désormais ton nom.", effects: { fortune: 25000, popularity: 5, combat: 2 }, minimumStats: { combat: 26, popularity: 80 }, flags: { capturedBrokerCalame: true, masterGrandLineHunterReputation: true }, important: true },
           setback: { result: "Le courtier corrompu transforme la chasse en piège et fait circuler un contrat contre toi.", effects: { health: -8, popularity: -2 }, flags: { bountyHuntersNowHuntPlayer: true }, important: true } },
         { id: "expose-mandate", text: "Révéler publiquement les trois signatures", choiceTag: "Honneur",
           success: { result: "Les gouvernements doivent reconnaître leurs liens avec le courtier et son marché s’effondre.", effects: { popularity: 5, morale: 4 }, requiredFlags: { linkedCalameToForgedContracts: true }, flags: { exposedThreeGovernmentContract: true }, important: true },
@@ -3265,13 +3265,13 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "bounty-hunter-grand-line-very-rare-warlord-prey", path: PATHS.BOUNTY_HUNTER,
       title: "La proie de l’ancien Grand Corsaire",
-      description: "Une cible blessée arrive avec la marque d’un ancien Grand Corsaire et supplie d’être capturée avant que les héritiers de son réseau ne la trouvent. Elle transporte un registre de Fruits du Démon vendus au marché noir.",
+      description: "Une cible blessée porte la marque de Baroque Works et supplie d’être livrée à la Marine avant que ses anciens complices ne la retrouvent. Elle transporte un registre de Fruits du Démon vendus au marché noir.",
       rarity: EVENT_RARITY.VERY_RARE, tags: ["warlord", "devil-fruit", "witness"],
       important: true,
       choices: [
         { id: "protect-capture", text: "La placer sous ta protection officielle", choiceTag: "Honneur",
           success: { result: "Tu repousses les poursuivants et remets la cible avec le registre intact.", effects: { popularity: 5, combat: 2, health: -4 }, minimumStats: { combat: 25 }, flags: { protectedWarlordPrey: true, securedDevilFruitLedger: true }, important: true },
-          setback: { result: "Les hommes de l’ancien réseau récupèrent le registre pendant le combat.", effects: { health: -8, morale: -3 }, flags: { warlordNetworkRecoveredLedger: true } } },
+          setback: { result: "Les agents de Baroque Works récupèrent le registre pendant le combat.", effects: { health: -8, morale: -3 }, flags: { warlordNetworkRecoveredLedger: true } } },
         { id: "trade-ledger", text: "Négocier le registre contre une sortie sûre", choiceTag: "Pragmatisme",
           success: { result: "La courtière obtient une copie avant l’échange et la cible disparaît sous une nouvelle identité.", effects: { fortune: 20000, morale: 2 }, requiredFlags: { alliedWithSiaLedger: true }, flags: { copiedDevilFruitBlackMarketLedger: true } },
           setback: { result: "Le négociateur prend le registre et refuse toute garantie.", effects: { morale: -4, popularity: -2 }, flags: { betrayedInWarlordLedgerDeal: true } } },
@@ -5853,9 +5853,9 @@ const COMMON_EVENTS = [
         ["Sous l’autorité de Dragon", "Dragon attend ton rapport tandis qu’une dernière opération peut sauver tout un réseau sans remplacer aucun commandant historique.", ["Coordonner les cellules depuis le front", "Retourner les communications ennemies", "Préserver le réseau avant de revendiquer la victoire"]],
       ],
       "bounty-hunter": [
-        ["Le contrat de Crocodile", "À Paradise, Crocodile révèle que trois contrats mènent au même réseau pirate. Il ne cherche pas un exécutant : il veut savoir si ton nom peut obliger des guildes rivales à suivre un seul plan.", ["Réunir les chasseurs sous un plan commun", "Suivre seul la piste la plus dangereuse", "Retourner les receleurs du réseau"]],
-        ["Le grand bluff de Baggy", "Baggy prétend avoir déjà soumis le capitaine rookie qui rachète les ports témoins. Derrière sa mise en scène, une vraie piste traverse son réseau de mercenaires.", ["L’intercepter pendant le transfert", "Infiltrer son marché clandestin", "Protéger les témoins et couper sa retraite"]],
-        ["Le jugement de Mihawk", "Mihawk attend la preuve de la chute du réseau. Il ne reconnaîtra le surnom de Cauchemar des pirates qu’à un chasseur capable de ramener une cible et des preuves intactes sans confondre prestige et carnage.", ["Capturer le capitaine vivant", "Livrer les registres aux ports victimes", "Forcer toute la flotte à déposer les armes"]],
+        ["La cible de Crocodile", "À Paradise, trois avis conduisent au même capitaine, un ancien convoyeur de Baroque Works qui a volé des livres de comptes. Crocodile veut récupérer ces preuves avant la Marine et ferme déjà les ports autour de la cible.", ["Coordonner l’encerclement du capitaine", "Suivre seul le convoi de Baroque Works", "Convaincre les receleurs de livrer la cible"]],
+        ["Le grand bluff de Baggy", "Baggy prétend avoir déjà capturé le capitaine rookie qui achète le silence des ports. Derrière sa mise en scène, ses hommes ont repéré le navire qui transporte les témoins menacés.", ["Intercepter le capitaine pendant le transfert", "Suivre les hommes de Baggy jusqu’à son navire", "Protéger les témoins et couper sa retraite"]],
+        ["Le jugement de Mihawk", "Mihawk attend une preuve simple : capturer le capitaine sans détruire les registres ni massacrer son équipage. Seule une chasse maîtrisée peut imposer ton nom aux pirates de Paradise.", ["Capturer le capitaine vivant", "Livrer les registres aux ports victimes", "Forcer son équipage à déposer les armes"]],
       ],
     },
     marineford: {
@@ -5870,7 +5870,7 @@ const COMMON_EVENTS = [
         ["Le symbole et les vivants", "La place centrale menace de s’effondrer. Fujitora couvre une partie de l’évacuation, mais te laisse choisir ce que ton unité fera du temps gagné.", ["Sauver les dernières recrues", "Neutraliser le détonateur central", "Coordonner la retraite de toute la baie"]],
       ],
       "bounty-hunter": [
-        ["Le contrat de Crocodile", "Crocodile finance la capture d’un courtier pendant qu’un convoi gouvernemental entre à Marineford. Il confirme froidement que la Cross Guild ne paiera que pour la cible, pas pour les prisonniers civils attachés à elle.", ["Accepter le contrat mais protéger les prisonniers", "Révéler la clause cachée aux autres chasseurs", "Suivre la cible à travers le convoi"]],
+        ["Le prix fixé par Crocodile", "Crocodile finance la capture d’un courtier pendant qu’un convoi gouvernemental entre à Marineford. Il confirme froidement que la Cross Guild ne paiera que pour la cible, pas pour les prisonniers civils attachés à elle.", ["Accepter le contrat mais protéger les prisonniers", "Révéler la clause cachée aux autres chasseurs", "Suivre la cible à travers le convoi"]],
         ["La cible aux deux commanditaires", "Le courtier détient les preuves d’un marché entre le Cipher Pol et des pirates. Smoker veut les documents ; ton commanditaire veut le silence.", ["Capturer la cible avec les preuves", "Livrer une copie à Smoker", "Retourner les chasseurs corrompus contre le courtier"]],
         ["Le sabre et les cellules", "Tashigi rejoint les quais au moment où la bataille se referme. Elle peut garantir la remise de la cible, mais refuse de partir tant que des dizaines de prisonniers restent dans la zone bombardée.", ["Sécuriser la cible et ouvrir les cellules", "Renoncer à une part du contrat pour évacuer", "Imposer un cessez-le-feu par les preuves"]],
       ],
@@ -5892,7 +5892,7 @@ const COMMON_EVENTS = [
         ["{emperor} attaque la ligne de la Marine", "{emperorArrival} La flotte doit te ménager une ouverture pour terminer la mission, puis évacuer l’île sans abandonner les civils.", ["Coordonner l’assaut de la flotte", "Sécuriser l’objectif pendant l’attaque", "Couvrir l’évacuation de l’île"]],
       ],
       "bounty-hunter": [
-        ["Un contrat au cœur de la flotte de {emperor}", "Un consortium promet une prime pour {objective}. {emperorThreat} Les clauses contradictoires indiquent qu’un commanditaire cherche aussi à faire disparaître les preuves.", ["Vérifier le commanditaire avant la chasse", "Suivre la cible dans la flotte", "Réunir les chasseurs fiables"]],
+        ["Un contrat au cœur de la flotte de {emperor}", "Un avis mondial promet une prime pour {objective}. {emperorThreat} Une seconde clause, ajoutée après publication, exige pourtant la disparition des preuves.", ["Identifier l’auteur de la seconde clause", "Suivre la cible dans la flotte", "Rassembler quelques chasseurs fiables"]],
         ["Un commandant protège la cible", "Un commandant de {emperor} prend la cible et les preuves sous sa garde. {emperorCounterattack} Il faut séparer ce que réclame le contrat de ce que protège réellement la flotte.", ["Éloigner le commandant de la cible", "Récupérer les preuves sans combattre", "Piéger publiquement le commanditaire"]],
         ["{emperor} couvre la fuite de la cible", "{emperorArrival} La capture reste possible quelques instants, à condition que les chasseurs agissent ensemble et renoncent à affronter seuls toute la flotte.", ["Capturer la cible avec les renforts", "Prendre les preuves puis décrocher", "Obtenir la reddition de ses complices"]],
       ],
@@ -5927,8 +5927,8 @@ const COMMON_EVENTS = [
         { speaker: "Dragon", role: "Chef de l’Armée révolutionnaire", text: "Un nom n’a de valeur que s’il ouvre une voie aux peuples. Fais que cette opération survive à ta propre victoire." },
       ],
       "bounty-hunter": [
-        { speaker: "Crocodile", role: "Fondateur de Cross Guild", text: "Trois contrats, trois guildes incapables de voir le même réseau. Unis-les ou chasse seul ; dans les deux cas, rapporte-moi un résultat qui mérite ton nom." },
-        { speaker: "Baggy", role: "Empereur autoproclamé de la chasse", text: "Ce rookie ? Évidemment qu’il tremble déjà devant le grand Baggy ! Trouve-le vite… avant qu’il raconte une version moins glorieuse." },
+        { speaker: "Crocodile", role: "Fondateur de Cross Guild", text: "Ce capitaine a volé mes anciens registres. Ramène-le avec les livres de comptes, ou écarte-toi avant que mes hommes ne ferment le port." },
+        { speaker: "Baggy", role: "Empereur", text: "Ce rookie ? Évidemment qu’il tremble déjà devant le grand Baggy ! Trouve-le vite… avant qu’il raconte une version moins glorieuse." },
         { speaker: "Dracule Mihawk", role: "Œil de Faucon", text: "Une réputation achetée ne résiste pas aux preuves. Ramène la cible intacte, et les pirates prononceront eux-mêmes ton nouveau surnom." },
       ],
     }),
