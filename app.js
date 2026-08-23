@@ -150,6 +150,56 @@
     failure: Object.freeze({ path: "assets/reves/reveinacheve.png", label: "Rêve inachevé" }),
   });
 
+  const imagePreloadRegistry = new Map();
+
+  function preloadImage(path) {
+    if (!path || typeof Image !== "function") return Promise.resolve(false);
+    if (imagePreloadRegistry.has(path)) return imagePreloadRegistry.get(path);
+    const request = new Promise((resolve) => {
+      const image = new Image();
+      image.onload = async () => {
+        try {
+          if (typeof image.decode === "function") await image.decode();
+        } catch (error) {
+          // Le cache navigateur reste utilisable même si decode() est refusé.
+        }
+        resolve(true);
+      };
+      image.onerror = () => resolve(false);
+      image.src = path;
+    });
+    imagePreloadRegistry.set(path, request);
+    return request;
+  }
+
+  function scheduleImagePreloads(paths, { priority = false } = {}) {
+    const pending = uniqueArray(paths).filter(Boolean);
+    const run = () => pending.forEach((path, index) => {
+      window.setTimeout(() => { void preloadImage(path); }, priority ? index * 20 : index * 80);
+    });
+    if (priority) return run();
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(run, { timeout: 1500 });
+    } else {
+      window.setTimeout(run, 250);
+    }
+  }
+
+  function preloadRouteAssets(game = state.game) {
+    const route = Array.isArray(game?.route) ? game.route : [];
+    const start = Math.max(0, Number(game?.currentZoneIndex) || 0);
+    scheduleImagePreloads(route.slice(start, start + 3).map(getZoneAssetPath), { priority: true });
+    scheduleImagePreloads(route.slice(start + 3).map(getZoneAssetPath));
+  }
+
+  function preloadBackgroundFeatureAssets() {
+    scheduleImagePreloads([
+      ...Object.values(LEGENDARY_ARC_ASSETS).map((asset) => asset.path),
+      ...Object.values(HAKI_EVENT_ASSETS).map((asset) => asset.path),
+      ...Object.values(DREAM_CONCLUSION_ASSETS).map((asset) => asset.path),
+    ]);
+  }
+
   function getHakiEventStage(event) {
     const stage = Number(event?.decisiveStage);
     return event?.eventType === "decisive" && event?.tags?.includes("haki-awakening") && [1, 2].includes(stage)
@@ -617,6 +667,26 @@
   const LEGACY_TITLE_ID_MAP = Object.freeze({
     "adversaire-du-chapeau-de-paille": "rival-de-barbe-blanche",
   });
+  const LEGACY_TRAIT_TITLE_MAP = Object.freeze({
+    prudent: "personnalite-prudent",
+    calme: "personnalite-calme",
+    impulsif: "personnalite-impulsif",
+    compatissant: "personnalite-compatissant",
+    courageux: "personnalite-courageux",
+    "rusé": "personnalite-ruse",
+    charismatique: "personnalite-charismatique",
+    curieux: "personnalite-curieux",
+    pragmatique: "personnalite-pragmatique",
+    "organisé": "personnalite-organise",
+    tenace: "personnalite-tenace",
+    "créatif": "personnalite-creatif",
+    patient: "personnalite-patient",
+    responsable: "personnalite-responsable",
+    altruiste: "personnalite-altruiste",
+    arrogant: "personnalite-arrogant",
+    "discipliné": "personnalite-discipline",
+    opportuniste: "personnalite-opportuniste",
+  });
 
   function migrateLegacyTitleId(titleId) {
     const id = getDataId(titleId);
@@ -907,10 +977,10 @@
   }
 
   function isPlayerIdentityValid(profile = getProfile()) {
-    return Boolean(
-      String(profile.playerIdentity?.lastName || "").trim() &&
-      String(profile.playerIdentity?.firstName || "").trim()
-    );
+    const identity = profile.playerIdentity || {};
+    const validator = window.BlueLegacyLeaderboard?.validatePlayerIdentity;
+    if (typeof validator === "function") return validator(identity).ok;
+    return Boolean(String(identity.lastName || "").trim() && String(identity.firstName || "").trim());
   }
 
   function normalizePermanentIdentityPart(value) {
@@ -947,6 +1017,11 @@
     event.stopPropagation();
     const lastName = normalizePermanentIdentityPart(dom.welcomeIdentityForm?.elements.lastName?.value);
     const firstName = normalizePermanentIdentityPart(dom.welcomeIdentityForm?.elements.firstName?.value);
+    const contentValidation = window.BlueLegacyLeaderboard?.validatePlayerIdentity({ firstName, lastName });
+    if (contentValidation && !contentValidation.ok) {
+      if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = contentValidation.message;
+      return false;
+    }
     if (!isPlayerIdentityValid({ playerIdentity: { lastName, firstName } })) {
       if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = "Le nom et le prénom sont obligatoires.";
       return false;
@@ -977,7 +1052,18 @@
 
   async function synchronizeExistingPublicProfile() {
     const profile = getProfile();
-    if (!isPlayerIdentityValid(profile)) return showWelcomeIdentityIfNeeded();
+    if (!isPlayerIdentityValid(profile)) {
+      const hasExistingIdentity = Boolean(
+        String(profile.playerIdentity?.firstName || "").trim() ||
+        String(profile.playerIdentity?.lastName || "").trim()
+      );
+      state.requiresPublicIdentityResolution = hasExistingIdentity;
+      const opened = showWelcomeIdentityIfNeeded();
+      if (hasExistingIdentity && dom.welcomeIdentityError) {
+        dom.welcomeIdentityError.textContent = "Ce nom ne peut pas être utilisé. Choisissez-en un autre.";
+      }
+      return opened;
+    }
     const result = await window.BlueLegacyLeaderboard?.reservePlayerProfile(
       getPublicIdentityPayload(profile, profile.playerIdentity.firstName, profile.playerIdentity.lastName),
     );
@@ -991,6 +1077,12 @@
       openDialog(dom.welcomeIdentityModal);
       if (dom.welcomeIdentityError) {
         dom.welcomeIdentityError.textContent = "Ce nom est déjà utilisé. Choisissez un autre nom pour continuer à apparaître dans le classement.";
+      }
+    } else if (["forbidden-discriminatory-name", "forbidden-profanity-name"].includes(result?.reason)) {
+      state.requiresPublicIdentityResolution = true;
+      showWelcomeIdentityIfNeeded();
+      if (dom.welcomeIdentityError) {
+        dom.welcomeIdentityError.textContent = result.message;
       }
     }
     return false;
@@ -1119,6 +1211,7 @@
       };
     }
     state.game = normalizeGame(savedGame);
+    preloadRouteAssets(state.game);
     // Le résultat persistant du jeu est la source de vérité. Un ancien
     // `payload.result` divergent ne doit jamais afficher une conséquence
     // appartenant à un autre événement.
@@ -1714,6 +1807,14 @@
     return profile.pantheon;
   }
 
+  function getPantheonHistoricalTopThree(pantheon = []) {
+    return [...pantheon]
+      .map((entry, index) => ({ entry, index, score: Number(entry?.popularityScore ?? entry?.stats?.popularity) || 0 }))
+      .sort((left, right) => right.score - left.score || left.index - right.index)
+      .slice(0, 3)
+      .map(({ entry }) => entry);
+  }
+
   function calculateProfileStatistics(profile = getProfile()) {
     const runs = (profile.pantheon || []).filter(Boolean);
     const history = normalizePantheonHistory(profile.pantheonHistory);
@@ -1871,7 +1972,7 @@
         const isOwned = isBackground ? profile.profileCosmetics.ownedBackgrounds.includes(item.id) : profile.profileCosmetics.ownsCosmeticD;
         const missing = Math.max(0, item.price - profile.berries);
         const preview = isBackground ? `<span class="cosmetic-preview" data-background="${escapeAttribute(item.id)}" aria-hidden="true"></span>` : '<span class="cosmetic-preview cosmetic-d-preview" aria-hidden="true">D.</span>';
-        const action = isOwned ? '<span class="shop-cosmetic-owned">Possédé · À utiliser depuis Statistiques</span>' : missing ? `<button class="button" disabled title="Il manque ${formatBerryAmount(missing)} berrys" aria-label="Il manque ${formatBerryAmount(missing)} berrys">Berrys insuffisants</button>` : `<button class="button button-primary" data-cosmetic-buy="${escapeAttribute(item.id)}" type="button">Acheter</button>`;
+        const action = isOwned ? '<span class="shop-cosmetic-owned">Possédé · À utiliser depuis Carte de légende</span>' : missing ? `<button class="button" disabled title="Il manque ${formatBerryAmount(missing)} berrys" aria-label="Il manque ${formatBerryAmount(missing)} berrys">Berrys insuffisants</button>` : `<button class="button button-primary" data-cosmetic-buy="${escapeAttribute(item.id)}" type="button">Acheter</button>`;
         return `<article class="shop-item-card cosmetic-shop-card${isOwned ? " is-owned" : ""}" data-rarity="${escapeAttribute(item.rarity)}"><header class="shop-item-heading">${preview}<div><span class="shop-item-rarity">${escapeHtml(getRarityLabel(item.rarity))}</span><h3>${escapeHtml(item.name)}</h3></div></header><p>${escapeHtml(item.description)}</p><footer><strong class="shop-item-price">${item.price ? `💰 ${formatBerryAmount(item.price)}` : "Gratuit"}</strong>${action}</footer></article>`;
       }).join("");
     }
@@ -2192,7 +2293,7 @@
             type="button"
           >
             <span class="choice-title">
-              ${escapeHtml(dream.label || dream.name || id)}
+              ${escapeHtml(getDreamDisplayLabel(dream, state.creation.sex))}
             </span>
 
             <span class="choice-description">
@@ -2200,11 +2301,11 @@
             </span>
 
             ${
-              dream.ultimate || dream.ultimateTitle
+              getDreamUltimateDisplayName(dream, state.creation.sex)
                 ? `
                   <span class="ultimate-title">
                     Titre ultime :
-                    ${escapeHtml(dream.ultimate || dream.ultimateTitle)}
+                    ${escapeHtml(getDreamUltimateDisplayName(dream, state.creation.sex))}
                   </span>
                 `
                 : ""
@@ -2741,6 +2842,17 @@
     return Math.max(POPULARITY_MIN, Math.min(POPULARITY_MAX, Math.round(value)));
   }
 
+  const PERFECT_POPULARITY_PRECAP_THRESHOLD = 100.5;
+
+  function compressPopularityTopEnd(value) {
+    const score = Number(value) || 0;
+    if (score >= PERFECT_POPULARITY_PRECAP_THRESHOLD) return score;
+    // Math.round transformait jusque-là tout score interne >= 99,5 en 100.
+    // On réserve désormais 100 aux carrières dépassant réellement le plafond ;
+    // les autres restent à 99 sans modifier le reste de la distribution.
+    return score >= 99.5 ? 99.49 : score;
+  }
+
   function getCareerTitleNames(source = {}) {
     return uniqueArray([
       source.finalTitle?.name || source.finalTitle,
@@ -2866,13 +2978,69 @@
     const prestigeCompressed = calibratedScore <= 90
       ? calibratedScore
       : 90 + (calibratedScore - 90) * 0.35;
+    const topEndCompressedScore = compressPopularityTopEnd(prestigeCompressed);
     return {
       subscores,
       rawCareerScore,
       calibratedScore,
-      preCapScore: prestigeCompressed,
-      capLoss: Math.max(0, prestigeCompressed - POPULARITY_MAX),
-      score: clampCareerScore(prestigeCompressed),
+      prestigeCompressedScore: prestigeCompressed,
+      topEndCompressedScore,
+      topEndCompressionLoss: Math.max(0, prestigeCompressed - topEndCompressedScore),
+      preCapScore: topEndCompressedScore,
+      capLoss: Math.max(0, topEndCompressedScore - POPULARITY_MAX),
+      score: clampCareerScore(topEndCompressedScore),
+    };
+  }
+
+  function runPopularityTopEndAudit() {
+    const boundaries = [94.49, 94.5, 95, 96, 97, 98, 99, 99.49, 99.5, 100, 100.49, 100.5, 101, 110]
+      .map((input) => ({
+        input,
+        compressed: compressPopularityTopEnd(input),
+        score: clampCareerScore(compressPopularityTopEnd(input)),
+      }));
+    const factions = ["pirate", "marine", "bounty-hunter", "revolutionary"];
+    const titlePool = getAllTitles().filter((title) => !title.finalTitle).slice(0, 8);
+    const crewMembers = ["navigation", "médecine", "combat", "musique", "ingénierie", "histoire"]
+      .map((role, index) => ({ id: `audit-crew-${index}`, role }));
+    const importantEvents = [
+      ...Array.from({ length: 3 }, (_, index) => ({ id: `audit-decisive-${index}`, eventType: "decisive", outcomeTier: "success", tags: [] })),
+      ...Array.from({ length: 4 }, (_, index) => ({ id: `audit-risk-${index}`, eventType: "risk", outcomeTier: "success", tags: [] })),
+      ...Array.from({ length: 3 }, (_, index) => ({ id: `audit-callback-${index}`, eventType: "ordinary", outcomeTier: "success", tags: ["callback"] })),
+    ];
+    const perfectCareers = factions.flatMap((faction) =>
+      (window.GAME_DATA?.dreams?.[faction] || []).map((dream) => {
+        const source = {
+          month: CONFIG.maxMonths,
+          currentZoneIndex: 5,
+          visitedZoneIds: ["east-blue", "reverse-mountain", "grand-line", "red-line", "special", "shinsekai"],
+          character: { faction, dream: dream.id, devilFruit: { id: "audit-fruit" } },
+          stats: { health: 100, combat: 100, haki: 100, intelligence: 100, charisma: 100, bounty: 20000000, fortune: 1000000, crew: 10 },
+          crewMembers,
+          runTitles: titlePool,
+          importantEvents,
+          flags: { dreamProgress: 18 },
+          popularityModifiers: 30,
+          ending: { type: "dreamCompleted", success: true, dreamCompleted: true },
+        };
+        const breakdown = calculateCareerPopularityBreakdown(source);
+        return { faction, dream: dream.id, score: breakdown.score, preCapScore: breakdown.prestigeCompressedScore };
+      }),
+    );
+    const historical = { popularityScore: 100, stats: { popularity: 12 } };
+    const monotonic = boundaries.every((row, index) => !index ||
+      row.compressed >= boundaries[index - 1].compressed && row.score >= boundaries[index - 1].score);
+    return {
+      pass: monotonic && perfectCareers.length === 16 && perfectCareers.every((row) => row.score === 100) &&
+        clampCareerScore(historical.popularityScore ?? calculatePopularityScore(historical)) === 100,
+      threshold: PERFECT_POPULARITY_PRECAP_THRESHOLD,
+      monotonic,
+      boundaries,
+      perfectCareers,
+      factionsAt100: Object.fromEntries(factions.map((faction) => [faction,
+        perfectCareers.some((row) => row.faction === faction && row.score === 100)])),
+      dreamsAt100: perfectCareers.filter((row) => row.score === 100).length,
+      historical100Preserved: clampCareerScore(historical.popularityScore ?? calculatePopularityScore(historical)) === 100,
     };
   }
 
@@ -2882,6 +3050,7 @@
     game.stats.popularity = breakdown.score;
     game.popularityScore = game.stats.popularity;
     game.popularityBeforeCap = breakdown.preCapScore;
+    game.popularityPrestigeScore = breakdown.prestigeCompressedScore;
     game.popularityBreakdown = breakdown.subscores;
     game.popularityText = getPopularityCareerText(game);
     return game.stats.popularity;
@@ -2925,12 +3094,12 @@
   }
 
   function createLogbookStatsHtml(stats = {}, changes = {}, source = state.game) {
-    const rows = Object.keys(STATS).map((key) => {
+    const rows = Object.keys(STATS).filter((key) => (Number(changes[key]) || 0) !== 0).map((key) => {
       const delta = Number(changes[key]) || 0;
       const tone = delta > 0 ? "positive" : delta < 0 ? "negative" : "neutral";
-      return `<div class="logbook-stat-row ${tone}"><span class="logbook-stat-label">${escapeHtml(getStatLabel(key, source))}</span><strong class="logbook-stat-value">${escapeHtml(formatStatValue(key, stats[key]))}</strong><span class="logbook-stat-delta">(${delta === 0 ? "0" : escapeHtml(formatStatDelta(key, delta))})</span></div>`;
+      return `<div class="logbook-stat-row ${tone}"><span class="logbook-stat-label">${escapeHtml(getStatLabel(key, source))}</span><strong class="logbook-stat-delta">${escapeHtml(formatStatDelta(key, delta))}</strong></div>`;
     }).join("");
-    return `${rows}<p class="popularity-career-text">${escapeHtml(getPopularityCareerText(source))}</p>`;
+    return rows || '<p class="logbook-stats-empty">Aucune variation pendant cette période.</p>';
   }
 
   function getStatDefinition(key, source = state.game) {
@@ -3247,7 +3416,7 @@
 
     if (dom.summaryDream) {
       dom.summaryDream.textContent =
-        dream?.label || dream?.name || character.dream;
+        getDreamDisplayLabel(dream, character.sex) || character.dream;
     }
 
     if (dom.summaryOrigin) {
@@ -3877,6 +4046,14 @@
         (title) => getDataId(title) !== "haki-des-rois",
       );
     }
+    // Compatibilité 1.0.1 : les traits sauvegardés deviennent des titres
+    // narratifs. On marque leurs effets comme déjà traités afin qu'un reload
+    // ne puisse jamais appliquer une récompense une seconde fois.
+    Object.entries(LEGACY_TRAIT_TITLE_MAP).forEach(([traitId, titleId]) => {
+      if (!normalized.character.traits.includes(traitId) || hasRunTitle(titleId, normalized)) return;
+      normalized.runTitles.push(normalizeTitleData(titleId, findTitleData(titleId)));
+      normalized.appliedTitleEffects = uniqueArray([...normalized.appliedTitleEffects, titleId]);
+    });
     refreshPopularityScore(normalized);
 
     return normalized;
@@ -3935,6 +4112,7 @@
     state.game.flags.dRollCompleted = true;
     state.game.route = generateRoute(character);
     synchronizeRouteMetadata(state.game);
+    preloadRouteAssets(state.game);
     state.game.currentZoneIndex = 0;
     state.game.visitedZoneIds = state.game.route[0]?.id
       ? [state.game.route[0].id]
@@ -4003,6 +4181,7 @@
       state.game.route = generateRoute(state.game.character);
       synchronizeRouteMetadata(state.game);
     }
+    preloadRouteAssets(state.game);
 
     if (!state.game.visitedZoneIds.length && state.game.route[0]?.id) {
       state.game.visitedZoneIds.push(state.game.route[0].id);
@@ -4582,6 +4761,7 @@
       container.classList.add(errorClass);
       return false;
     }
+    void preloadImage(path);
     if (image.getAttribute("src") !== path) image.src = path;
     else if (image.complete && image.naturalWidth === 0) container.classList.add(errorClass);
     return true;
@@ -6026,8 +6206,8 @@
       requiredEvents: uniqueArray(event?.requiredEvents || []),
       forbiddenEvents: uniqueArray(event?.forbiddenEvents || []),
 
-      requiredTraits: uniqueArray(event?.requiredTraits || []),
-      forbiddenTraits: uniqueArray(event?.forbiddenTraits || []),
+      requiredTitles: uniqueArray(event?.requiredTitles || []),
+      forbiddenTitles: uniqueArray(event?.forbiddenTitles || []),
 
       requiredCombatStyles: uniqueArray(
         event?.requiredCombatStyles ||
@@ -6111,8 +6291,6 @@
       effects: { ...(outcome?.effects || {}) },
       flags: { ...(outcome?.flags || {}) },
       removeFlags: uniqueArray(outcome?.removeFlags || []),
-      addTraits: uniqueArray(outcome?.addTraits || (outcome?.trait ? [outcome.trait] : [])),
-      allowMultipleTraits: Boolean(outcome?.allowMultipleTraits),
       combatStyle: outcome?.combatStyle || outcome?.style || null,
       replaceCombatStyle: Boolean(outcome?.replaceCombatStyle),
       devilFruit: outcome?.devilFruit || outcome?.fruit || null,
@@ -6147,8 +6325,8 @@
       chance: normalizeChance(outcome?.chance),
       minimumStats: { ...(outcome?.minimumStats || {}) },
       maximumStats: { ...(outcome?.maximumStats || {}) },
-      requiredTraits: uniqueArray(outcome?.requiredTraits || []),
-      forbiddenTraits: uniqueArray(outcome?.forbiddenTraits || []),
+      requiredTitles: uniqueArray(outcome?.requiredTitles || []),
+      forbiddenTitles: uniqueArray(outcome?.forbiddenTitles || []),
       requiredCombatStyles: uniqueArray(outcome?.requiredCombatStyles || []),
       requiredFlags: { ...(outcome?.requiredFlags || {}) },
       forbiddenFlags,
@@ -6260,8 +6438,8 @@
     if (!checkMinimumStats(outcome.minimumStats, game.stats) ||
         !checkMaximumStats(outcome.maximumStats, game.stats) ||
         !checkRequiredFlags(outcome.requiredFlags, game.flags)) return false;
-    if (outcome.requiredTraits.some((id) => !hasTrait(id, game)) ||
-        outcome.forbiddenTraits.some((id) => hasTrait(id, game)) ||
+    if (outcome.requiredTitles.some((id) => !hasRunTitle(id, game)) ||
+        outcome.forbiddenTitles.some((id) => hasRunTitle(id, game)) ||
         outcome.requiredEvents.some((id) => !game.seenEvents.includes(id)) ||
         outcome.forbiddenEvents.some((id) => game.seenEvents.includes(id))) return false;
     if (outcome.requiredCombatStyles.length &&
@@ -6649,16 +6827,16 @@
     }
 
     if (
-      event.requiredTraits.some((traitId) => {
-        return !hasTrait(traitId, game);
+      event.requiredTitles.some((titleId) => {
+        return !hasRunTitle(titleId, game);
       })
     ) {
       return false;
     }
 
     if (
-      event.forbiddenTraits.some((traitId) => {
-        return hasTrait(traitId, game);
+      event.forbiddenTitles.some((titleId) => {
+        return hasRunTitle(titleId, game);
       })
     ) {
       return false;
@@ -6763,6 +6941,7 @@
       traits: game?.character?.traits || [],
 
       hasTrait: (traitId) => hasTrait(traitId, game),
+      hasTitle: (titleId) => hasRunTitle(titleId, game),
 
       hasSeenEvent: (eventId) => {
         return Boolean(game?.seenEvents?.includes(eventId));
@@ -7480,7 +7659,7 @@
     catalogTitleIds.forEach((titleId) => {
       const title = game.runTitles.find((item) => getDataId(item) === titleId);
       if (!title) return;
-      const record = { type: "title", text: `Titre obtenu : ${title.name}`, data: cloneData(title) };
+      const record = { type: "title", text: `Titre obtenu : ${getTitleDisplayName(title, game.character?.sex)}`, data: cloneData(title) };
       rewards.push(record);
       queueRewardReveal(record, game, { resolutionId, eventId: event.id });
     });
@@ -7727,17 +7906,6 @@
       }
     }
 
-    const newTraits = outcome.addTraits.filter((traitId) => !hasTrait(traitId, game));
-    const traits = outcome.allowMultipleTraits
-      ? newTraits
-      : newTraits.slice(0, 1);
-    for (const traitId of traits) {
-      if (remaining <= 0) break;
-      if (addTrait(traitId, game, false)) {
-        record({ type: "trait", text: `Nouveau trait : ${traitId}` });
-      }
-    }
-
     const protectedTitles = (outcome.titles || []).map((title) => {
       const id = getDataId(title);
       if (id !== "maitrise-haki-des-rois-plus" ||
@@ -7763,7 +7931,7 @@
         const title = game.runTitles.find((item) => getDataId(item) === id);
         record({
           type: "title",
-          text: `Titre obtenu : ${title?.name || id}`,
+          text: `Titre obtenu : ${getTitleDisplayName(title, game.character?.sex) || id}`,
           data: cloneData(title),
         });
       }
@@ -7967,49 +8135,49 @@
   }
 
   const WORLD_NEWS_CATALOG = Object.freeze([
-    { id: "world-1-marine-routes", stages: [1], icon: "⚓", type: "marine", text: "La Marine renforce ses patrouilles sur les routes commerciales des quatre mers après plusieurs disparitions de convois." },
-    { id: "world-1-bounty-posters", stages: [1], icon: "💰", type: "economy", text: "Le Journal de l’économie mondiale signale une circulation inhabituelle de nouvelles affiches de recherche dans les ports régionaux." },
-    { id: "world-1-revolution-leaflets", stages: [1], icon: "✊", type: "revolution", text: "Des tracts révolutionnaires apparaissent dans plusieurs royaumes affiliés au Gouvernement mondial, malgré les saisies répétées." },
-    { id: "world-1-reverse-mountain", stages: [1], icon: "🏴‍☠️", type: "piracy", text: "Plusieurs équipages pirates convergent vers Reverse Mountain ; les autorités des mers de départ redoutent une nouvelle vague de départs." },
-    { id: "world-1-morgans-rumors", stages: [1], icon: "📰", type: "world", text: "Morgans promet une édition consacrée aux nouvelles figures capables de bouleverser l’équilibre des mers." },
+    { id: "world-1-smoker-contraband", stages: [1], icon: "⚓", type: "marine", text: "Smoker a intercepté un navire de contrebandiers au large de Loguetown après plusieurs jours de poursuite.", loreCharacters: ["Smoker"] },
+    { id: "world-1-koby-rescue", stages: [1], icon: "🛟", type: "marine", text: "Koby a dirigé le sauvetage de civils pris dans une tempête avant de reprendre sa mission de patrouille.", loreCharacters: ["Koby"] },
+    { id: "world-1-buggy-cargo", stages: [1], icon: "🏴‍☠️", type: "piracy", text: "Buggy aurait récupéré une cargaison abandonnée puis vendu trois versions différentes de son origine.", loreCharacters: ["Buggy"] },
+    { id: "world-1-crocus-current", stages: [1], icon: "🧭", type: "world", text: "Crocus a guidé un équipage égaré loin d’un courant dangereux au pied de Reverse Mountain.", loreCharacters: ["Crocus"] },
+    { id: "world-1-morgans-port", stages: [1], icon: "📰", type: "world", text: "Morgans a dépêché ses reporters dans plusieurs ports des quatre mers pour suivre une nouvelle génération d’aventuriers.", loreCharacters: ["Morgans"] },
 
-    { id: "world-2-crocus-passage", stages: [2], icon: "🧭", type: "world", text: "Des navigateurs affirment que les courants autour de Reverse Mountain deviennent plus difficiles à prévoir pour les nouveaux équipages." },
-    { id: "world-2-supernova-rumors", stages: [2], icon: "🌍", type: "world", text: "Une rumeur persistante évoque de nouveaux équipages assez audacieux pour attirer l’attention des Supernovas." },
-    { id: "world-2-government-inspections", stages: [2], icon: "⚠️", type: "crisis", text: "Le Gouvernement mondial ordonne des inspections supplémentaires sur plusieurs voies d’accès à Grand Line." },
-    { id: "world-2-revolution-couriers", stages: [2], icon: "✊", type: "revolution", text: "Des courriers clandestins liés à l’Armée révolutionnaire auraient franchi les barrages installés près de Grand Line." },
-    { id: "world-2-marine-logposes", stages: [2], icon: "⚓", type: "marine", text: "La Marine met en garde les navires civils contre un trafic de Log Poses falsifiés visant les voyageurs inexpérimentés." },
+    { id: "world-2-law-blockade", stages: [2], icon: "🚢", type: "piracy", text: "Trafalgar Law a été aperçu quittant une île sous blocus à bord du Polar Tang sans engager les navires lancés à sa poursuite.", loreCharacters: ["Trafalgar Law"] },
+    { id: "world-2-koby-convoy", stages: [2], icon: "⚓", type: "marine", text: "Koby a escorté un convoi médical à travers une route de Grand Line réputée pour ses embuscades.", loreCharacters: ["Koby"] },
+    { id: "world-2-buggy-recruits", stages: [2], icon: "🎪", type: "piracy", text: "Buggy recrute bruyamment de nouveaux hommes dans un port de Paradise, au grand embarras des autorités locales.", loreCharacters: ["Buggy"] },
+    { id: "world-2-crocus-logpose", stages: [2], icon: "🧭", type: "world", text: "Crocus aurait corrigé le Log Pose défectueux d’un navire avant de le renvoyer prudemment vers Grand Line.", loreCharacters: ["Crocus"] },
+    { id: "world-2-koala-couriers", stages: [2], icon: "✊", type: "revolution", text: "Koala a organisé le passage discret de courriers révolutionnaires à travers un port placé sous surveillance.", loreCharacters: ["Koala"] },
 
-    { id: "world-3-fujitora-justice", stages: [3], icon: "⚓", type: "marine", text: "Fujitora réclame de nouveaux rapports sur la protection des civils pendant les opérations de la Marine dans Paradise.", loreCharacters: ["Fujitora"] },
-    { id: "world-3-cipher-pol-archives", stages: [3], icon: "⚠️", type: "crisis", text: "Cipher Pol intensifie sa recherche d’archives interdites après la disparition de plusieurs documents gouvernementaux." },
-    { id: "world-3-law-sighting", stages: [3], icon: "🏴‍☠️", type: "piracy", text: "Selon plusieurs témoins, le sous-marin de Trafalgar Law aurait été aperçu près d’une route rarement empruntée de Paradise.", loreCharacters: ["Trafalgar Law"] },
-    { id: "world-3-sabo-message", stages: [3], icon: "✊", type: "revolution", text: "Un message attribué à Sabo circule parmi les royaumes où la contestation du Gouvernement mondial progresse.", loreCharacters: ["Sabo"] },
-    { id: "world-3-buggy-recruits", stages: [3], icon: "💰", type: "economy", text: "Les réseaux associés à Buggy recrutent de nouveaux combattants, tandis que Cross Guild étend son influence.", loreCharacters: ["Buggy"] },
+    { id: "world-3-fujitora-civilians", stages: [3], icon: "⚓", type: "marine", text: "Fujitora a suspendu une opération de la Marine le temps d’évacuer les habitants d’un quartier menacé.", loreCharacters: ["Fujitora"] },
+    { id: "world-3-law-polar-tang", stages: [3], icon: "🚢", type: "piracy", text: "Trafalgar Law a fait émerger le Polar Tang près d’une route oubliée de Paradise avant de disparaître sous les flots.", loreCharacters: ["Trafalgar Law"] },
+    { id: "world-3-kid-shipyard", stages: [3], icon: "⚙️", type: "piracy", text: "Eustass Kid a repris de force du métal volé à son équipage dans un chantier naval clandestin.", loreCharacters: ["Eustass Kid"] },
+    { id: "world-3-sabo-weapons", stages: [3], icon: "✊", type: "revolution", text: "Sabo aurait détruit une cargaison d’armes destinée à réprimer une révolte locale, sans attaquer la population du port.", loreCharacters: ["Sabo"] },
+    { id: "world-3-mihawk-port", stages: [3], icon: "🗡️", type: "piracy", text: "Mihawk a dispersé un équipage pirate qui tentait de s’emparer d’un port isolé, puis a repris la mer.", loreCharacters: ["Mihawk"] },
 
-    { id: "world-4-cross-guild-bounties", stages: [4], icon: "💰", type: "economy", text: "Cross Guild diffuse de nouvelles récompenses visant des officiers de la Marine, provoquant des tensions dans plusieurs bases." },
-    { id: "world-4-sakazuki-orders", stages: [4], icon: "⚓", type: "marine", text: "Sakazuki exige un contrôle renforcé des routes stratégiques après une succession d’incidents impliquant pirates et contrebandiers.", loreCharacters: ["Sakazuki"] },
-    { id: "world-4-koala-liberations", stages: [4], icon: "✊", type: "revolution", text: "Koala aurait coordonné l’évacuation de prisonniers dans un royaume affilié au Gouvernement mondial.", loreCharacters: ["Koala"] },
-    { id: "world-4-mihawk-sighting", stages: [4], icon: "🏴‍☠️", type: "piracy", text: "Un navire transportant Mihawk aurait été aperçu loin des routes habituelles de Cross Guild.", loreCharacters: ["Mihawk"] },
-    { id: "world-4-government-kingdoms", stages: [4], icon: "🌍", type: "world", text: "Plusieurs royaumes demandent au Gouvernement mondial davantage de protection face à l’instabilité grandissante de Grand Line." },
+    { id: "world-4-koala-prisoners", stages: [4], icon: "✊", type: "revolution", text: "Koala a dirigé l’évacuation clandestine de prisonniers dans un royaume affilié au Gouvernement mondial.", loreCharacters: ["Koala"] },
+    { id: "world-4-crocodile-networks", stages: [4], icon: "💰", type: "economy", text: "Crocodile aurait repris le contrôle de plusieurs réseaux clandestins liés aux activités de Cross Guild.", loreCharacters: ["Crocodile"] },
+    { id: "world-4-mihawk-raiders", stages: [4], icon: "🗡️", type: "piracy", text: "Mihawk a tranché les mâts de navires pillards sans poursuivre leurs équipages en fuite.", loreCharacters: ["Mihawk"] },
+    { id: "world-4-killer-ambush", stages: [4], icon: "⚔️", type: "piracy", text: "Killer a déjoué une embuscade visant le navire de Kid dans un détroit étroit de Grand Line.", loreCharacters: ["Killer"] },
+    { id: "world-4-fujitora-report", stages: [4], icon: "⚓", type: "marine", text: "Fujitora a exigé qu’un rapport officiel mentionne les dommages subis par les civils lors d’une récente intervention.", loreCharacters: ["Fujitora"] },
 
-    { id: "world-5-shanks-ship", stages: [5], icon: "🏴‍☠️", type: "piracy", text: "Un navire lié à l’équipage du Roux aurait été aperçu au large d’une île disputée du Nouveau Monde.", loreCharacters: ["Shanks"] },
-    { id: "world-5-blackbeard-movements", stages: [5], icon: "⚠️", type: "crisis", text: "Des mouvements attribués à l’équipage de Barbe Noire inquiètent plusieurs territoires du Nouveau Monde.", loreCharacters: ["Barbe Noire"] },
-    { id: "world-5-crocodile-markets", stages: [5], icon: "💰", type: "economy", text: "Des courtiers affirment que Crocodile s’intéresse à plusieurs marchés clandestins récemment déstabilisés.", loreCharacters: ["Crocodile"] },
-    { id: "world-5-dragon-cells", stages: [5], icon: "✊", type: "revolution", text: "Des cellules rattachées à Dragon multiplient les déplacements entre des royaumes sous forte surveillance.", loreCharacters: ["Dragon"] },
-    { id: "world-5-koby-officers", stages: [5], icon: "⚓", type: "marine", text: "De jeunes officiers citent Koby lorsqu’ils réclament des opérations donnant la priorité au sauvetage des populations.", loreCharacters: ["Koby"] },
+    { id: "world-5-shanks-mediation", stages: [5], icon: "👑", type: "major", text: "Shanks aurait convaincu deux équipages rivaux de quitter une île du Nouveau Monde avant que leur affrontement ne détruise son port.", loreCharacters: ["Shanks"] },
+    { id: "world-5-blackbeard-search", stages: [5], icon: "⚠️", type: "major", text: "Barbe Noire rassemble des informations sur un Fruit du Démon rare, sans révéler la prochaine route de son équipage.", loreCharacters: ["Barbe Noire"] },
+    { id: "world-5-dragon-evacuation", stages: [5], icon: "✊", type: "revolution", text: "Dragon a ordonné l’évacuation d’une cellule révolutionnaire découverte avant l’arrivée des forces gouvernementales.", loreCharacters: ["Dragon"] },
+    { id: "world-5-sakazuki-convoy", stages: [5], icon: "⚓", type: "marine", text: "Sakazuki a redéployé un convoi de la Marine vers une route stratégique du Nouveau Monde.", loreCharacters: ["Sakazuki"] },
+    { id: "world-5-crocodile-cross-guild", stages: [5], icon: "💰", type: "economy", text: "Crocodile a renforcé la sécurité d’un comptoir utilisé par Cross Guild après la disparition de plusieurs cargaisons.", loreCharacters: ["Crocodile"] },
 
-    { id: "world-6-emperor-territories", stages: [6], icon: "👑", type: "major", text: "Des territoires du Nouveau Monde réévaluent leurs alliances face aux mouvements récents des équipages d’Empereurs." },
-    { id: "world-6-cross-guild-expansion", stages: [6], icon: "💰", type: "economy", text: "Les activités de Cross Guild modifient l’équilibre entre chasseurs, pirates et officiers jusque dans les ports les plus reculés." },
-    { id: "world-6-sakazuki-fleets", stages: [6], icon: "⚓", type: "marine", text: "Sakazuki redéploie plusieurs forces de la Marine alors que les crises du Nouveau Monde gagnent en intensité.", loreCharacters: ["Sakazuki"] },
-    { id: "world-6-sabo-uprisings", stages: [6], icon: "✊", type: "revolution", text: "Le nom de Sabo accompagne désormais plusieurs soulèvements dont les conséquences dépassent les frontières d’un seul royaume.", loreCharacters: ["Sabo"] },
-    { id: "world-6-morgans-presses", stages: [6], icon: "📰", type: "world", text: "Morgans mobilise ses presses pour une édition consacrée aux événements capables de redessiner l’équilibre mondial.", loreCharacters: ["Morgans"] },
+    { id: "world-6-shanks-fleet", stages: [6], icon: "👑", type: "major", text: "Shanks a rassemblé plusieurs navires alliés pour sécuriser les abords d’un territoire menacé du Nouveau Monde.", loreCharacters: ["Shanks"] },
+    { id: "world-6-blackbeard-island", stages: [6], icon: "⚠️", type: "major", text: "Barbe Noire aurait envoyé ses capitaines surveiller une île dont personne ne connaît encore la valeur à ses yeux.", loreCharacters: ["Barbe Noire"] },
+    { id: "world-6-dragon-agents", stages: [6], icon: "✊", type: "revolution", text: "Dragon a rappelé plusieurs agents après la découverte d’un réseau d’espionnage visant l’Armée révolutionnaire.", loreCharacters: ["Dragon"] },
+    { id: "world-6-sakazuki-officers", stages: [6], icon: "⚓", type: "marine", text: "Sakazuki a convoqué ses officiers pour coordonner la protection de routes essentielles aux forces de la Marine.", loreCharacters: ["Sakazuki"] },
+    { id: "world-6-morgans-sources", stages: [6], icon: "📰", type: "world", text: "Morgans aurait refusé de révéler la source d’un article consacré aux mouvements des grandes puissances.", loreCharacters: ["Morgans"] },
   ]);
-
   function validateWorldNewsCatalog(catalog = WORLD_NEWS_CATALOG) {
     const warnings = [];
     const ids = new Set();
     const officialCharacters = new Set([
       "Fujitora", "Trafalgar Law", "Sabo", "Buggy", "Sakazuki", "Koala",
       "Mihawk", "Shanks", "Barbe Noire", "Crocodile", "Dragon", "Koby", "Morgans",
+      "Smoker", "Crocus", "Eustass Kid", "Killer",
     ]);
     catalog.forEach((item) => {
       if (!item.id || !item.text) warnings.push("nouvelle mondiale incomplète");
@@ -8018,11 +8186,18 @@
       if (!item.stages?.length || item.stages.some((stage) => stage < 1 || stage > 6)) {
         warnings.push(`progression incompatible : ${item.id}`);
       }
+      if (!item.loreCharacters?.length) warnings.push(`personnage canon absent : ${item.id}`);
       (item.loreCharacters || []).forEach((name) => {
         if (!officialCharacters.has(name)) warnings.push(`personnage non confirmé : ${item.id}/${name}`);
       });
     });
     if (warnings.length) console.warn("[Blue Legacy] Validation des nouvelles mondiales :", warnings);
+    return {
+      warnings,
+      countsByStage: Object.fromEntries(Array.from({ length: 6 }, (_, index) => [index + 1, catalog.filter((item) => item.stages.includes(index + 1)).length])),
+      characters: uniqueArray(catalog.flatMap((item) => item.loreCharacters || [])),
+      pass: warnings.length === 0,
+    };
   }
 
   validateWorldNewsCatalog();
@@ -8037,7 +8212,7 @@
         icon: String(item.icon || "📰"),
         label: String(item.label || (item.type === "player" ? "Ta légende" : "Le monde")),
         headline: limitLogbookText(item.headline || item.text || "", 48),
-        priority: Math.max(0, Math.min(5, Number(item.priority) || 0)),
+        priority: Math.max(0, Math.min(2000, Number(item.priority) || 0)),
         subject: String(item.subject || item.loreCharacters?.[0] || item.type || "world"),
         sourceEventId: item.sourceEventId || null,
         lead: Boolean(item.lead),
@@ -8048,34 +8223,35 @@
   function getEventNewsPriority(event = {}) {
     const effects = event.effects || {};
     const rewards = event.rewards || [];
+    const rewardTypes = new Set(rewards.map((reward) => reward.type));
     const titleRank = rewards
       .filter((reward) => reward.type === "title")
-      .reduce((rank, reward) => Math.max(
-        rank,
-        TITLE_RARITIES[normalizeRarity(reward.data?.rarity)].rank,
-      ), 0);
+      .reduce((rank, reward) => Math.max(rank, TITLE_RARITIES[normalizeRarity(reward.data?.rarity)].rank), 0);
     const flags = event.flagChanges || {};
+    const tags = new Set(event.tags || []);
     const dreamCompleted = Boolean(flags.bossFinalDreamCompleted || flags.dreamCompleted);
-    const majorCallback = event.tags?.includes("callback") && Object.keys(flags).length > 0;
     const popularityImpact = Math.abs(Number(effects.popularity) || 0);
     const bountyImpact = Math.abs(Number(effects.bounty) || 0);
     const totalImpact = Object.values(effects).reduce((sum, value) => sum + Math.abs(Number(value) || 0), 0);
+    const searchable = `${event.title || ""} ${(event.tags || []).join(" ")} ${(event.loreCharacters || []).join(" ")}`;
     return Math.max(
       Number(event.newsPriority) || 0,
-      event.eventType === "decisive" || dreamCompleted ? 5 : 0,
-      event.highStakes ? 4 : 0,
-      titleRank >= TITLE_RARITIES.legendary.rank ? 4 : titleRank >= TITLE_RARITIES.rare.rank ? 3 : 0,
-      popularityImpact >= 7 ? 4 : popularityImpact >= 4 ? 3 : 0,
-      bountyImpact >= 10000000 ? 4 : bountyImpact >= 1000000 ? 3 : 0,
-      Math.abs(Number(event.dreamProgress) || 0) >= 3 ? 4 :
-        Math.abs(Number(event.dreamProgress) || 0) > 0 ? 3 : 0,
-      majorCallback ? 3 : 0,
-      event.loreCharacters?.length ? 3 : 0,
-      event.important ? 3 : 0,
-      event.eventType === "risk" && totalImpact >= 10 ? 3 : 0,
+      event.eventType === "decisive" || dreamCompleted ? 1000 : 0,
+      event.legendaryArc || event.eventType === "legendary" || [...tags].some((tag) => String(tag).startsWith("legendary-")) ? 920 : 0,
+      tags.has("haki") || /haki|fluide/i.test(searchable) ? 880 : 0,
+      event.emperorId || /empereur|kaido|shanks|barbe noire|big mom/i.test(searchable) ? 840 : 0,
+      event.rarity === "veryRare" ? 780 : 0,
+      titleRank >= TITLE_RARITIES.legendary.rank ? 700 : titleRank >= TITLE_RARITIES.rare.rank ? 650 : 0,
+      rewardTypes.has("crewMember") ? 620 : 0,
+      rewardTypes.has("devilFruit") ? 610 : 0,
+      event.highStakes || (event.eventType === "risk" && totalImpact >= 10) ? 560 : 0,
+      popularityImpact >= 7 || bountyImpact >= 10000000 ? 540 : popularityImpact >= 4 || bountyImpact >= 1000000 ? 510 : 0,
+      Math.abs(Number(event.dreamProgress) || 0) >= 3 ? 530 : Math.abs(Number(event.dreamProgress) || 0) > 0 ? 470 : 0,
+      event.tags?.includes("callback") && Object.keys(flags).length ? 460 : 0,
+      event.important ? 420 : 0,
+      totalImpact >= 10 ? 360 : totalImpact >= 5 ? 300 : 100,
     );
   }
-
   function getMajorTitleFromEvent(event = {}) {
     return (event.rewards || [])
       .filter((reward) => reward.type === "title" && reward.data)
@@ -8088,49 +8264,25 @@
 
   function createPlayerNewsItem(event, game = state.game) {
     const name = game?.character?.name || "Une figure encore inconnue";
-    const faction = game?.character?.faction || "pirate";
     const priority = getEventNewsPriority(event);
-    const effects = event.effects || {};
-    const result = event.eventType === "decisive"
-      ? limitLogbookText(event.result || event.outcomeResult || "", 24)
-      : Math.abs(Number(event.dreamProgress) || 0) >= 3
-        ? "Cette décision ouvre une avancée décisive vers le rêve poursuivi."
-        : Math.abs(Number(effects.bounty) || 0) >= 1000000
-          ? "La Marine et les chasseurs réévaluent désormais sa place dans leurs rapports."
-          : Math.abs(Number(effects.popularity) || 0) >= 4
-            ? "Les récits de cette intervention circulent déjà bien au-delà de la zone."
-            : Number(effects.health) <= -8
-              ? "L’opération atteint son terme au prix de lourdes blessures."
-              : Object.keys(event.flagChanges || {}).length
-                ? "Cette décision provoque des conséquences durables dans la région."
-                : "L’affaire attire désormais l’attention du Journal de l’économie mondiale.";
-    const title = getMajorTitleFromEvent(event);
-    const titleText = title && TITLE_RARITIES[normalizeRarity(title.rarity)].rank >= TITLE_RARITIES.rare.rank
-      ? ` Le monde le connaît désormais sous le titre « ${title.name} ».`
-      : "";
-    const introductions = {
-      pirate: `${name} fait parler de son pavillon`,
-      marine: `La Marine attribue à ${name} une opération décisive`,
-      "bounty-hunter": `${name} impose sa réputation parmi les chasseurs`,
-      revolutionary: `Les autorités relient ${name} à une opération révolutionnaire majeure`,
-    };
-    const lead = Boolean(event.eventType === "decisive" || event.flagChanges?.bossFinalDreamCompleted || priority >= 5);
-    const headline = event.eventType === "decisive"
-      ? `${name} a surmonté « ${event.title} » en choisissant de ${String(event.choiceText || "tenir sa position").replace(/^[A-ZÀ-ÖØ-Þ]/, (letter) => letter.toLowerCase())}. ${result}${titleText}`
-      : `${introductions[faction] || introductions.pirate} lors de « ${event.title || "un événement majeur"} ». ${result}${titleText}`;
+    const result = limitLogbookText(event.result || event.outcomeResult || "", 28);
+    const choice = limitLogbookText(event.choiceText || "", 12);
+    const context = event.zoneName ? `À ${event.zoneName}, ` : "";
+    const headline = result
+      ? `${context}${name} a été au cœur de « ${event.title || "un événement inattendu"} ». ${result}`
+      : `${context}${name} a pris part à « ${event.title || "un événement inattendu"} »${choice ? ` en choisissant de ${choice.replace(/^[A-ZÀ-ÖØ-Þ]/, (letter) => letter.toLowerCase())}` : ""}.`;
     return {
       id: `player-news-${event.eventId || event.id}`,
       type: "player",
-      icon: lead ? "👑" : "⭐",
-      label: lead ? "Édition spéciale • Ta légende" : "Ta légende",
-      headline: limitLogbookText(headline, 48),
+      icon: priority >= 800 ? "👑" : "⭐",
+      label: "Ta légende",
+      headline: limitLogbookText(headline, 44),
       priority,
       sourceEventId: event.eventId || event.id || null,
       subject: "player",
-      lead,
+      lead: true,
     };
   }
-
   function getWorldNewsSubject(item = {}) {
     return String(item.subject || item.loreCharacters?.[0] || item.type || item.id || "world");
   }
@@ -8144,7 +8296,7 @@
     return hash >>> 0;
   }
 
-  function selectWorldNews(entry, game = state.game, count = 2) {
+  function selectWorldNews(entry, game = state.game, count = 1) {
     const stage = Math.max(1, Math.min(6,
       Number(entry.period) || Number(game?.currentZoneIndex) + 1 || 1));
     const seen = new Set(game?.seenWorldNewsIds || []);
@@ -8154,12 +8306,18 @@
       .filter((item) => item.type !== "player")
       .map(getWorldNewsSubject));
     const stableSeed = `${game?.id || game?.character?.id || "run"}-${entry.period || stage}`;
-    const eligible = WORLD_NEWS_CATALOG
+    const periodCharacters = new Set(getLogbookEvents(entry).flatMap((event) => event.loreCharacters || []));
+    const candidates = WORLD_NEWS_CATALOG
       .filter((item) => item.stages.includes(stage) && !seen.has(item.id))
       .sort((a, b) =>
+        Number((a.loreCharacters || []).some((name) => periodCharacters.has(name))) -
+          Number((b.loreCharacters || []).some((name) => periodCharacters.has(name))) ||
         Number(recentSubjects.has(getWorldNewsSubject(a))) - Number(recentSubjects.has(getWorldNewsSubject(b))) ||
         Number(b.type === "major") - Number(a.type === "major") ||
         getStableNewsOrder(`${stableSeed}-${a.id}`) - getStableNewsOrder(`${stableSeed}-${b.id}`));
+    const conflictFree = candidates.filter((item) =>
+      !(item.loreCharacters || []).some((name) => periodCharacters.has(name)));
+    const eligible = conflictFree.length >= count ? conflictFree : candidates;
     const selected = [];
     while (eligible.length && selected.length < count) {
       const distinctIndex = eligible.findIndex((candidate) =>
@@ -8169,7 +8327,7 @@
         id: item.id,
         type: item.type,
         icon: item.icon,
-        label: "Le monde",
+        label: "Ailleurs sur les mers",
         headline: item.text,
         priority: item.type === "major" ? 3 : 2,
         subject: getWorldNewsSubject(item),
@@ -8188,15 +8346,12 @@
         newsPriority: getEventNewsPriority(event),
         newsRecency: index,
       }))
-      .filter((event) => event.newsPriority >= 3)
       .sort((a, b) =>
         b.newsPriority - a.newsPriority ||
         getLogbookEventPriority(b) - getLogbookEventPriority(a) ||
         b.newsRecency - a.newsRecency);
     const playerNews = events.length ? [createPlayerNewsItem(events[0], game)] : [];
-    const desiredWorldCount = options.includeWorldNews === false
-      ? 0
-      : playerNews.length ? 1 : 2;
+    const desiredWorldCount = options.includeWorldNews === false ? 0 : 1;
     const worldNews = selectWorldNews(entry, game, desiredWorldCount);
     const combined = selectBigNewsForDisplay([...playerNews, ...worldNews]);
     const leadIndex = combined.findIndex((item) => item.lead);
@@ -8218,7 +8373,7 @@
     const worlds = normalized.filter((item) => item.type !== "player").sort(byEditorialPriority);
     const selected = player ? [player] : [];
     for (const item of worlds) {
-      if (selected.length >= 2) break;
+      if (selected.some((chosen) => chosen.type !== "player")) break;
       if (selected.some((chosen) =>
         chosen.id === item.id ||
         (chosen.sourceEventId && chosen.sourceEventId === item.sourceEventId) ||
@@ -8230,7 +8385,7 @@
       const { editorialIndex: _editorialIndex, ...newsItem } = item;
       return {
         ...newsItem,
-        label: item.type === "player" ? item.label || "Ta légende" : "Le monde",
+        label: item.type === "player" ? item.label || "Ta légende" : item.label || "Ailleurs sur les mers",
         lead: index === leadIndex,
       };
     });
@@ -8287,7 +8442,7 @@
       {
         name: "aucune action majeure",
         result: selectBigNewsForDisplay([world("law", "Trafalgar Law"), world("marine", "marine")]),
-        expected: ["marine", "law"],
+        expected: ["marine"],
       },
       {
         name: "ancienne période de quatre nouvelles",
@@ -8302,7 +8457,7 @@
         result: selectBigNewsForDisplay([
           world("marine-a", "marine", 3), world("marine-b", "marine", 2), world("revolution", "revolution", 2),
         ]),
-        expected: ["marine-a", "revolution"],
+        expected: ["marine-a"],
       },
     ].map((test) => ({
       ...test,
@@ -8311,7 +8466,39 @@
         test.result.filter((item) => item.type === "player").length <= 1 &&
         test.expected.every((id, index) => test.result[index]?.id === id),
     }));
-    const report = { cases, pass: cases.every((test) => test.pass) };
+    const priorityEvents = {
+      classic: { id: "classic", title: "Escale classique", effects: { charisma: 1 }, eventType: "ordinary" },
+      recruitment: { id: "recruit", title: "Recrutement", rewards: [{ type: "crewMember", data: { id: "ally" } }], eventType: "ordinary" },
+      haki: { id: "haki", title: "Épreuve du Haki", tags: ["haki"], eventType: "ordinary" },
+      legendary: { id: "legendary", title: "Arc légendaire", legendaryArc: "talent", eventType: "legendary" },
+      decisive: { id: "decisive", title: "Rêve décisif", eventType: "decisive" },
+    };
+    const priorityOrder = Object.values(priorityEvents)
+      .sort((a, b) => getEventNewsPriority(b) - getEventNewsPriority(a))
+      .map((event) => event.id);
+    const mockEntry = { period: 5, events: [{ ...priorityEvents.classic, loreCharacters: ["Shanks"], result: "L’équipage a quitté le port sans aggraver le conflit." }] };
+    const mockGame = { id: "news-audit", character: { name: "Kael Storm", sex: "male" }, journal: [], seenWorldNewsIds: [] };
+    const generated = buildBigNews(mockEntry, cloneData(mockGame));
+    const repeated = buildBigNews(mockEntry, cloneData(mockGame));
+    const catalog = validateWorldNewsCatalog();
+    const archivedHtml = createPastLifeLogbookHtml({
+      sex: "male",
+      journal: [{ ...mockEntry, bigNews: cloneData(generated), highlights: [{ text: "Ancien doublon" }], statChanges: { combat: 2 }, nextZoneName: "Red Line" }],
+    });
+    const generatedChecks = {
+      exactlyTwo: generated.length === 2 && generated.filter((item) => item.type === "player").length === 1,
+      playerAlwaysPresent: generated[0]?.sourceEventId === "classic",
+      canonWorldPresent: generated[1]?.type !== "player",
+      avoidsPeriodCharacter: generated[1]?.subject !== "Shanks",
+      stableSelection: generated.map((item) => item.id).join("|") === repeated.map((item) => item.id).join("|"),
+      priorityOrder: priorityOrder.join("|") === "decisive|legendary|haki|recruit|classic",
+      catalogValid: catalog.pass,
+      emptyNoveltiesHidden: createLogbookNoveltiesHtml({ events: [], gainedTitles: [] }) === "",
+      periodRewardAlreadyInStats: Object.keys(createPeriodReward(1).effects || {}).length > 0,
+      archivedNewsRemainStored: (archivedHtml.match(/logbook-news-item/g) || []).length === 2,
+      archivedHighlightsNotRepeated: !archivedHtml.includes("past-life-logbook-highlights"),
+    };
+    const report = { cases, generatedChecks, catalog, pass: cases.every((test) => test.pass) && Object.values(generatedChecks).every(Boolean) };
     console.warn("[Blue Legacy] Audit éditorial Big News Morgans", report);
     return report;
   }
@@ -8509,6 +8696,38 @@
     return `${unique.slice(0, 2).join(", ")} et ${unique.length - 2} autres escales`;
   }
 
+  function getLogbookNovelties(entry = {}) {
+    const rewards = getLogbookEvents(entry).flatMap((event) => event.rewards || []);
+    const uniqueRewards = (type) => {
+      const seen = new Set();
+      return rewards.filter((reward) => reward.type === type && reward.data).map((reward) => reward.data)
+        .filter((data) => {
+          const key = getDataId(data) || JSON.stringify(data);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    };
+    const companions = uniqueRewards("crewMember");
+    const fruits = uniqueRewards("devilFruit");
+    const titles = (entry.gainedTitles || []).filter(Boolean);
+    const rewardEffects = entry.reward?.effects || {};
+    const extraRewards = entry.reward && !Object.keys(rewardEffects).length
+      ? [entry.reward]
+      : [];
+    return { companions, fruits, titles, extraRewards };
+  }
+
+  function createLogbookNoveltiesHtml(entry = {}, sex = null) {
+    const novelties = getLogbookNovelties(entry);
+    return [
+      novelties.companions.length ? `<section class="logbook-novelty-group"><h4>👥 Nouveaux compagnons</h4><div class="logbook-novelty-cards">${createCrewMembersHtml(novelties.companions, true)}</div></section>` : "",
+      novelties.fruits.length ? `<section class="logbook-novelty-group"><h4>🍈 Fruit du Démon</h4><div class="logbook-novelty-cards">${novelties.fruits.map((fruit) => createDevilFruitCardHtml(fruit, true)).join("")}</div></section>` : "",
+      novelties.titles.length ? `<section class="logbook-novelty-group"><h4>🎖️ Nouveaux Titres</h4><div class="logbook-novelty-titles">${novelties.titles.map((title) => createTitleCardHtml(title, { mode: "compact", showReason: true, sex })).join("")}</div></section>` : "",
+      novelties.extraRewards.length ? `<section class="logbook-novelty-group"><h4>🎁 Autre récompense</h4>${novelties.extraRewards.map((reward) => `<p>${escapeHtml(reward.text || "Récompense obtenue")}</p>`).join("")}</section>` : "",
+    ].filter(Boolean).join("");
+  }
+
   function buildLogbookEntry(finishedMonth) {
     const game = state.game;
     const currentZone = getCurrentZone(game);
@@ -8568,7 +8787,6 @@
       nextZoneName: nextZone?.name || null,
       createdAt: new Date().toISOString(),
     };
-    entry.highlights = buildLogbookHighlights(entry);
     entry.narrative = buildLogbookNarrative(entry, game);
     entry.bigNews = buildBigNews(entry, game);
     return entry;
@@ -8619,7 +8837,7 @@
       {
         text:
           "Ton équipage gagne en cohésion.",
-        effects: { crew: 1, charisma: 1 },
+        effects: { charisma: 2 },
       },
       {
         text:
@@ -8950,6 +9168,10 @@
     );
   }
 
+  function hasRunTitle(titleId, game = state.game) {
+    return Boolean(game?.runTitles?.some((title) => getDataId(title) === titleId));
+  }
+
   /* ========================================================
      TITRES
   ======================================================== */
@@ -9160,6 +9382,7 @@
         titleId ||
         slugify(name),
       name,
+      femaleName: source.femaleName || window.BLUE_LEGACY_TITLE_FEMALE_NAMES?.[source.id || lookupId] || "",
       description:
         source.description ||
         source.desc ||
@@ -9178,6 +9401,7 @@
       factions: Array.isArray(source.factions)
         ? uniqueArray(source.factions.map((faction) => String(faction)))
         : [],
+      sourceType: source.sourceType || "",
       timing: ["early", "mid", "late", "final"].includes(source.timing)
         ? source.timing
         : source.finalTitle || source.category === "ultimate" ? "final" : "mid",
@@ -9197,6 +9421,19 @@
         state.game?.month ||
         null,
     };
+  }
+
+  function getTitleDisplayName(titleData, sex = null) {
+    if (!titleData) return "";
+    const title = normalizeTitleData(getDataId(titleData), titleData);
+    return sex === "female" && title.femaleName ? title.femaleName : title.name;
+  }
+
+  function resolveCharacterText(value, sex = state.game?.character?.sex) {
+    if (typeof value === "string") return value;
+    if (!value || typeof value !== "object") return "";
+    return sex === "female" && typeof value.female === "string"
+      ? value.female : value.male || value.default || value.female || "";
   }
 
   const TITLE_FACTION_PATTERNS = Object.freeze({
@@ -9419,7 +9656,7 @@
     const rarity = normalizeRarity(title.rarity);
     const icon = locked ? "🔒" : title.icon || getRarityIcon(rarity);
     const hiddenName = locked && title.secret;
-    const name = hiddenName ? "Titre secret" : title.name;
+    const name = hiddenName ? "Titre secret" : getTitleDisplayName(title, options.sex || null);
     const description = hiddenName
       ? "Poursuis ton aventure pour révéler ce titre."
       : title.description;
@@ -10268,7 +10505,7 @@
       return {
         type,
         id: title.id,
-        name: title.name,
+        name: getTitleDisplayName(title, state.game?.character?.sex),
         description: [title.unlockReason, immediate && `Bonus immédiat : ${immediate}.`, passiveText]
           .filter(Boolean).join(" ") || title.description,
         rarity,
@@ -10537,21 +10774,32 @@
     );
 
     // La carrière locale est déjà enregistrée et affichée avant tout accès réseau.
-    void trackCriticalOperation(window.BlueLegacyLeaderboard?.submitCareer({
+    const leaderboardSubmission = window.BlueLegacyLeaderboard?.submitCareer({
       playerFirstName: profile.playerIdentity?.firstName,
       playerLastName: profile.playerIdentity?.lastName,
       playerDCosmetic:
         profile.profileCosmetics?.ownsCosmeticD === true &&
         profile.profileCosmetics?.showD === true,
       characterName: pantheonEntry.name,
-      characterTitle: getCompatibleFinalTitle(
+      characterTitle: getTitleDisplayName(getCompatibleFinalTitle(
         pantheonEntry.finalTitle,
         pantheonEntry.faction,
         pantheonEntry,
-      )?.name || null,
+      ), pantheonEntry.sex) || null,
+      legendaryTitles: getLegendaryArcTitleNames(pantheonEntry.runTitles, pantheonEntry.sex),
       dreamCompleted: pantheonEntry.dreamCompleted === true,
       score: pantheonEntry.popularityScore,
       finishedAt: pantheonEntry.finishedAt,
+    });
+    void trackCriticalOperation(Promise.resolve(leaderboardSubmission).then((result) => {
+      if (["forbidden-discriminatory-name", "forbidden-profanity-name"].includes(result?.reason)) {
+        state.requiresPublicIdentityResolution = true;
+        showWelcomeIdentityIfNeeded();
+        if (dom.welcomeIdentityError) {
+          dom.welcomeIdentityError.textContent = result.message;
+        }
+      }
+      return result;
     }));
 
     return true;
@@ -11015,14 +11263,9 @@
       const displayedNews = selectBigNewsForDisplay(bigNews.length
         ? bigNews
         : buildLegacyBigNews({ ...log, narrative }, { character: entry }));
-      const highlights = log.highlights?.length
-        ? log.highlights.slice(0, 3)
-        : buildLogbookHighlights(log);
-      const newsSourceIds = new Set(displayedNews.map((item) => item.sourceEventId).filter(Boolean));
-      const displayedHighlights = highlights.filter((highlight) =>
-        !highlight.sourceEventId || !newsSourceIds.has(highlight.sourceEventId));
       const statChanges = Object.entries(log.statChanges || {})
         .filter(([, value]) => Number(value) !== 0);
+      const noveltiesHtml = createLogbookNoveltiesHtml(log, entry.sex);
 
       return `
         <details class="past-life-logbook-period">
@@ -11045,17 +11288,8 @@
                 ${createBigNewsHtml(displayedNews)}
               </ul>
             </section>
-            ${displayedHighlights.length ? `
-              <ul class="past-life-logbook-highlights">
-                ${displayedHighlights.map((highlight) => `
-                  <li>
-                    <span aria-hidden="true">${escapeHtml(highlight.icon || "✦")}</span>
-                    <span>${escapeHtml(highlight.text || highlight)}</span>
-                  </li>
-                `).join("")}
-              </ul>
-            ` : ""}
             ${statChanges.length ? `
+              <section class="past-life-logbook-summary"><h4>Évolution de la période</h4>
               <div class="past-life-logbook-changes" aria-label="Principales variations">
                 ${statChanges.map(([key, value]) => `
                   <span class="${Number(value) > 0 ? "positive" : "negative"}">
@@ -11064,8 +11298,9 @@
                     ${escapeHtml(formatStatDelta(key, value))}
                   </span>
                 `).join("")}
-              </div>
+              </div></section>
             ` : ""}
+            ${noveltiesHtml ? `<section class="past-life-logbook-novelties"><h4>Nouveautés</h4>${noveltiesHtml}</section>` : ""}
             ${log.nextZoneName ? `
               <p class="past-life-next-destination">
                 <span aria-hidden="true">🧭</span>
@@ -11260,6 +11495,10 @@
     if (dom.gamePopularityValue) {
       dom.gamePopularityValue.textContent = String(game.stats.popularity);
     }
+    if (dom.gamePopularity) {
+      const score = clampCareerScore(game.stats.popularity);
+      dom.gamePopularity.dataset.popularityTier = score >= 95 ? "mythic" : score >= 90 ? "gold" : score >= 75 ? "silver" : "bronze";
+    }
 
     if (dom.gameStats) {
       dom.gameStats.innerHTML =
@@ -11281,14 +11520,14 @@
     if (dom.gameActiveTitles) {
       const activeTitles = game.runTitles || [];
       dom.gameActiveTitles.innerHTML = activeTitles.length
-        ? activeTitles.map((title) => createTitleCardHtml(title, { mode: "compact" })).join("")
+        ? activeTitles.map((title) => createTitleCardHtml(title, { mode: "compact", sex: character.sex })).join("")
         : '<p class="active-titles-empty">Aucun Titre obtenu pour le moment.</p>';
     }
     const activeItems = (game.activeShopItems || []).map(findShopItem).filter(Boolean);
     const runTitles = game.runTitles || [];
     if (dom.gameQuickTitles) {
       dom.gameQuickTitles.innerHTML = runTitles
-        .map((title) => createTitleCardHtml(title, { mode: "badge" })).join("");
+        .map((title) => createTitleCardHtml(title, { mode: "badge", sex: character.sex })).join("");
     }
     if (dom.gameShopItems) {
       dom.gameShopItems.innerHTML = activeItems.map(createShopItemBadgeHtml).join("");
@@ -11545,13 +11784,6 @@
     const bigNews = selectBigNewsForDisplay(storedNews.length
       ? storedNews
       : buildLegacyBigNews(entry, game));
-    const highlights =
-      entry.highlights?.length
-        ? entry.highlights.slice(0, 3)
-        : buildLogbookHighlights(entry);
-    const newsSourceIds = new Set(bigNews.map((item) => item.sourceEventId).filter(Boolean));
-    const displayedHighlights = highlights.filter((highlight) =>
-      !highlight.sourceEventId || !newsSourceIds.has(highlight.sourceEventId));
 
     if (dom.logbookPeriod) {
       dom.logbookPeriod.textContent =
@@ -11626,7 +11858,7 @@
       dom.logbookTitles.innerHTML =
         titles.length
           ? titles.map((title) =>
-              createTitleCardHtml(title, { mode: "compact", showReason: true }),
+              createTitleCardHtml(title, { mode: "compact", showReason: true, sex: state.game?.character?.sex }),
             ).join("")
           : renderEmptyState("Aucun nouveau titre.", {
               icon: "🎖️",
@@ -11634,14 +11866,9 @@
     }
 
     if (dom.logbookDiscoveries && dom.logbookDiscoveriesSection) {
-      const discoveries = getLogbookEvents(entry).flatMap((eventRecord) =>
-        (eventRecord.rewards || []).filter((reward) =>
-          ["devilFruit", "crewMember"].includes(reward.type)));
-      dom.logbookDiscoveriesSection.hidden = discoveries.length === 0;
-      dom.logbookDiscoveries.innerHTML = discoveries.map((reward) =>
-        reward.type === "devilFruit"
-          ? createDevilFruitCardHtml(reward.data, true)
-          : createCrewMembersHtml([reward.data], false)).join("");
+      const noveltiesHtml = createLogbookNoveltiesHtml(entry, game.character?.sex);
+      dom.logbookDiscoveriesSection.hidden = !noveltiesHtml;
+      dom.logbookDiscoveries.innerHTML = noveltiesHtml;
     }
 
     if (dom.logbookNext) {
@@ -11932,6 +12159,42 @@
     return createTitleCardHtml(titleData, { mode: "badge" });
   }
 
+  const LEGENDARY_ARC_TITLE_SOURCE_ORDER = Object.freeze([
+    "legendary-talent", "legendary-marineford", "legendary-emperor",
+  ]);
+
+  function getLegendaryArcTitleNames(runTitles = [], sex = null) {
+    const bySource = new Map();
+    (Array.isArray(runTitles) ? runTitles : []).forEach((titleData) => {
+      const normalized = normalizeTitleData(getDataId(titleData), titleData);
+      const sourceType = normalized.sourceType || findTitleData(normalized.id)?.sourceType || "";
+      if (LEGENDARY_ARC_TITLE_SOURCE_ORDER.includes(sourceType) && !bySource.has(sourceType)) {
+        bySource.set(sourceType, getTitleDisplayName(normalized, sex));
+      }
+    });
+    return LEGENDARY_ARC_TITLE_SOURCE_ORDER.map((sourceType) => bySource.get(sourceType)).filter(Boolean);
+  }
+
+  function createPantheonCardHtml(entry, index, total, podiumRank = null) {
+    const popularityScore = clampCareerScore(entry.popularityScore ?? calculatePopularityScore(entry));
+    const finalTitle = getCompatibleFinalTitle(entry.finalTitle, entry.faction, entry);
+    const rarity = normalizeRarity(finalTitle?.rarity);
+    const characterName = entry.name || "Légende sans nom";
+    const dream = findDreamData(entry.dream, entry.faction);
+    const dreamLabel = getDreamDisplayLabel(dream, entry.sex) || entry.dream || "Rêve non enregistré";
+    const dreamCompleted = entry.dreamCompleted === true || entry.ending?.dreamCompleted === true;
+    const factionLabel = getFactionLabel(entry.faction) || "Faction non enregistrée";
+    const popularityTier = popularityScore >= 95 ? "mythic" : popularityScore >= 85 ? "exceptional" : popularityScore >= 70 ? "renowned" : "recorded";
+    const podiumLabel = podiumRank ? ["Or", "Argent", "Bronze"][podiumRank - 1] : "";
+    return `<button class="collection-card past-life-card rarity-${escapeAttribute(rarity)}${podiumRank ? " pantheon-podium-card" : ""}" data-past-life-id="${escapeAttribute(entry.id)}" data-rarity="${escapeAttribute(rarity)}" data-popularity-tier="${popularityTier}" ${podiumRank ? `data-podium-rank="${podiumRank}"` : ""} aria-label="Voir la fiche de ${escapeAttribute(characterName)}${podiumRank ? `, rang ${podiumRank} du podium historique` : ""}" type="button">
+      ${podiumRank ? `<span class="pantheon-podium-medal" aria-label="${podiumLabel}, place ${podiumRank}"><b>#${podiumRank}</b><small>${podiumLabel}</small></span>` : `<span class="pantheon-register-index" aria-hidden="true">${String(total - index).padStart(2, "0")}</span>`}
+      <span class="pantheon-card-identity"><span class="pantheon-character-heading"><span class="pantheon-faction-icon" aria-hidden="true">${getFactionIcon(entry.faction)}</span><span class="pantheon-character-copy"><span class="pantheon-character-name" role="heading" aria-level="3">${escapeHtml(characterName)}</span><span class="pantheon-character-faction">${escapeHtml(factionLabel)}</span></span></span><span class="pantheon-card-title">${createTitleCardHtml(finalTitle, { mode: "badge", sex: entry.sex })}</span></span>
+      <span class="pantheon-card-body"><span class="pantheon-dream${dreamCompleted ? " is-complete" : ""}"><span aria-hidden="true">${dreamCompleted ? "✓" : "✦"}</span><span class="pantheon-dream-copy"><small>Rêve</small><strong>${escapeHtml(dreamLabel)}</strong><em>${dreamCompleted ? "Accompli" : "Non accompli"}</em></span></span></span>
+      <span class="pantheon-popularity" aria-label="Popularité : ${popularityScore} sur 100"><small>Popularité</small><strong>${popularityScore}</strong><span>/ 100</span></span>
+      <span class="pantheon-card-action" aria-hidden="true"><span>Voir la carrière</span><b>→</b></span>
+    </button>`;
+  }
+
   /* ========================================================
      AFFICHAGE DU PANTHÉON
   ======================================================== */
@@ -11994,83 +12257,19 @@
       return;
     }
 
-    dom.pastLives.innerHTML =
-      pantheon
-        .map(
-          (entry, index) => {
-            const popularityScore = clampCareerScore(
-              entry.popularityScore ?? calculatePopularityScore(entry),
-            );
-            const finalTitle = getCompatibleFinalTitle(
-              entry.finalTitle,
-              entry.faction,
-              entry,
-            );
-            const rarity = normalizeRarity(finalTitle?.rarity);
-            const characterName = entry.name || "Légende sans nom";
-            const dream = findDreamData(entry.dream, entry.faction);
-            const dreamLabel = dream?.label || dream?.name || entry.dream || "Rêve non enregistré";
-            const dreamCompleted = entry.dreamCompleted === true || entry.ending?.dreamCompleted === true;
-            const factionLabel = getFactionLabel(entry.faction) || "Faction non enregistrée";
-            const registerNumber = pantheon.length - index;
-            const popularityTier =
-              popularityScore >= 95
-                ? "mythic"
-                : popularityScore >= 85
-                  ? "exceptional"
-                  : popularityScore >= 70
-                    ? "renowned"
-                    : "recorded";
-            return `
-            <button
-              class="collection-card past-life-card rarity-${escapeAttribute(rarity)}"
-              data-past-life-id="${escapeAttribute(entry.id)}"
-              data-rarity="${escapeAttribute(rarity)}"
-              data-popularity-tier="${popularityTier}"
-              aria-label="Voir la fiche de ${escapeAttribute(characterName)}"
-              type="button"
-            >
-              <span class="pantheon-register-index" aria-hidden="true">${String(registerNumber).padStart(2, "0")}</span>
-
-              <span class="pantheon-card-identity">
-                <span class="pantheon-character-heading">
-                  <span class="pantheon-faction-icon" aria-hidden="true">${getFactionIcon(entry.faction)}</span>
-                  <span class="pantheon-character-copy">
-                    <span class="pantheon-character-name" role="heading" aria-level="3">${escapeHtml(characterName)}</span>
-                    <span class="pantheon-character-faction">${escapeHtml(factionLabel)}</span>
-                  </span>
-                </span>
-                <span class="pantheon-card-title">
-                  ${createTitleCardHtml(finalTitle, { mode: "badge" })}
-                </span>
-              </span>
-
-              <span class="pantheon-card-body">
-                <span class="pantheon-dream${dreamCompleted ? " is-complete" : ""}">
-                  <span aria-hidden="true">${dreamCompleted ? "✓" : "✦"}</span>
-                  <span class="pantheon-dream-copy">
-                    <small>Rêve</small>
-                    <strong>${escapeHtml(dreamLabel)}</strong>
-                    <em>${dreamCompleted ? "Accompli" : "Non accompli"}</em>
-                  </span>
-                </span>
-              </span>
-
-              <span class="pantheon-popularity" aria-label="Popularité : ${popularityScore} sur 100">
-                <small>Popularité</small>
-                <strong>${popularityScore}</strong>
-                <span>/ 100</span>
-              </span>
-
-              <span class="pantheon-card-action" aria-hidden="true">
-                <span>Voir la carrière</span>
-                <b>→</b>
-              </span>
-            </button>
-          `;
-          },
-        )
-        .join("");
+    const historicalTop = getPantheonHistoricalTopThree(pantheon);
+    const podiumIds = new Set(historicalTop.map((entry) => entry.id));
+    const recentCareers = pantheon.filter((entry) => !podiumIds.has(entry.id));
+    dom.pastLives.innerHTML = `
+      <section class="pantheon-podium" aria-labelledby="pantheon-podium-title">
+        <header class="pantheon-section-heading"><p class="eyebrow">Records historiques</p><h3 id="pantheon-podium-title">Podium des légendes</h3></header>
+        <div class="pantheon-podium-grid">${historicalTop.map((entry, index) => createPantheonCardHtml(entry, pantheon.indexOf(entry), pantheon.length, index + 1)).join("")}</div>
+      </section>
+      <section class="pantheon-recent" aria-labelledby="pantheon-recent-title">
+        <header class="pantheon-section-heading"><p class="eyebrow">Archives conservées</p><h3 id="pantheon-recent-title">Carrières récentes</h3></header>
+        <div class="pantheon-recent-grid">${recentCareers.length ? recentCareers.map((entry) => createPantheonCardHtml(entry, pantheon.indexOf(entry), pantheon.length)).join("") : '<p class="pantheon-recent-empty">Toutes les carrières conservées figurent déjà sur le podium.</p>'}</div>
+      </section>`;
+    return;
   }
 
   function updatePastLifeScreen() {
@@ -12134,8 +12333,7 @@
 
     if (dom.pastLifeDream) {
       dom.pastLifeDream.textContent =
-        dream?.label ||
-        dream?.name ||
+        getDreamDisplayLabel(dream, entry.sex) ||
         getHistoricalDisplayValue(entry.dream, "Rêve non enregistré");
     }
 
@@ -12150,7 +12348,7 @@
       dom.pastLifeFinalTitle.innerHTML =
         createTitleCardHtml(
           finalTitle,
-          { mode: "badge" },
+          { mode: "badge", sex: entry.sex },
         );
     }
 
@@ -12163,7 +12361,7 @@
       );
       dom.pastLifeRunTitles.innerHTML = otherTitles.length
         ? otherTitles.map((title) =>
-            createTitleCardHtml(title, { mode: "badge" }),
+            createTitleCardHtml(title, { mode: "badge", sex: entry.sex }),
           ).join("")
         : renderEmptyState("Aucun autre titre obtenu.", {
             icon: "🎖️",
@@ -12745,6 +12943,18 @@
     );
   }
 
+  function getDreamDisplayLabel(dream, sex = null) {
+    if (!dream) return "";
+    return sex === "female" && dream.femaleLabel
+      ? dream.femaleLabel : dream.label || dream.name || getDataId(dream);
+  }
+
+  function getDreamUltimateDisplayName(dream, sex = null) {
+    if (!dream) return "";
+    return sex === "female" && dream.femaleUltimate
+      ? dream.femaleUltimate : dream.ultimate || dream.ultimateTitle || "";
+  }
+
   function getFactionLabel(factionId) {
     if (FACTION_META[factionId]) {
       return FACTION_META[factionId].label;
@@ -13158,6 +13368,10 @@
       const profile = getProfile();
       const firstName = normalizePermanentIdentityPart(form?.elements.firstName?.value);
       const lastName = normalizePermanentIdentityPart(form?.elements.lastName?.value);
+      const contentValidation = window.BlueLegacyLeaderboard?.validatePlayerIdentity({ firstName, lastName });
+      if (contentValidation && !contentValidation.ok) {
+        state.statisticsIdentityError = contentValidation.message; updateStatisticsScreen(); return;
+      }
       if (!firstName || !lastName) {
         state.statisticsIdentityError = "Le nom et le prénom sont obligatoires."; updateStatisticsScreen(); return;
       }
@@ -15630,6 +15844,8 @@
     setGameStatsExpanded,
     setGameCompanionsExpanded,
     setGameDetailsExpanded,
+    getTitleDisplayName,
+    resolveCharacterText,
     loadGame,
     saveGame,
     clearSave,
@@ -15678,6 +15894,7 @@
     getOutcomeTierProbabilities,
     calculateOutcomeTier,
     calculatePopularityScore,
+    runPopularityTopEndAudit,
     runBlueLegacyEventAudit,
     runBlueLegacySelectionSimulations,
     runBalanceSimulation,
@@ -15740,6 +15957,7 @@
     runBalanceAudit,
     runChoicePositionAudit,
     runBalanceValidation: runBlueLegacyEventAudit,
+    runPopularityTopEndAudit,
     getOutcomeTierProbabilities,
     runCareerFinalTitleAudit,
     getWillOfDProbability,
@@ -15779,14 +15997,55 @@
     checkAchievements(null, { retroactive: true });
 
     const developmentQuery = new URLSearchParams(window.location.search);
+    if (developmentQuery.has("audit")) {
+      document.documentElement.dataset.logbookEditorialAudit = JSON.stringify(runBigNewsEditorialAudit());
+    }
     if (developmentQuery.has("balanceAudit")) {
       const runsPerFaction = Math.max(1, Number(developmentQuery.get("runsPerFaction")) || 2000);
       const seed = Number(developmentQuery.get("balanceSeed")) || 11092026;
       const report = runBalanceSimulation({ runsPerFaction, seed });
       document.documentElement.dataset.balanceAudit = JSON.stringify(report);
     }
+    if (developmentQuery.has("popularityTailAudit")) {
+      const runsPerFaction = Math.max(1, Number(developmentQuery.get("runsPerFaction")) || 2000);
+      const seed = Number(developmentQuery.get("balanceSeed")) || 23082026;
+      const simulation = runBalanceSimulation({ runsPerFaction, seed });
+      const report = simulation.overall;
+      const topEndAudit = runPopularityTopEndAudit();
+      const percent = (value) => `${(Number(value) * 100).toFixed(2)}%`;
+      const output = document.createElement("output");
+      output.setAttribute("popover", "manual");
+      output.style.cssText = "position:fixed;inset:8px auto auto 8px;margin:0;padding:12px;background:#fff;color:#111;border:3px solid #111;font:700 18px monospace;white-space:pre";
+      output.textContent = [
+        `POPULARITY TAIL · ${report.runs} runs · mean ${report.popularityMean.toFixed(3)}`,
+        `<75 ${percent(report.under70 + report.from70to74)} · 75–82 ${percent(report.from75to82)} · 83–89 ${percent(report.from83to89)} · 90–94 ${percent(report.from90to94)}`,
+        `95 ${percent(report.exactly95)} · 96 ${percent(report.exactly96)} · 97 ${percent(report.exactly97)} · 98 ${percent(report.exactly98)} · 99 ${percent(report.exactly99)} · 100 ${percent(report.exactly100)}`,
+        `pre-cap p95 ${report.preCapP95.toFixed(3)} · p99 ${report.preCapP99.toFixed(3)} · max ${report.preCapMaximum.toFixed(3)}`,
+        `>=100.5 ${percent(report.preCapAtLeast100_5)} · >=101 ${percent(report.preCapAtLeast101)} · >=101.5 ${percent(report.preCapAtLeast101_5)} · >=102 ${percent(report.preCapAtLeast102)}`,
+        `100 by faction · ${Object.entries(simulation.byFaction).map(([id, row]) => `${id} ${percent(row.exactly100)}`).join(" · ")}`,
+        `top-end audit ${topEndAudit.pass ? "PASS" : "FAIL"} · monotonic ${topEndAudit.monotonic ? "PASS" : "FAIL"} · theoretical factions ${Object.values(topEndAudit.factionsAt100).filter(Boolean).length}/4 · dreams ${topEndAudit.dreamsAt100}/16 · historical ${topEndAudit.historical100Preserved ? "PASS" : "FAIL"}`,
+      ].join("\n");
+      document.body.append(output);
+      output.showPopover?.();
+      closeDialog(dom.welcomeIdentityModal);
+      dom.welcomeIdentityModal?.remove();
+      document.documentElement.dataset.popularityTailAudit = JSON.stringify(report);
+    }
     if (developmentQuery.has("choiceAudit")) {
       document.documentElement.dataset.choiceAudit = JSON.stringify(runChoicePositionAudit());
+    }
+    if (developmentQuery.has("popularityTopEndAudit")) {
+      const report = runPopularityTopEndAudit();
+      const scoreIdentityAudit = runFinalDreamResolutionAudit();
+      const scoreIdentityPass = scoreIdentityAudit.pass && scoreIdentityAudit.scoreIdentity.every((row) => row.pass);
+      document.documentElement.dataset.popularityTopEndAudit = JSON.stringify(report);
+      const output = document.createElement("output");
+      output.setAttribute("popover", "manual");
+      output.style.cssText = "position:fixed;inset:8px auto auto 8px;margin:0;padding:12px;background:#fff;color:#111;border:3px solid #111;font:700 20px monospace;white-space:pre";
+      output.textContent = `POPULARITY TOP-END AUDIT: ${report.pass && scoreIdentityPass ? "PASS" : "FAIL"}\nthreshold ${report.threshold} · monotonic ${report.monotonic ? "PASS" : "FAIL"} · factions ${Object.values(report.factionsAt100).filter(Boolean).length}/4 · dreams ${report.dreamsAt100}/16 · historical 100 ${report.historical100Preserved ? "PASS" : "FAIL"} · score identity ${scoreIdentityPass ? "PASS" : "FAIL"}`;
+      document.body.append(output);
+      output.showPopover?.();
+      dom.welcomeIdentityModal?.remove();
     }
     if (developmentQuery.has("fullBalanceAudit")) {
       const runsPerFaction = Math.max(1, Number(developmentQuery.get("runsPerFaction")) || 250);
@@ -15847,6 +16106,8 @@
     );
     void trackCriticalOperation(synchronizeExistingPublicProfile());
     initializeBuildUpdateMonitoring();
+    preloadRouteAssets(state.game);
+    preloadBackgroundFeatureAssets();
     if (developmentQuery.has("shopPreview")) {
       openScreen(SCREEN.SHOP, { save: false });
       requestAnimationFrame(() => {
@@ -15865,6 +16126,52 @@
           catalogHeight: Math.round([...document.querySelectorAll(".shop-catalog-section")]
             .reduce((height, section) => height + section.getBoundingClientRect().height, 0)),
           horizontalOverflow: document.body.scrollWidth > window.innerWidth,
+        });
+      });
+    }
+    if (developmentQuery.has("logbookPreview")) {
+      const preview = createDefaultGameState({
+        name: "Kael Storm", sex: "male", faction: "pirate", dream: "one-piece",
+        origin: "east-blue", traits: [], hasD: false, combatStyle: null, devilFruit: null,
+      });
+      const companion = window.GAME_DATA?.crewRecruitments?.[0] || null;
+      const fruit = window.GAME_DATA?.devilFruits?.[0] || null;
+      const title = getAllTitles().find((item) => normalizeRarity(item.rarity) === "rare") || getAllTitles()[0];
+      const events = [{
+        id: "preview-event", eventId: "preview-event", title: "Le convoi sous la tempête",
+        result: "Kael a protégé les passagers et ramené le navire au port malgré les avaries.",
+        outcomeResult: "Kael a protégé les passagers et ramené le navire au port malgré les avaries.",
+        eventType: "ordinary", important: true, effects: { health: -4, combat: 6, charisma: 3 },
+        rewards: [
+          ...(companion ? [{ type: "crewMember", data: cloneData(companion) }] : []),
+          ...(fruit ? [{ type: "devilFruit", data: cloneData(fruit) }] : []),
+          ...(title ? [{ type: "title", data: cloneData(title) }] : []),
+        ],
+        loreCharacters: ["Smoker"], zoneName: "Royaume de Cuivre",
+      }];
+      const entry = {
+        id: "logbook-preview", period: 3, fromMonth: 9, toMonth: 12,
+        zoneName: "Grand Line", events, importantEvents: cloneData(events),
+        statChanges: { health: -4, combat: 6, charisma: 3, fortune: 20000 },
+        statsAfter: { ...preview.stats, health: 61, combat: 26, charisma: 23, fortune: 20000 },
+        gainedTitles: title ? [cloneData(title)] : [], nextZoneName: "Red Line",
+      };
+      entry.bigNews = buildBigNews(entry, preview);
+      preview.pendingLogbookEntry = entry;
+      preview.journal = [entry];
+      state.game = preview;
+      openScreen(SCREEN.LOGBOOK, { save: false });
+      closeDialog(dom.welcomeIdentityModal);
+      requestAnimationFrame(() => {
+        document.documentElement.dataset.logbookLayoutAudit = JSON.stringify({
+          viewport: [window.innerWidth, window.innerHeight],
+          newsCount: dom.logbookNarrative?.children.length || 0,
+          playerNewsCount: dom.logbookNarrative?.querySelectorAll(".is-player-news").length || 0,
+          statCount: dom.logbookStats?.children.length || 0,
+          noveltyGroups: dom.logbookDiscoveries?.querySelectorAll(".logbook-novelty-group").length || 0,
+          noveltiesVisible: dom.logbookDiscoveriesSection?.hidden === false,
+          horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          height: Math.round(document.getElementById("logbook-screen")?.scrollHeight || 0),
         });
       });
     }
@@ -16310,7 +16617,7 @@
     const hasMechanicalChange = (outcome) => Boolean(
       Object.keys(outcome.effects || {}).length || Object.keys(outcome.flags || {}).length ||
       outcome.removeFlags?.length || outcome.dreamProgress || outcome.ending || outcome.devilFruit ||
-      outcome.crewMember || outcome.combatStyle || outcome.addTraits?.length || outcome.titles?.length,
+      outcome.crewMember || outcome.combatStyle || outcome.titles?.length,
     );
     const balanceWarnings = [];
     outcomeRows.forEach(({ event, outcome, tier }) => {
@@ -16660,7 +16967,9 @@
     refreshPopularityScore(game);
     return {
       faction, dream: character.dream, strategy, completed, dreamCompleted: Boolean(game.ending.dreamCompleted),
-      popularity: game.stats.popularity, stats: cloneData(game.stats), companions: game.crewMembers.length,
+      popularity: game.stats.popularity,
+      preCapPopularity: Number(game.popularityPrestigeScore) || Number(game.popularityBeforeCap) || game.stats.popularity,
+      stats: cloneData(game.stats), companions: game.crewMembers.length,
       positive: counts.positive, mixed: counts.mixed, negative: counts.negative,
       titleIds: game.runTitles.map(getDataId),
     };
@@ -16668,6 +16977,7 @@
 
   function summarizeBalanceRuns(runs) {
     const sorted = runs.map((run) => run.popularity).sort((a, b) => a - b);
+    const preCapSorted = runs.map((run) => Number(run.preCapPopularity) || run.popularity).sort((a, b) => a - b);
     const mean = (values) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
     const percentile = (ratio) => sorted[Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * ratio))] || 0;
     const statIds = ["health", "combat", "haki", "intelligence", "charisma", "bounty", "fortune", "crew"];
@@ -16682,8 +16992,20 @@
       from75to82: mean(runs.map((run) => run.popularity >= 75 && run.popularity <= 82 ? 1 : 0)),
       from83to89: mean(runs.map((run) => run.popularity >= 83 && run.popularity <= 89 ? 1 : 0)),
       from90to94: mean(runs.map((run) => run.popularity >= 90 && run.popularity <= 94 ? 1 : 0)),
+      exactly95: mean(runs.map((run) => run.popularity === 95 ? 1 : 0)),
+      exactly96: mean(runs.map((run) => run.popularity === 96 ? 1 : 0)),
+      exactly97: mean(runs.map((run) => run.popularity === 97 ? 1 : 0)),
+      exactly98: mean(runs.map((run) => run.popularity === 98 ? 1 : 0)),
+      exactly99: mean(runs.map((run) => run.popularity === 99 ? 1 : 0)),
       from95to99: mean(runs.map((run) => run.popularity >= 95 && run.popularity <= 99 ? 1 : 0)),
       exactly100: mean(runs.map((run) => run.popularity === 100 ? 1 : 0)),
+      preCapP95: preCapSorted[Math.min(preCapSorted.length - 1, Math.floor((preCapSorted.length - 1) * 0.95))] || 0,
+      preCapP99: preCapSorted[Math.min(preCapSorted.length - 1, Math.floor((preCapSorted.length - 1) * 0.99))] || 0,
+      preCapMaximum: preCapSorted.at(-1) || 0,
+      preCapAtLeast100_5: mean(preCapSorted.map((value) => value >= 100.5 ? 1 : 0)),
+      preCapAtLeast101: mean(preCapSorted.map((value) => value >= 101 ? 1 : 0)),
+      preCapAtLeast101_5: mean(preCapSorted.map((value) => value >= 101.5 ? 1 : 0)),
+      preCapAtLeast102: mean(preCapSorted.map((value) => value >= 102 ? 1 : 0)),
       atLeast90: mean(runs.map((run) => run.popularity >= 90 ? 1 : 0)),
       atLeast95: mean(runs.map((run) => run.popularity >= 95 ? 1 : 0)),
       dreamCompletionRate: mean(runs.map((run) => run.dreamCompleted ? 1 : 0)),
@@ -16805,11 +17127,12 @@
       const dreams = window.GAME_DATA?.dreams?.[faction] || [];
       const character = {
         name: "Audit", faction, dream: event.dreamIds?.[0] || dreams[0]?.id,
-        origin: "east-blue", hasD: true, traits: cloneData(event.requiredTraits || []),
+        origin: "east-blue", hasD: true, traits: [],
         combatStyle: event.styles?.[0] || null,
         devilFruit: { id: "audit-fruit", name: "Fruit d'audit", rarity: "legendary" },
       };
       const game = createDefaultGameState(character);
+      game.runTitles = cloneData(event.requiredTitles || []).map((id) => normalizeTitleData(id, findTitleData(id)));
       const zoneId = event.zones?.[0] || "grand-line";
       const zone = cloneData(getZoneCatalog().find((item) => item.id === zoneId) || { id: zoneId, routeStage: 3 });
       game.route = Array.from({ length: 6 }, (_, index) => ({ ...zone, routeIndex: index, routeStage: index + 1 }));

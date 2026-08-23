@@ -131,6 +131,99 @@
     return String(value || "").trim().replace(/\s+/g, " ").slice(0, 40);
   }
 
+  /* Cette politique doit rester synchronisée avec supabase-player-profiles.sql.
+     La comparaison ignore casse, accents, séparateurs simples et quelques
+     substitutions leetspeak fiables. Elle ne rapproche jamais les deux champs
+     et ne réduit pas les lettres répétées. */
+  const STRICT_BLOCKED_NAME_SKELETONS = Object.freeze([
+    "nigger", "nigga", "negro", "negre", "bougnoule", "bamboula", "gook", "chink",
+    "kike", "yid", "raghead", "sandnigger", "towelhead", "paki", "chinetoque",
+    "youpin", "youpine", "feuj", "salejuif", "salejuive", "bicot", "crouille",
+    "moukere", "faggot", "tranny",
+    "shemale", "pede", "pedale", "tafiole", "tapette", "gouine",
+  ]);
+  const GENERAL_BLOCKED_NAME_TOKENS = new Set([
+    "abruti", "abrutie", "batard", "batarde", "bite", "bordel", "con", "connard",
+    "connasse", "couille", "couilles", "encule", "enculee", "fdp", "merde", "pute",
+    "salope", "salaud", "asshole", "bitch", "cunt", "fuck", "fucker", "motherfucker",
+    "retard", "shit", "slut", "whore",
+  ]);
+  const LEET_SKELETON = Object.freeze({
+    "0": "o", "1": "i", "!": "i", "3": "e", "4": "a", "@": "a",
+    "5": "s", "$": "s", "7": "t", "8": "b", "9": "g",
+  });
+  const DISCRIMINATORY_NAME_MESSAGE = "Ce nom contient un terme raciste ou discriminatoire et ne peut pas être utilisé.";
+  const PROFANITY_NAME_MESSAGE = "Ce nom contient une insulte ou un terme inapproprié. Choisissez-en un autre.";
+
+  function normalizePlayerNameForModeration(value) {
+    return normalizePlayerNamePart(value)
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, "")
+      .toLocaleLowerCase("fr-FR")
+      .replace(/œ/g, "oe")
+      .replace(/æ/g, "ae")
+      .replace(/[01345!@$789]/g, (character) => LEET_SKELETON[character] || character)
+      .replace(/[^a-z]+/g, " ")
+      .trim()
+      .replace(/\s+/g, " ");
+  }
+
+  function getModerationForms(value) {
+    const normalized = normalizePlayerNameForModeration(value);
+    const tokens = normalized.split(" ").filter(Boolean);
+    const compact = tokens.join("");
+    return {
+      normalized,
+      tokens,
+      compact,
+    };
+  }
+
+  function containsStrictBlockedName(forms) {
+    return STRICT_BLOCKED_NAME_SKELETONS.some((blocked) => {
+      if (blocked.length <= 4) {
+        return forms.compact === blocked || forms.tokens.includes(blocked);
+      }
+      return forms.compact.includes(blocked);
+    });
+  }
+
+  function getForbiddenNameReason(value) {
+    const forms = getModerationForms(value);
+    if (!forms.compact) return null;
+    if (containsStrictBlockedName(forms)) return "forbidden-discriminatory-name";
+    if (forms.tokens.some((token) => GENERAL_BLOCKED_NAME_TOKENS.has(token))) return "forbidden-profanity-name";
+    return null;
+  }
+
+  function forbiddenNameMessage(reason) {
+    return reason === "forbidden-discriminatory-name"
+      ? DISCRIMINATORY_NAME_MESSAGE
+      : PROFANITY_NAME_MESSAGE;
+  }
+
+  function validatePlayerNamePart(value) {
+    const displayValue = normalizePlayerNamePart(value);
+    if (!displayValue) return { ok: false, reason: "missing" };
+    const reason = getForbiddenNameReason(displayValue);
+    return { ok: !reason, reason, value: displayValue };
+  }
+
+  function validatePlayerIdentity({ firstName, lastName } = {}) {
+    const first = validatePlayerNamePart(firstName);
+    const last = validatePlayerNamePart(lastName);
+    if (!first.ok || !last.ok) {
+      const forbiddenReason = [first.reason, last.reason].find((reason) => reason?.startsWith("forbidden-"));
+      return {
+        ok: false,
+        reason: forbiddenReason || "missing",
+        message: forbiddenReason ? forbiddenNameMessage(forbiddenReason) : "Le nom et le prénom sont obligatoires.",
+      };
+    }
+    return { ok: true, firstName: first.value, lastName: last.value };
+  }
+
   function isUniqueProfileConflict(error) {
     return error?.code === "23505" || /unique|duplicate|player_profiles_normalized_name/i.test(
       `${error?.message || ""} ${error?.details || ""}`,
@@ -139,17 +232,23 @@
 
   function publicProfileFailure(error) {
     console.error("[Blue Legacy Profile]", errorInfo(error));
+    const errorText = `${error?.message || ""} ${error?.details || ""}`;
+    if (/Forbidden discriminatory player name/i.test(errorText)) {
+      return { ok: false, reason: "forbidden-discriminatory-name", message: DISCRIMINATORY_NAME_MESSAGE, error };
+    }
+    if (/Forbidden profanity player name/i.test(errorText)) {
+      return { ok: false, reason: "forbidden-profanity-name", message: PROFANITY_NAME_MESSAGE, error };
+    }
     return isUniqueProfileConflict(error)
       ? { ok: false, reason: "name-taken", message: "Ce nom de joueur est déjà utilisé.", error }
       : { ok: false, reason: "unavailable", message: "Impossible de vérifier la disponibilité du nom pour le moment.", error };
   }
 
   async function reservePlayerProfile({ firstName, lastName, dCosmetic = false } = {}) {
-    const normalizedFirstName = normalizePlayerNamePart(firstName);
-    const normalizedLastName = normalizePlayerNamePart(lastName);
-    if (!normalizedFirstName || !normalizedLastName) {
-      return { ok: false, reason: "invalid", message: "Le nom et le prénom sont obligatoires." };
-    }
+    const validation = validatePlayerIdentity({ firstName, lastName });
+    if (!validation.ok) return validation;
+    const normalizedFirstName = validation.firstName;
+    const normalizedLastName = validation.lastName;
     try {
       const session = await ensureAnonymousAuth();
       logCurrentUserId("public-profile-upsert", session);
@@ -237,16 +336,27 @@
   }
 
   function normalizeEntry(row) {
+    const legendaryTitles = Array.isArray(row?.legendary_titles)
+      ? row.legendary_titles
+      : Array.isArray(row?.legendaryTitles) ? row.legendaryTitles : [];
+    const rawFirstName = String(row?.player_first_name || row?.first_name || row?.playerFirstName || "").trim();
+    const rawLastName = String(row?.player_last_name || row?.last_name || row?.playerLastName || "").trim();
+    const identityAllowed = validatePlayerIdentity({
+      firstName: rawFirstName,
+      lastName: rawLastName,
+    }).ok;
     return {
-      userId: String(row?.user_id || ""),
-      playerFirstName: String(row?.player_first_name || row?.first_name || "").trim(),
-      playerLastName: String(row?.player_last_name || row?.last_name || "").trim(),
-      playerDCosmetic: row?.player_d_cosmetic === true,
-      characterName: String(row?.character_name || "Légende sans nom").trim(),
-      characterTitle: String(row?.character_title || "").trim(),
-      dreamCompleted: row?.dream_completed === true,
+      userId: String(row?.user_id || row?.userId || ""),
+      playerFirstName: identityAllowed ? rawFirstName : "à renommer",
+      playerLastName: identityAllowed ? rawLastName : "Joueur",
+      playerDCosmetic: identityAllowed && (row?.player_d_cosmetic === true || row?.playerDCosmetic === true),
+      identityMasked: !identityAllowed,
+      characterName: String(row?.character_name || row?.characterName || "Légende sans nom").trim(),
+      characterTitle: String(row?.character_title || row?.characterTitle || "").trim(),
+      legendaryTitles: legendaryTitles.map((title) => String(title || "").trim()).filter(Boolean).slice(0, 3),
+      dreamCompleted: row?.dream_completed === true || row?.dreamCompleted === true,
       score: Math.max(0, Number(row?.score) || 0),
-      updatedAt: String(row?.updated_at || ""),
+      updatedAt: String(row?.updated_at || row?.updatedAt || ""),
     };
   }
 
@@ -266,7 +376,7 @@
     try {
       const cache = JSON.parse(localStorage.getItem(CACHE_STORAGE_KEY) || "null");
       if (cache?.monthKey !== monthKey() || !Array.isArray(cache.entries)) return null;
-      return cache;
+      return { ...cache, entries: cache.entries.map(normalizeEntry) };
     } catch (error) {
       logError("top5-cache-read", error);
       return null;
@@ -275,7 +385,7 @@
 
   async function getMonthlyTop(limit = 5) {
     const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 5)));
-    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,dream_completed,score,updated_at";
+    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,legendary_titles,dream_completed,score,updated_at";
     const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, order: "score.desc,updated_at.asc", limit: String(safeLimit) });
     const result = await request(`/rest/v1/${CONFIG.table}?${query}`);
     return (result.data || []).map(normalizeEntry);
@@ -323,7 +433,7 @@
   async function getCurrentPlayerMonthlyEntry() {
     const session = await ensureAnonymousAuth();
     logCurrentUserId("personal-entry", session);
-    const query = new URLSearchParams({ select: "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,dream_completed,score,updated_at", month_key: `eq.${monthKey()}`, user_id: `eq.${session.user.id}`, limit: "1" });
+    const query = new URLSearchParams({ select: "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,legendary_titles,dream_completed,score,updated_at", month_key: `eq.${monthKey()}`, user_id: `eq.${session.user.id}`, limit: "1" });
     const result = await request(`/rest/v1/${CONFIG.table}?${query}`, { auth: true });
     return result.data?.[0] ? normalizeEntry(result.data[0]) : null;
   }
@@ -344,15 +454,30 @@
     return higher + earlierTie + 1;
   }
 
-  async function submitCareer({ playerFirstName, playerLastName, playerDCosmetic = false, characterName, characterTitle = null, dreamCompleted = false, score, finishedAt }) {
-    if (!String(playerFirstName || "").trim() || !String(playerLastName || "").trim()) return { skipped: "missing-identity" };
+  async function submitCareer({ playerFirstName, playerLastName, playerDCosmetic = false, characterName, characterTitle = null, legendaryTitles = [], dreamCompleted = false, score, finishedAt }) {
+    const identityValidation = validatePlayerIdentity({
+      firstName: playerFirstName,
+      lastName: playerLastName,
+    });
+    if (!identityValidation.ok) {
+      return {
+        submitted: false,
+        skipped: identityValidation.reason === "missing" ? "missing-identity" : identityValidation.reason,
+        reason: identityValidation.reason,
+        message: identityValidation.message,
+      };
+    }
     const payload = {
       p_month_key: monthKey(new Date(finishedAt || Date.now())),
-      p_player_first_name: String(playerFirstName).trim().slice(0, 40),
-      p_player_last_name: String(playerLastName).trim().slice(0, 40),
+      p_player_first_name: identityValidation.firstName,
+      p_player_last_name: identityValidation.lastName,
       p_player_d_cosmetic: playerDCosmetic === true,
       p_character_name: String(characterName || "Légende sans nom").trim().slice(0, 100),
       p_character_title: String(characterTitle || "").trim().slice(0, 120) || null,
+      p_legendary_titles: (Array.isArray(legendaryTitles) ? legendaryTitles : [])
+        .map((title) => String(title || "").trim().slice(0, 120))
+        .filter(Boolean)
+        .slice(0, 3),
       p_dream_completed: dreamCompleted === true,
       p_score: Math.min(100, Math.max(1, Math.round(Number(score) || 1))),
     };
@@ -367,6 +492,7 @@
         character_name: payload.p_character_name,
         score: payload.p_score,
         character_title: payload.p_character_title,
+        legendary_titles: payload.p_legendary_titles,
         dream_completed: payload.p_dream_completed,
         player_d_cosmetic: payload.p_player_d_cosmetic,
       });
@@ -394,7 +520,8 @@
       return { submitted: true, rpcResult: rpcResult.data, storedEntry };
     } catch (error) {
       console.error(`${LOG_PREFIX} Score submission failed`, errorInfo(error));
-      return { submitted: false, error };
+      const failure = publicProfileFailure(error);
+      return { submitted: false, ...failure };
     }
   }
 
@@ -440,6 +567,12 @@
     names.append(playerIdentity);
     names.append(text("span", "leaderboard-entry__character", entry.characterName));
     if (entry.characterTitle) names.append(text("span", "leaderboard-entry__title", entry.characterTitle));
+    if (entry.legendaryTitles?.length) {
+      const legendaryTitles = document.createElement("div");
+      legendaryTitles.className = "leaderboard-entry__legendary-titles";
+      entry.legendaryTitles.forEach((titleName) => legendaryTitles.append(text("span", "leaderboard-entry__legendary-title", titleName)));
+      names.append(legendaryTitles);
+    }
     const meta = document.createElement("div"); meta.className = "leaderboard-entry__meta";
     meta.append(text("strong", "leaderboard-entry__score", `${entry.score} Popularité`));
     if (entry.dreamCompleted) meta.append(text("span", "leaderboard-entry__dream", "Rêve accompli"));
@@ -503,9 +636,54 @@
 
   function hasIdentity(profile) { return Boolean(String(profile?.playerIdentity?.firstName || "").trim() && String(profile?.playerIdentity?.lastName || "").trim()); }
 
+  function runPlayerIdentityModerationAudit() {
+    const blockedParts = [
+      "NIGGER", "n.i.g.g.e.r", "n-i-g-g-e-r", "n_i_g_g_e_r", "n i g g e r",
+      "n1gg3r", "b.o.u.g.n.o.u.l.e", "f4gg0t", "s-a-l-e-j-u-i-f",
+      "m0therfucker",
+    ];
+    const splitIdentities = [
+      { firstName: "nig", lastName: "ger" },
+      { firstName: "ger", lastName: "nig" },
+    ];
+    const allowedIdentities = [
+      { firstName: "Li", lastName: "Wei" },
+      { firstName: "Élodie", lastName: "Martin" },
+      { firstName: "Sean", lastName: "O'Connor" },
+      { firstName: "Jean-Luc", lastName: "Picard" },
+      { firstName: "Nigel", lastName: "Smith" },
+      { firstName: "Nami", lastName: "Monkey" },
+      { firstName: "Kaïa", lastName: "D. Storm" },
+      { firstName: "DUPONT", lastName: "DUPONT" },
+      { firstName: "DuPoNt", lastName: "XxTraffyxX" },
+      { firstName: "Loooop", lastName: "Kaaaido" },
+      { firstName: "Miiiiilo", lastName: "Zzzed" },
+      { firstName: "R0ger", lastName: "Player7" },
+      { firstName: "niiiigger", lastName: "Fantasy" },
+    ];
+    const blockedPartResults = blockedParts.map((value) => !validatePlayerNamePart(value).ok);
+    const splitIdentityResults = splitIdentities.map((identity) => validatePlayerIdentity(identity).ok);
+    const allowedResults = allowedIdentities.map((identity) => validatePlayerIdentity(identity).ok);
+    const masked = normalizeEntry({
+      player_first_name: blockedParts[0], player_last_name: "Test", score: 50,
+    });
+    return Object.freeze({
+      pass: blockedPartResults.every(Boolean) && splitIdentityResults.every(Boolean) &&
+        allowedResults.every(Boolean) && masked.identityMasked === true &&
+        `${masked.playerLastName} ${masked.playerFirstName}` === "Joueur à renommer",
+      blockedPartCount: blockedPartResults.length,
+      blockedPartPassed: blockedPartResults.filter(Boolean).length,
+      splitIdentityCount: splitIdentityResults.length,
+      splitIdentityPassed: splitIdentityResults.filter(Boolean).length,
+      allowedCount: allowedResults.length,
+      allowedPassed: allowedResults.filter(Boolean).length,
+      defensiveMaskPassed: masked.identityMasked === true,
+    });
+  }
+
   function renderPersonal(element, profile, entry, rank) {
     clear(element);
-    if (!hasIdentity(profile)) { element.append(text("p", "leaderboard-personal-message", "Renseignez votre prénom et votre nom dans Statistiques pour apparaître dans le classement.")); return; }
+    if (!hasIdentity(profile)) { element.append(text("p", "leaderboard-personal-message", "Renseignez votre prénom et votre nom dans Carte de légende pour apparaître dans le classement.")); return; }
     if (!entry) {
       element.append(text("p", "leaderboard-personal-message", "Vous n’avez pas encore de score ce mois-ci."), text("small", "", "Terminez une aventure pour tenter d’entrer dans la légende.")); return;
     }
@@ -590,7 +768,18 @@
     });
     const existingSession = readAuth();
     if (existingSession) logCurrentUserId("leaderboard-initialize", existingSession);
+    if (new URLSearchParams(window.location.search).has("identityModerationAudit")) {
+      const audit = runPlayerIdentityModerationAudit();
+      document.documentElement.dataset.identityModerationAudit = JSON.stringify(audit);
+      const output = document.createElement("output");
+      output.id = "identity-moderation-audit-output";
+      output.setAttribute("popover", "manual");
+      output.style.cssText = "position:fixed;inset:8px auto auto 8px;margin:0;padding:12px;background:#fff;color:#111;border:3px solid #111;font:700 22px monospace";
+      output.textContent = `IDENTITY MODERATION AUDIT: ${audit.pass ? "PASS" : "FAIL"} · blocked ${audit.blockedPartPassed}/${audit.blockedPartCount} · split allowed ${audit.splitIdentityPassed}/${audit.splitIdentityCount} · allowed ${audit.allowedPassed}/${audit.allowedCount} · mask ${audit.defensiveMaskPassed ? "PASS" : "FAIL"}`;
+      document.body.append(output);
+      output.showPopover?.();
+    }
   }
 
-  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, refreshOnline, submitCareer, reservePlayerProfile, syncPlayerDCosmetic, normalizePlayerNamePart, getMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
+  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, refreshOnline, submitCareer, reservePlayerProfile, syncPlayerDCosmetic, normalizePlayerNamePart, normalizePlayerNameForModeration, validatePlayerNamePart, validatePlayerIdentity, runPlayerIdentityModerationAudit, getMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
 })();

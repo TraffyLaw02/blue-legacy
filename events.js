@@ -159,7 +159,7 @@
         result: "Ta patience finit par calmer l’animal. Ce geste confirme une compassion déjà montrée ailleurs.",
         effects: { morale: 3 },
         requiredFlags: { clinicVolunteer: true },
-        addTraits: ["compatissant"],
+        titles: ["personnalite-compatissant"],
         flags: { rescuedDockDog: true },
         important: true,
         weight: 2,
@@ -223,7 +223,7 @@
         id: "field-medic",
         result: "Tes expériences précédentes te permettent d’agir avec une précision inattendue.",
         effects: { health: 3 },
-        requiredTraits: ["calme"],
+        requiredTitles: ["personnalite-calme"],
         requiredFlags: { rescuedDockDog: true },
         combatStyle: "medecin",
         flags: { clinicVolunteer: true },
@@ -260,7 +260,7 @@
         result: "Tu échoues plusieurs fois, puis ajustes enfin ta prise. Ta ténacité commence à devenir une habitude.",
         effects: { health: -2, combat: 1 },
         requiredFlags: { trainedWithBellSniper: true },
-        addTraits: ["tenace"],
+        titles: ["personnalite-tenace"],
         flags: { ownsRustySword: true },
         weight: 2,
       },
@@ -286,7 +286,7 @@
         id: "born-performer",
         result: "Tu transformes les paroles absurdes en chanson que tout le monde veut reprendre.",
         effects: { morale: 3, popularity: 4 },
-        requiredTraits: ["charismatique"],
+        requiredTitles: ["personnalite-charismatique"],
         requiredFlags: { keptBottleLyrics: true },
         combatStyle: "musicien",
         flags: { bottleSong: true },
@@ -323,7 +323,7 @@
         id: "sniper-discipline",
         result: "Ta patience transforme l’exercice en véritable spécialisation.",
         effects: { combat: 2 },
-        requiredTraits: ["patient"],
+        requiredTitles: ["personnalite-patient"],
         minimumStats: { combat: 22 },
         combatStyle: "sniper",
         flags: { trainedWithBellSniper: true },
@@ -333,7 +333,7 @@
     "enter-tournament": [
       {
         id: "finalist",
-        result: "Tu atteins la finale et quittes l’arène couvert de sable, mais respecté.",
+        result: "Tu atteins la finale et quittes l’arène sous le sable, avec le respect du public.",
         effects: { combat: 3, health: -3, popularity: 4 },
         minimumStats: { combat: 20, health: 55 },
         weight: 3,
@@ -349,7 +349,7 @@
         id: "hard-earned-style",
         result: "Tes entraînements antérieurs s’assemblent enfin en une manière de combattre qui t’appartient.",
         effects: { combat: 2, health: -2 },
-        requiredTraits: ["tenace"],
+        requiredTitles: ["personnalite-tenace"],
         minimumStats: { combat: 25 },
         combatStyle: "corps-a-corps",
         weight: 1,
@@ -383,7 +383,7 @@
         id: "inventive-breakthrough",
         result: "Les pièces révèlent une logique que seules tes expériences précédentes te permettent de comprendre.",
         effects: { ship: 2 },
-        requiredTraits: ["curieux"],
+        requiredTitles: ["personnalite-curieux"],
         requiredFlags: { foundAbandonedWorkshop: true },
         combatStyle: "inventeur",
         flags: { repairedClockworkCrab: true },
@@ -680,8 +680,8 @@
       requiredEvents: event.requiredEvents || [],
       forbiddenEvents: event.forbiddenEvents || [],
 
-      requiredTraits: event.requiredTraits || [],
-      forbiddenTraits: event.forbiddenTraits || [],
+      requiredTitles: event.requiredTitles || [],
+      forbiddenTitles: event.forbiddenTitles || [],
 
       requiredCombatStyles: event.requiredCombatStyles || [],
       forbiddenCombatStyles: event.forbiddenCombatStyles || [],
@@ -857,7 +857,7 @@
                 subtleEffects,
               ),
               effects: subtleEffects,
-              requiredTraits: index % 2 ? ["prudent"] : ["rusé"],
+              requiredTitles: index % 2 ? ["personnalite-prudent"] : ["personnalite-ruse"],
               flags: { [`${flagBase}SubtlyResolved`]: true },
               weight: 2,
             },
@@ -1065,7 +1065,7 @@ const COMMON_EVENTS = [
           morale: 2,
         },
 
-        addTraits: ["prudent"],
+        titles: ["personnalite-prudent"],
 
         flags: {
           foundFloatingTools: true,
@@ -1083,7 +1083,7 @@ const COMMON_EVENTS = [
           morale: 1,
         },
 
-        addTraits: ["calme"],
+        titles: ["personnalite-calme"],
       },
 
       {
@@ -1098,7 +1098,7 @@ const COMMON_EVENTS = [
           morale: 3,
         },
 
-        addTraits: ["impulsif"],
+        titles: ["personnalite-impulsif"],
 
         combatStyle: "utilisateur-armes",
       },
@@ -1130,7 +1130,7 @@ const COMMON_EVENTS = [
           morale: 4,
         },
 
-        addTraits: ["prudent", "altruiste"],
+        titles: ["personnalite-prudent", "personnalite-altruiste"],
 
         flags: {
           trustedStormFisherman: true,
@@ -1152,7 +1152,7 @@ const COMMON_EVENTS = [
           combat: 2,
         },
 
-        addTraits: ["courageux"],
+        titles: ["personnalite-courageux"],
 
         combatStyle: "navigateur",
       },
@@ -1169,7 +1169,7 @@ const COMMON_EVENTS = [
           morale: -2,
         },
 
-        addTraits: ["arrogant"],
+        titles: ["personnalite-arrogant"],
       },
     ],
   }),
@@ -1201,7 +1201,7 @@ const COMMON_EVENTS = [
           morale: 5,
         },
 
-        addTraits: ["compatissant", "courageux"],
+        titles: ["personnalite-compatissant", "personnalite-courageux"],
 
         flags: {
           rescuedDockDog: true,
@@ -1228,7 +1228,7 @@ const COMMON_EVENTS = [
           morale: -5,
         },
 
-        addTraits: ["rusé"],
+        titles: ["personnalite-ruse"],
 
         flags: {
           abandonedDockDog: true,
@@ -1249,7 +1249,7 @@ const COMMON_EVENTS = [
           morale: 3,
         },
 
-        addTraits: ["calme"],
+        titles: ["personnalite-calme"],
       },
     ],
   }),
@@ -1278,7 +1278,7 @@ const COMMON_EVENTS = [
           morale: 2,
         },
 
-        addTraits: ["curieux"],
+        titles: ["personnalite-curieux"],
 
         combatStyle: "navigateur",
 
@@ -1299,7 +1299,7 @@ const COMMON_EVENTS = [
           ship: 3,
         },
 
-        addTraits: ["pragmatique"],
+        titles: ["personnalite-pragmatique"],
 
         combatStyle: "navigateur",
       },
@@ -1309,7 +1309,7 @@ const COMMON_EVENTS = [
         text: "Lui demander de prouver ses talents en mer",
 
         result:
-          "Elle accepte, prend la barre, évite trois récifs et vomit sur le quatrième. Tu as trouvé une excellente professeure et une très mauvaise passagère.",
+          "Elle accepte, prend la barre, évite trois récifs et vomit sur le quatrième. Elle embarque durablement dans ton équipage : une excellente professeure et une très mauvaise passagère.",
 
         effects: {
           crew: 1,
@@ -1348,7 +1348,7 @@ const COMMON_EVENTS = [
           morale: 4,
         },
 
-        addTraits: ["calme", "compatissant"],
+        titles: ["personnalite-calme", "personnalite-compatissant"],
 
         combatStyle: "medecin",
 
@@ -1370,7 +1370,7 @@ const COMMON_EVENTS = [
           morale: 3,
         },
 
-        addTraits: ["courageux"],
+        titles: ["personnalite-courageux"],
       },
 
       {
@@ -1381,11 +1381,11 @@ const COMMON_EVENTS = [
           "Tu répartis les tâches, calmes les familles et libères de l’espace. Personne ne t’appelle médecin, mais tout le monde respire mieux.",
 
         effects: {
-          crew: 1,
+          intelligence: 2,
           morale: 3,
         },
 
-        addTraits: ["charismatique", "organisé"],
+        titles: ["personnalite-charismatique", "personnalite-organise"],
 
         flags: {
           organizedClinic: true,
@@ -1419,7 +1419,7 @@ const COMMON_EVENTS = [
           morale: 3,
         },
 
-        addTraits: ["tenace"],
+        titles: ["personnalite-tenace"],
 
         combatStyle: "epeiste",
 
@@ -1440,7 +1440,7 @@ const COMMON_EVENTS = [
           fortune: 5000,
         },
 
-        addTraits: ["rusé"],
+        titles: ["personnalite-ruse"],
 
         combatStyle: "inventeur",
       },
@@ -1457,7 +1457,7 @@ const COMMON_EVENTS = [
           morale: 2,
         },
 
-        addTraits: ["calme"],
+        titles: ["personnalite-calme"],
       },
     ],
   }),
@@ -1483,10 +1483,10 @@ const COMMON_EVENTS = [
 
         effects: {
           morale: 5,
-          crew: 1,
+          popularity: 2,
         },
 
-        addTraits: ["charismatique", "créatif"],
+        titles: ["personnalite-charismatique", "personnalite-creatif"],
 
         combatStyle: "musicien",
 
@@ -1549,7 +1549,7 @@ const COMMON_EVENTS = [
           morale: 2,
         },
 
-        addTraits: ["patient"],
+        titles: ["personnalite-patient"],
 
         combatStyle: "sniper",
 
@@ -1570,7 +1570,7 @@ const COMMON_EVENTS = [
           fortune: -4000,
         },
 
-        addTraits: ["courageux"],
+        titles: ["personnalite-courageux"],
       },
 
       {
@@ -1584,7 +1584,7 @@ const COMMON_EVENTS = [
           morale: 2,
         },
 
-        addTraits: ["responsable"],
+        titles: ["personnalite-responsable"],
       },
     ],
   }),
@@ -1614,7 +1614,7 @@ const COMMON_EVENTS = [
           morale: 3,
         },
 
-        addTraits: ["tenace"],
+        titles: ["personnalite-tenace"],
 
         combatStyle: "corps-a-corps",
       },
@@ -1631,7 +1631,7 @@ const COMMON_EVENTS = [
           health: 1,
         },
 
-        addTraits: ["calme", "discipliné"],
+        titles: ["personnalite-calme", "personnalite-discipline"],
 
         combatStyle: "artiste-martial",
       },
@@ -1648,7 +1648,7 @@ const COMMON_EVENTS = [
           morale: 2,
         },
 
-        addTraits: ["opportuniste"],
+        titles: ["personnalite-opportuniste"],
       },
     ],
   }),
@@ -1677,7 +1677,7 @@ const COMMON_EVENTS = [
           morale: 3,
         },
 
-        addTraits: ["curieux", "créatif"],
+        titles: ["personnalite-curieux", "personnalite-creatif"],
 
         combatStyle: "inventeur",
 
@@ -1714,7 +1714,7 @@ const COMMON_EVENTS = [
           morale: 4,
         },
 
-        addTraits: ["impulsif"],
+        titles: ["personnalite-impulsif"],
       },
     ],
   }),
@@ -1816,7 +1816,7 @@ const COMMON_EVENTS = [
           id: "save-marine-guard",
           text: "Secourir la garde de la Marine",
           outcomes: [
-            { id: "cadet-rescued", result: "La garde survit et tait ton identité dans son rapport.", effects: { health: -2, popularity: 2 }, requiredTraits: ["compatissant"], flags: { savedMarineGuardAtReverseMountain: true, abandonedCurrentPrisoner: true }, weight: 2 },
+            { id: "cadet-rescued", result: "La garde survit et tait ton identité dans son rapport.", effects: { health: -2, popularity: 2 }, requiredTitles: ["personnalite-compatissant"], flags: { savedMarineGuardAtReverseMountain: true, abandonedCurrentPrisoner: true }, weight: 2 },
             { id: "guard-keeps-duty", result: "Elle accepte les soins mais refuse d’abandonner sa cellule. Tu reprends la mer avec ce choix sur la conscience.", effects: { morale: -2 }, flags: { abandonedCurrentPrisoner: true }, fallback: true, weight: 3 },
           ],
         },
@@ -1907,7 +1907,7 @@ const COMMON_EVENTS = [
           id: "refuse-broker-nox-deal",
           text: "Refuser et retenir son visage",
           outcomes: [
-            { id: "broker-respects-refusal", result: "Le courtier rit et te laisse partir. Il semble apprécier les dettes que personne n’accepte.", effects: { morale: 2 }, requiredTraits: ["prudent"], flags: { refusedBlackMarketDeal: true }, weight: 2 },
+            { id: "broker-respects-refusal", result: "Le courtier rit et te laisse partir. Il semble apprécier les dettes que personne n’accepte.", effects: { morale: 2 }, requiredTitles: ["personnalite-prudent"], flags: { refusedBlackMarketDeal: true }, weight: 2 },
             { id: "broker-sells-name", result: "Avant ton départ, l’Escargophone transmet déjà ton signalement à un autre acheteur.", effects: { bounty: 300000 }, flags: { refusedBlackMarketDeal: true, angeredBrokerNox: true }, fallback: true, weight: 3 },
           ],
         },
@@ -1954,7 +1954,7 @@ const COMMON_EVENTS = [
             {
               id: "grateful-cook",
               result:
-                "Le restaurateur accepte les berrys. le cuisinier, bouleversé, jure de rembourser sa dette en servant ton équipage.",
+                "Le restaurateur accepte les berrys. Le cuisinier, bouleversé, jure de rembourser sa dette en servant ton équipage.",
               effects: { fortune: -8000, crew: 1 },
               minimumStats: { fortune: 8000 },
               flags: { recruitedBasileCook: true, paidBasileDebt: true },
@@ -1997,7 +1997,7 @@ const COMMON_EVENTS = [
           id: "escape-bounty-tavern",
           text: "Sortir par les cuisines",
           outcomes: [
-            { id: "quiet-kitchen-exit", result: "Tu traverses les cuisines sous un tablier emprunté et repars avec ton anonymat.", effects: { morale: 2 }, requiredTraits: ["calme"], flags: { escapedBountyTavern: true }, weight: 3 },
+            { id: "quiet-kitchen-exit", result: "Tu traverses les cuisines sous un tablier emprunté et repars avec ton anonymat.", effects: { morale: 2 }, requiredTitles: ["personnalite-calme"], flags: { escapedBountyTavern: true }, weight: 3 },
             { id: "wrong-kitchen-door", result: "La porte mène à la réserve où trois chasseurs comptaient justement leur arsenal.", effects: { health: -3, popularity: -1 }, fallback: true, weight: 2 },
           ],
         },
@@ -2080,7 +2080,7 @@ const COMMON_EVENTS = [
               result:
                 "Tu reconnais les uniformes mal cousus. Les escrocs abandonnent leur butin et fuient dans leur chaloupe.",
               effects: { fortune: 5000, popularity: 2 },
-              requiredTraits: ["rusé"],
+              requiredTitles: ["personnalite-ruse"],
               flags: { exposedFakeMarines: true },
               weight: 3,
             },
@@ -2159,7 +2159,7 @@ const COMMON_EVENTS = [
         },
         {
           id: "humiliate-alba",
-          text: "Retourner son équipage contre lui",
+          text: "Retourner son équipage contre elle",
           choiceTag: "Audace",
           outcomes: [
             {
@@ -2167,7 +2167,7 @@ const COMMON_EVENTS = [
               result:
                 "Tu révèles que son terrible pavillon est une nappe volée. Ses propres hommes éclatent de rire.",
               effects: { popularity: 4, morale: 2 },
-              requiredTraits: ["charismatique"],
+              requiredTitles: ["personnalite-charismatique"],
               flags: { humiliatedAlbaRival: true, albaRivalSeeksRevenge: true },
               important: true,
               weight: 3,
@@ -2376,7 +2376,7 @@ const COMMON_EVENTS = [
           text: "Quitter discrètement son sillage",
           choiceTag: "Sagesse",
           outcomes: [
-            { id: "clean-warship-escape", result: "Tu utilises le tumulte laissé par le cuirassé pour disparaître avant le prochain contrôle.", effects: { morale: 2 }, requiredTraits: ["prudent"], flags: { avoidedViceAdmiral: true }, weight: 3 },
+            { id: "clean-warship-escape", result: "Tu utilises le tumulte laissé par le cuirassé pour disparaître avant le prochain contrôle.", effects: { morale: 2 }, requiredTitles: ["personnalite-prudent"], flags: { avoidedViceAdmiral: true }, weight: 3 },
             { id: "rushed-rigging", result: "La manœuvre emmêle le gréement. Le cuirassé ne t’avait jamais remarqué.", effects: { ship: -1 }, fallback: true, weight: 2 },
           ],
         },
@@ -2447,7 +2447,7 @@ const COMMON_EVENTS = [
           text: "Sauver les survivants et repartir",
           choiceTag: "Prudence",
           outcomes: [
-            { id: "survivors-swear-loyalty", result: "Les naufragés reconnaissent ton sang-froid et transmettent ton pavillon dans tous les ports.", effects: { crew: 1, popularity: 5 }, minimumStats: { morale: 55 }, flags: { rescuedBlackBladeSurvivors: true }, important: true, weight: 2 },
+            { id: "survivors-swear-loyalty", result: "Les naufragés reconnaissent ton sang-froid et transmettent ton pavillon dans tous les ports.", effects: { charisma: 1, popularity: 5 }, minimumStats: { morale: 55 }, flags: { rescuedBlackBladeSurvivors: true }, important: true, weight: 2 },
             { id: "panicked-survivors", result: "Les survivants montent à bord, puis paniquent à la vue de chaque voile sombre.", effects: { morale: -3, health: -2 }, flags: { rescuedBlackBladeSurvivors: true }, fallback: true, weight: 3 },
           ],
         },
@@ -2482,9 +2482,9 @@ const COMMON_EVENTS = [
       choices: [
         { id: "defend-pose", text: "Défendre le Log Pose devant les équipages", choiceTag: "Honneur",
           success: { result: "Tu démontres la cohérence du champ magnétique et le capitaine vétéran recule sous les huées.", effects: { morale: 3, popularity: 2 }, minimumStats: { ship: 3 }, flags: { earnedYseeCompassTrust: true, embarrassedBrannFoam: true } },
-          setback: { result: "L’aiguille s’affole au pire moment. le capitaine vétéran repart avec les rires du port et une copie de ta route.", effects: { morale: -3, ship: -1 }, flags: { brannFoamKnowsRoute: true } } },
+          setback: { result: "L’aiguille s’affole au pire moment. Le capitaine vétéran repart avec les rires du port et une copie de ta route.", effects: { morale: -3, ship: -1 }, flags: { brannFoamKnowsRoute: true } } },
         { id: "trade-readings", text: "Comparer les relevés loin de la foule", choiceTag: "Prudence",
-          success: { result: "Les deux aiguilles réagissent à une masse métallique sous-marine. La navigatrice corrige la route à temps.", effects: { ship: 2, morale: 1 }, requiredTraits: ["prudent"], flags: { mappedMagneticAnomaly: true, metYseeCompass: true } },
+          success: { result: "Les deux aiguilles réagissent à une masse métallique sous-marine. La navigatrice corrige la route à temps.", effects: { ship: 2, morale: 1 }, requiredTitles: ["personnalite-prudent"], flags: { mappedMagneticAnomaly: true, metYseeCompass: true } },
           setback: { result: "Le capitaine vétéran échange discrètement les cadrans et te laisse suivre une direction capricieuse.", effects: { ship: -2 }, flags: { deceivedByBrannFoam: true } } },
       ],
     }),
@@ -2498,21 +2498,21 @@ const COMMON_EVENTS = [
           success: { result: "Les trois équipages brisent le blocus sans tirer l’un sur l’autre. La capitaine pirate respecte exactement l’heure convenue.", effects: { ship: 1, morale: 3 }, minimumStats: { crew: 2 }, flags: { alliedWithSolaAnchorfist: true, brokeGrandLineBlockade: true }, important: true },
           setback: { result: "Un équipage panique et coupe la formation. La flotte passe, mais ton gréement paie le désordre.", effects: { ship: -2, morale: -1 }, flags: { unstablePirateAlliance: true } } },
         { id: "use-alliance", text: "Laisser les autres ouvrir le passage", choiceTag: "Ruse",
-          success: { result: "Tu profites du chaos et franchis le barrage intact, sous le regard glacé de la capitaine pirate.", effects: { ship: 2 }, requiredTraits: ["rusé"], flags: { betrayedSunsetAlliance: true, solaAnchorfistSeeksDebt: true } },
+          success: { result: "Tu profites du chaos et franchis le barrage intact, sous le regard glacé de la capitaine pirate.", effects: { ship: 2 }, requiredTitles: ["personnalite-ruse"], flags: { betrayedSunsetAlliance: true, solaAnchorfistSeeksDebt: true } },
           setback: { result: "Les canons de la Marine anticipent la manœuvre et te rabattent au centre du combat.", effects: { health: -5, ship: -2 }, flags: { trappedInsideBlockade: true } } },
       ],
     }),
     createGrandLineFactionEvent({
       id: "pirate-grand-line-crew-confidence", path: PATHS.PIRATE,
       title: "La carte clouée au mât",
-      description: "Après trois jours de pluie ascendante, une partie de l’équipage veut rebrousser chemin. le tireur, s’il est encore à bord, plante une flèche dans la carte pour réclamer un vote.",
+      description: "Après trois jours de pluie ascendante, une partie de l’équipage veut rebrousser chemin. Le tireur, s’il est encore à bord, plante une flèche dans la carte pour réclamer un vote.",
       rarity: EVENT_RARITY.COMMON, tags: ["crew", "mutiny", "weather"],
       choices: [
         { id: "hold-vote", text: "Donner la parole à tout l’équipage", choiceTag: "Sagesse",
-          success: { result: "Les griefs éclatent, puis un cap commun est choisi. La confiance ressort cabossée mais réelle.", effects: { morale: 4, crew: 1 }, minimumStats: { morale: 48 }, requiredFlags: { recruitedKipoSniper: true }, flags: { crewChoseGrandLineTogether: true } },
+          success: { result: "Les griefs éclatent, puis un cap commun est choisi. La confiance ressort cabossée mais réelle.", effects: { morale: 4, charisma: 1 }, minimumStats: { morale: 48 }, requiredFlags: { recruitedKipoSniper: true }, flags: { crewChoseGrandLineTogether: true } },
           setback: { result: "Le vote se transforme en concours de cris. Tu gardes le cap, mais les quarts deviennent silencieux.", effects: { morale: -4 }, flags: { grandLineCrewResentment: true } } },
         { id: "prove-route", text: "Prendre seul la barre dans la tempête", choiceTag: "Audace",
-          success: { result: "Tu traverses le mur de pluie et rends à l’équipage l’envie d’avancer.", effects: { ship: 2, morale: 2 }, minimumStats: { ship: 4 }, addTraits: ["responsable"], flags: { captainedImpossibleRain: true } },
+          success: { result: "Tu traverses le mur de pluie et rends à l’équipage l’envie d’avancer.", effects: { ship: 2, morale: 2 }, minimumStats: { ship: 4 }, titles: ["personnalite-responsable"], flags: { captainedImpossibleRain: true } },
           setback: { result: "Une vague latérale arrache une vergue. Personne ne quitte le navire, mais personne n’applaudit.", effects: { ship: -3, health: -3 }, flags: { damagedShipProvingRoute: true } } },
       ],
     }),
@@ -2526,7 +2526,7 @@ const COMMON_EVENTS = [
           success: { result: "Tu renverses le capitaine fanfaron avant que son canon débouche enfin. Le cliché de sa moustache en flammes fait le tour de Paradise.", effects: { combat: 3, bounty: 400000, popularity: 4 }, minimumStats: { combat: 20 }, flags: { publiclyDefeatedRavel: true }, important: true },
           setback: { result: "Le capitaine fanfaron résiste assez longtemps pour transformer le duel en mêlée confuse.", effects: { health: -7, morale: -2 }, flags: { ravelGoldenMustacheRival: true } } },
         { id: "ruin-spectacle", text: "Saboter sa mise en scène", choiceTag: "Ruse",
-          success: { result: "Les journaux découvrent les cages vides et les faux témoins. Le capitaine fanfaron fuit sous une pluie de bouchons.", effects: { popularity: 3, morale: 2 }, requiredTraits: ["créatif"], flags: { exposedRavelFraud: true } },
+          success: { result: "Les journaux découvrent les cages vides et les faux témoins. Le capitaine fanfaron fuit sous une pluie de bouchons.", effects: { popularity: 3, morale: 2 }, requiredTitles: ["personnalite-creatif"], flags: { exposedRavelFraud: true } },
           setback: { result: "Le mécanisme explose trop tôt et détruit surtout l’étal d’un marchand innocent.", effects: { fortune: -10000, popularity: -2 }, flags: { owesGrandLineMerchant: true } } },
       ],
     }),
@@ -2540,7 +2540,7 @@ const COMMON_EVENTS = [
           success: { result: "Le navire ressort de l’autre côté, voiles déchirées mais hors de portée des canons.", effects: { ship: -1, popularity: 3 }, minimumStats: { ship: 4 }, flags: { escapedViceAdmiralOrme: true } },
           setback: { result: "Le cyclone te rejette dans la ligne de tir. Un boulet traverse deux ponts.", effects: { ship: -3, health: -6 }, flags: { markedByViceAdmiralOrme: true } } },
         { id: "false-wreck", text: "Simuler un naufrage", choiceTag: "Intuition",
-          success: { result: "Le vice-amiral chargé de la poursuite passe devant l’épave factice. Son silence laisse penser qu’il a compris et apprécié l’effort.", effects: { morale: 2 }, requiredTraits: ["rusé"], flags: { fooledViceAdmiralOrme: true } },
+          success: { result: "Le vice-amiral chargé de la poursuite passe devant l’épave factice. Son silence laisse penser qu’il a compris et apprécié l’effort.", effects: { morale: 2 }, requiredTitles: ["personnalite-ruse"], flags: { fooledViceAdmiralOrme: true } },
           setback: { result: "La Marine récupère ton faux pavillon et l’exhibe comme trophée.", effects: { popularity: -3, morale: -2 }, flags: { lostFlagToViceAdmiral: true } } },
       ],
     }),
@@ -2575,7 +2575,7 @@ const COMMON_EVENTS = [
     createGrandLineFactionEvent({
       id: "pirate-grand-line-blue-rival-return", path: PATHS.PIRATE,
       title: "Le retour de la capitaine rivale",
-      description: "La capitaine rivale surgit d’un tonneau de provisions, furieux d’avoir voyagé trois îles dans le mauvais navire. Son équipage attend au large et réclame une revanche dont parleront les quatre mers.",
+      description: "La capitaine rivale surgit d’un tonneau de provisions, furieuse d’avoir voyagé trois îles dans le mauvais navire. Son équipage attend au large et réclame une revanche dont parleront les quatre mers.",
       rarity: EVENT_RARITY.COMMON, tags: ["callback", "rival", "blues"],
       choices: [
         { id: "share-table", text: "Proposer une revanche autour d’une table", choiceTag: "Diplomatie",
@@ -2595,7 +2595,7 @@ const COMMON_EVENTS = [
       zones: ["whispering-reefs"], rarity: EVENT_RARITY.UNCOMMON, tags: ["treasure", "old-captain", "mystery"],
       choices: [
         { id: "speak-truth", text: "Entrer en répondant sincèrement aux murmures", choiceTag: "Sagesse",
-          success: { result: "La grotte laisse passer ton équipage et révèle le journal du vieux capitaine avec ses dernières pièces.", effects: { fortune: 18000, morale: 2 }, requiredTraits: ["responsable"], flags: { foundCaptainNoEchoJournal: true } },
+          success: { result: "La grotte laisse passer ton équipage et révèle le journal du vieux capitaine avec ses dernières pièces.", effects: { fortune: 18000, morale: 2 }, requiredTitles: ["personnalite-responsable"], flags: { foundCaptainNoEchoJournal: true } },
           setback: { result: "Une vérité mal formulée déclenche un éboulement aussi susceptible qu’un juge.", effects: { health: -6, fortune: 5000 }, flags: { angeredWhisperingCave: true } } },
         { id: "silence-cave", text: "Couvrir les murmures avec les canons", choiceTag: "Audace",
           success: { result: "La détonation révèle une chambre creuse derrière la paroi.", effects: { fortune: 15000, combat: 1 }, minimumStats: { combat: 20 }, flags: { blastedNoEchoVault: true } },
@@ -2612,7 +2612,7 @@ const COMMON_EVENTS = [
           success: { result: "Le pirate en armure tombe dans sa propre armure articulée. Les ouvriers arrachent son pavillon.", effects: { combat: 3, bounty: 300000, popularity: 3 }, minimumStats: { combat: 22 }, flags: { freedBrassKingdomForges: true, defeatedDukeTinwhite: true }, important: true },
           setback: { result: "Son armure absorbe les premiers coups et ses hommes te repoussent vers les canaux de refroidissement.", effects: { health: -8, morale: -2 }, flags: { dukeTinwhiteEnemy: true } } },
         { id: "organize-workers", text: "Aider les ouvriers à reprendre les forges", choiceTag: "Rébellion",
-          success: { result: "Les marteaux couvrent les ordres du tyran. Le royaume se libère sans changer de maître pirate.", effects: { morale: 4, popularity: 2 }, requiredTraits: ["charismatique"], flags: { armedBrassWorkers: true, helpedBrassTerritory: true } },
+          success: { result: "Les marteaux couvrent les ordres du tyran. Le royaume se libère sans changer de maître pirate.", effects: { morale: 4, popularity: 2 }, requiredTitles: ["personnalite-charismatique"], flags: { armedBrassWorkers: true, helpedBrassTerritory: true } },
           setback: { result: "Un contremaître vend le plan à le pirate en armure et les ateliers ferment.", effects: { morale: -4, fortune: -8000 }, flags: { betrayedByBrassForeman: true } } },
       ],
     }),
@@ -2627,7 +2627,7 @@ const COMMON_EVENTS = [
           success: { result: "Le médecin rembourse ta générosité en rejoignant l’équipage avec une armoire entière de sirops imbuvables.", effects: { fortune: -12000, crew: 1 }, minimumStats: { fortune: 12000 }, flags: { recruitedTomaSaltDoctor: true, freedFloatingClinic: true }, combatStyle: "medecin", important: true },
           setback: { result: "Le prêteur augmente le prix au moment de signer. Le médecin sauve ses instruments, mais reste à quai.", effects: { fortune: -8000, morale: -2 }, flags: { helpedTomaSaltDoctor: true } } },
         { id: "expose-lender", text: "Retourner ses registres contre le prêteur", choiceTag: "Ruse",
-          success: { result: "Les dettes inventées apparaissent dans le journal local. La clinique reste libre et le médecin devient un allié sûr.", effects: { popularity: 2, morale: 2 }, requiredTraits: ["rusé"], flags: { exposedPortAzurLender: true, alliedWithTomaSaltDoctor: true } },
+          success: { result: "Les dettes inventées apparaissent dans le journal local. La clinique reste libre et le médecin devient un allié sûr.", effects: { popularity: 2, morale: 2 }, requiredTitles: ["personnalite-ruse"], flags: { exposedPortAzurLender: true, alliedWithTomaSaltDoctor: true } },
           setback: { result: "Les registres sont écrits dans un code qui ressemble à des ordonnances. Le prêteur appelle ses gardes.", effects: { health: -4, fortune: -5000 }, flags: { portAzurLenderEnemy: true } } },
       ],
     }),
@@ -2666,10 +2666,10 @@ const COMMON_EVENTS = [
       zones: ["whispering-reefs"], rarity: EVENT_RARITY.UNCOMMON, tags: ["mystery", "crew", "shipwreck"],
       choices: [
         { id: "board-together", text: "Monter à bord sans séparer l’équipage", choiceTag: "Prudence",
-          success: { result: "Les voix perdent leur pouvoir face aux réponses collectives. Une ancienne boussole est sauvée de la cabine.", effects: { crew: 1, morale: 3 }, minimumStats: { morale: 55 }, flags: { resistedWhisperingWreck: true } },
+          success: { result: "Les voix perdent leur pouvoir face aux réponses collectives. Une ancienne boussole est sauvée de la cabine.", effects: { intelligence: 1, morale: 3 }, minimumStats: { morale: 55 }, flags: { resistedWhisperingWreck: true } },
           setback: { result: "Les promesses divisent le groupe assez longtemps pour qu’une lame de récif frappe la coque.", effects: { ship: -2, morale: -3 }, flags: { crewHeardWhisperingPromises: true } } },
         { id: "burn-wreck", text: "Incendier l’épave depuis le large", choiceTag: "Pragmatisme",
-          success: { result: "La fumée révèle un courant invisible qui traverse les récifs.", effects: { ship: 2 }, requiredTraits: ["pragmatique"], flags: { revealedWhisperingCurrent: true } },
+          success: { result: "La fumée révèle un courant invisible qui traverse les récifs.", effects: { ship: 2 }, requiredTitles: ["personnalite-pragmatique"], flags: { revealedWhisperingCurrent: true } },
           setback: { result: "Le feu saute sur une nappe d’huile et te force à une retraite précipitée.", effects: { health: -4, ship: -1 }, flags: { burnedWhisperingWaters: true } } },
       ],
     }),
@@ -2686,7 +2686,7 @@ const COMMON_EVENTS = [
           success: { result: "La foule adopte ta version avant que les faits arrivent. Ta prime entre dans une nouvelle catégorie.", effects: { bounty: 700000, popularity: 5, morale: 3 }, minimumStats: { popularity: 65 }, flags: { claimedThreeFortLegend: true, huntedByThreeFortCrew: true }, important: true },
           setback: { result: "Les véritables vainqueurs diffusent les preuves et jurent de laver leur honneur.", effects: { bounty: 400000, popularity: -4 }, flags: { exposedThreeFortClaim: true, threeFortCrewEnemy: true }, important: true } },
         { id: "correct-record", text: "Faire publier un démenti", choiceTag: "Honneur",
-          success: { result: "Le démenti révèle tes exploits réels et attire un respect moins spectaculaire mais plus solide.", effects: { bounty: 300000, popularity: 3 }, requiredTraits: ["responsable"], flags: { correctedThreeFortStory: true } },
+          success: { result: "Le démenti révèle tes exploits réels et attire un respect moins spectaculaire mais plus solide.", effects: { bounty: 300000, popularity: 3 }, requiredTitles: ["personnalite-responsable"], flags: { correctedThreeFortStory: true } },
           setback: { result: "Le journal imprime ton démenti sous la rubrique des plaisanteries.", effects: { popularity: -2, morale: -2 }, flags: { mockedByGrandLinePress: true } } },
       ],
     }),
@@ -2697,10 +2697,10 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.RARE, tags: ["haki", "veteran", "training"],
       choices: [
         { id: "accept-training", text: "Accepter le duel de le vétéran", choiceTag: "Honneur",
-          success: { result: "Tu commences à sentir l’instant où sa volonté durcit avant son poing.", effects: { haki: 2, combat: 2, health: -4 }, minimumStats: { combat: 24 }, addTraits: ["discipliné"], flags: { trainedWithGaroCalmhand: true } },
+          success: { result: "Tu commences à sentir l’instant où sa volonté durcit avant son poing.", effects: { haki: 2, combat: 2, health: -4 }, minimumStats: { combat: 24 }, titles: ["personnalite-discipline"], flags: { trainedWithGaroCalmhand: true } },
           setback: { result: "Le vétéran t’envoie dans un tonneau et affirme que le tonneau a mieux compris la leçon.", effects: { health: -7, morale: -1 }, flags: { challengedGaroCalmhand: true } } },
         { id: "observe-garo", text: "Observer son geste plutôt que combattre", choiceTag: "Sagesse",
-          success: { result: "Ton attention saisit le déplacement avant l’impact, première intuition du Fluide de l’Observation.", effects: { haki: 1, morale: 2 }, requiredTraits: ["patient"], flags: { observedGaroHaki: true } },
+          success: { result: "Ton attention saisit le déplacement avant l’impact, première intuition du Fluide de l’Observation.", effects: { haki: 1, morale: 2 }, requiredTitles: ["personnalite-patient"], flags: { observedGaroHaki: true } },
           setback: { result: "Le vétéran commande douze autres boissons et te présente l’addition comme un exercice d’attention.", effects: { fortune: -6000, morale: 1 }, flags: { paidGaroLesson: true } } },
       ],
     }),
@@ -2754,7 +2754,7 @@ const COMMON_EVENTS = [
           success: { result: "L’escorte traverse le front climatique sans perdre un bâtiment.", effects: { ship: 2, morale: 1 }, minimumStats: { ship: 4 }, flags: { completedCurtainedEscort: true, earnedAvelineTrust: true } },
           setback: { result: "Les manœuvres imposées provoquent une collision avec un caboteur civil.", effects: { ship: -2, popularity: -2 }, flags: { officialEscortCollision: true } } },
         { id: "inspect-passengers", text: "Exiger l’identité des passagers", choiceTag: "Justice",
-          success: { result: "Les rideaux cachent un comptable recherché et des registres de détournement.", effects: { popularity: 3, morale: 2 }, requiredTraits: ["responsable"], flags: { exposedEscortEmbezzlement: true } },
+          success: { result: "Les rideaux cachent un comptable recherché et des registres de détournement.", effects: { popularity: 3, morale: 2 }, requiredTitles: ["personnalite-responsable"], flags: { exposedEscortEmbezzlement: true } },
           setback: { result: "L’ordre est authentique et ton inspection déclenche une plainte politique immédiate.", effects: { morale: -2, popularity: -1 }, flags: { censuredForEscortInspection: true } } },
       ],
     }),
@@ -2779,7 +2779,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["base", "siege", "ally"],
       choices: [
         { id: "organize-defense", text: "Réorganiser la défense avec l’intendant", choiceTag: "Discipline",
-          success: { result: "L’intendant transforme son classement absurde en chaîne logistique efficace et la base tient.", effects: { combat: 2, morale: 3 }, requiredTraits: ["organisé"], flags: { defendedGPrimeBase: true, alliedWithInspectorPloc: true } },
+          success: { result: "L’intendant transforme son classement absurde en chaîne logistique efficace et la base tient.", effects: { combat: 2, morale: 3 }, requiredTitles: ["personnalite-organise"], flags: { defendedGPrimeBase: true, alliedWithInspectorPloc: true } },
           setback: { result: "Les boulets bleus correspondent finalement aux canons rouges. La première salve détruit une cuisine.", effects: { morale: -2, fortune: -6000 }, flags: { gPrimeKitchenDestroyed: true } } },
         { id: "break-siege", text: "Sortir affronter le navire amiral", choiceTag: "Audace",
           success: { result: "La sortie surprend les assiégeants et force leur capitaine à rompre le blocus.", effects: { combat: 3, popularity: 3 }, minimumStats: { combat: 23 }, flags: { brokeGPrimeSiege: true } },
@@ -2796,7 +2796,7 @@ const COMMON_EVENTS = [
           success: { result: "La poursuite se termine par une arrestation nette avant le prochain front.", effects: { combat: 2, popularity: 2 }, minimumStats: { ship: 4 }, flags: { obeyedOrmePursuitOrder: true, capturedCycloneCaptain: true } },
           setback: { result: "La cible s’échappe et les nouvelles du village arrivent avant ton rapport.", effects: { morale: -4, popularity: -3 }, flags: { failedOrmePursuit: true } } },
         { id: "save-village", text: "Détourner l’unité vers le village", choiceTag: "Justice",
-          success: { result: "Les habitants survivent et le vice-amiral chargé de la poursuite exige ton rapport en personne.", effects: { morale: 4, popularity: 3 }, requiredTraits: ["compatissant"], flags: { savedWaterspoutVillage: true, defiedViceAdmiralOrme: true }, important: true },
+          success: { result: "Les habitants survivent et le vice-amiral chargé de la poursuite exige ton rapport en personne.", effects: { morale: 4, popularity: 3 }, requiredTitles: ["personnalite-compatissant"], flags: { savedWaterspoutVillage: true, defiedViceAdmiralOrme: true }, important: true },
           setback: { result: "Le sauvetage réussit partiellement, mais plusieurs navires de l’unité sont endommagés.", effects: { ship: -2, morale: 1 }, flags: { defiedViceAdmiralOrme: true } } },
       ],
     }),
@@ -2810,7 +2810,7 @@ const COMMON_EVENTS = [
           success: { result: "Une copie atteint la commandante avant que l’agente du Cipher Pol ne puisse agir.", effects: { morale: 3 }, minimumStats: { popularity: 45 }, flags: { preservedCipherPolFile: true, cipherAgentGlassEnemy: true } },
           setback: { result: "Le dossier disparaît pendant le transfert et ton sceau reste sur une chemise vide.", effects: { morale: -3 }, flags: { cipherPolStoleFile: true } } },
         { id: "follow-verre", text: "Feindre d’obéir et suivre l’agente du Cipher Pol", choiceTag: "Intuition",
-          success: { result: "La filature révèle une réunion entre l’agent et le commodore le commodore corrompu.", effects: { popularity: 1, morale: 2 }, requiredTraits: ["patient"], flags: { discoveredGlassRonceMeeting: true } },
+          success: { result: "La filature révèle une réunion entre l’agent et le commodore le commodore corrompu.", effects: { popularity: 1, morale: 2 }, requiredTitles: ["personnalite-patient"], flags: { discoveredGlassRonceMeeting: true } },
           setback: { result: "L’agente du Cipher Pol te conduit jusqu’à une blanchisserie et disparaît parmi cinquante masques identiques.", effects: { fortune: -4000, morale: -1 }, flags: { lostCipherAgentGlass: true } } },
       ],
     }),
@@ -2835,7 +2835,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["baroque-works", "prisoner", "intelligence"],
       choices: [
         { id: "protect-prisoner", text: "Garantir sa protection, pas sa liberté", choiceTag: "Justice",
-          success: { result: "Le premier nom mène à une cellule active et le prisonnier accepte finalement de témoigner.", effects: { morale: 2, popularity: 2 }, requiredTraits: ["responsable"], flags: { protectedBaroqueWitness: true, uncoveredBaroqueCell: true } },
+          success: { result: "Le premier nom mène à une cellule active et le prisonnier accepte finalement de témoigner.", effects: { morale: 2, popularity: 2 }, requiredTitles: ["personnalite-responsable"], flags: { protectedBaroqueWitness: true, uncoveredBaroqueCell: true } },
           setback: { result: "Une fuite interne révèle son transfert et force la Marine à changer de route.", effects: { ship: -1, morale: -2 }, flags: { baroqueWorksKnowsTransfer: true } } },
         { id: "offer-freedom", text: "Négocier sa liberté contre les trois noms", choiceTag: "Pragmatisme",
           success: { result: "Les trois renseignements sont vérifiés avant sa disparition dans un port bondé.", effects: { popularity: 1, fortune: 5000 }, flags: { tradedFreedomForBaroqueNames: true } },
@@ -2849,7 +2849,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["coordination", "smugglers", "command"],
       choices: [
         { id: "single-plan", text: "Imposer un plan commun aux unités", choiceTag: "Discipline",
-          success: { result: "La formation se referme au même instant et saisit la cargaison sans combat prolongé.", effects: { morale: 3, popularity: 2 }, requiredTraits: ["organisé"], flags: { coordinatedFourMarineUnits: true } },
+          success: { result: "La formation se referme au même instant et saisit la cargaison sans combat prolongé.", effects: { morale: 3, popularity: 2 }, requiredTitles: ["personnalite-organise"], flags: { coordinatedFourMarineUnits: true } },
           setback: { result: "Deux commandants refusent le changement et ouvrent un passage involontaire.", effects: { morale: -3, ship: -1 }, flags: { fracturedMarineCoordination: true } } },
         { id: "adapt-signals", text: "Adapter les signaux en pleine opération", choiceTag: "Intuition",
           success: { result: "Tes pavillons corrigent les décalages avant que les contrebandiers comprennent.", effects: { ship: 2, combat: 1 }, requiredCombatStyles: ["navigateur"], flags: { improvisedMarineSignals: true } },
@@ -2883,7 +2883,7 @@ const COMMON_EVENTS = [
           success: { result: "Le nouveau rang donne accès aux dossiers scellés et révèle la signature du commodore corrompu.", effects: { popularity: 3, morale: 3 }, minimumStats: { popularity: 60 }, flags: { promotedAtPortAzur: true, reopenedMissingOfficerCase: true }, important: true },
           setback: { result: "Les dossiers ont été déplacés avant ta prise de fonction.", effects: { morale: -2 }, flags: { promotedAtPortAzur: true, promotionFilesMissing: true } } },
         { id: "delay-promotion", text: "Refuser tant que l’officier n’est pas retrouvé", choiceTag: "Honneur",
-          success: { result: "La commandante respecte la décision et confie l’enquête sans condition de grade.", effects: { morale: 4 }, requiredTraits: ["responsable"], flags: { refusedPortAzurPromotion: true, earnedAvelineRespect: true } },
+          success: { result: "La commandante respecte la décision et confie l’enquête sans condition de grade.", effects: { morale: 4 }, requiredTitles: ["personnalite-responsable"], flags: { refusedPortAzurPromotion: true, earnedAvelineRespect: true } },
           setback: { result: "La hiérarchie nomme le commodore corrompu à ta place et ferme définitivement les archives.", effects: { morale: -4 }, flags: { ronceTookPortAzurPost: true } } },
       ],
     }),
@@ -2894,7 +2894,7 @@ const COMMON_EVENTS = [
       zones: ["whispering-reefs"], rarity: EVENT_RARITY.UNCOMMON, tags: ["cipher-pol", "archive", "mystery"],
       choices: [
         { id: "copy-silently", text: "Copier les dossiers sans prononcer un nom", choiceTag: "Prudence",
-          success: { result: "L’enquêteur rejoint ton unité avec les copies cousues dans sa veste à rayures.", effects: { crew: 1, morale: 2 }, requiredTraits: ["patient"], flags: { recruitedSennMarineInvestigator: true, copiedCipherReefFiles: true }, important: true },
+          success: { result: "L’enquêteur rejoint ton unité avec les copies cousues dans sa veste à rayures.", effects: { crew: 1, morale: 2 }, requiredTitles: ["personnalite-patient"], flags: { recruitedSennMarineInvestigator: true, copiedCipherReefFiles: true }, important: true },
           setback: { result: "Un éternuement de l’enquêteur réveille l’écho et annonce votre présence à toute la baie.", effects: { health: -3, morale: -1 }, flags: { exposedAtCipherReefArchive: true } } },
         { id: "seal-archive", text: "Sceller la chambre pour une unité spécialisée", choiceTag: "Devoir",
           success: { result: "Le sceau tient et la commandante reçoit les coordonnées complètes.", effects: { popularity: 2 }, flags: { securedCipherReefArchive: true } },
@@ -2925,7 +2925,7 @@ const COMMON_EVENTS = [
           success: { result: "Les faux employés sont arrêtés avec leurs listes de cibles.", effects: { combat: 2, popularity: 2 }, minimumStats: { combat: 20 }, flags: { raidedPortAzurBaroqueOffice: true } },
           setback: { result: "L’agence se vide par un plancher escamotable et ne laisse que des cactus indignés.", effects: { morale: -2, health: -2 }, flags: { baroqueAgentsEscapedPortAzur: true } } },
         { id: "feed-false-route", text: "Leur vendre une fausse route commerciale", choiceTag: "Ruse",
-          success: { result: "Plusieurs agents se rassemblent au même faux rendez-vous.", effects: { morale: 3, fortune: 6000 }, requiredTraits: ["rusé"], flags: { trappedPortAzurBaroqueAgents: true } },
+          success: { result: "Plusieurs agents se rassemblent au même faux rendez-vous.", effects: { morale: 3, fortune: 6000 }, requiredTitles: ["personnalite-ruse"], flags: { trappedPortAzurBaroqueAgents: true } },
           setback: { result: "Les héritiers du réseau identifient la source et inscrivent ton unité sur leur liste.", effects: { popularity: -1 }, flags: { targetedByBaroqueWorks: true } } },
       ],
     }),
@@ -2936,7 +2936,7 @@ const COMMON_EVENTS = [
       zones: ["kingdom-of-brass"], rarity: EVENT_RARITY.UNCOMMON, tags: ["forge", "sabotage", "weapons"],
       choices: [
         { id: "test-weapons", text: "Tester toute la livraison avec les ouvriers", choiceTag: "Prudence",
-          success: { result: "Une série de pièces marquées conduit à un atelier clandestin.", effects: { combat: 1, morale: 2 }, requiredTraits: ["organisé"], flags: { tracedBrassWeaponSabotage: true } },
+          success: { result: "Une série de pièces marquées conduit à un atelier clandestin.", effects: { combat: 1, morale: 2 }, requiredTitles: ["personnalite-organise"], flags: { tracedBrassWeaponSabotage: true } },
           setback: { result: "Un fusil particulièrement créatif détruit le banc d’essai derrière lui.", effects: { health: -4, fortune: -6000 }, flags: { brassWeaponBackfire: true } } },
         { id: "follow-saboteur", text: "Laisser une caisse comme appât", choiceTag: "Intuition",
           success: { result: "Le saboteur avoue agir pour empêcher le commodore corrompu de revendre les armes.", effects: { morale: 2 }, requiredFlags: { exposedCommodoreRonce: true }, flags: { alliedWithBrassSaboteur: true } },
@@ -2952,10 +2952,10 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.RARE, tags: ["haki", "training", "officer"],
       choices: [
         { id: "train-armament", text: "Suivre l’entraînement jusqu’au bout", choiceTag: "Discipline",
-          success: { result: "La sensation du Fluide apparaît brièvement au moment d’encaisser le dernier coup.", effects: { haki: 2, combat: 2, health: -3 }, minimumStats: { combat: 22 }, addTraits: ["discipliné"], flags: { trainedArmamentWithAveline: true } },
+          success: { result: "La sensation du Fluide apparaît brièvement au moment d’encaisser le dernier coup.", effects: { haki: 2, combat: 2, health: -3 }, minimumStats: { combat: 22 }, titles: ["personnalite-discipline"], flags: { trainedArmamentWithAveline: true } },
           setback: { result: "L’exercice finit dans l’infirmerie, où la commandante dépose un formulaire d’excuses déjà rempli.", effects: { health: -7, morale: -1 }, flags: { failedAvelineArmamentDrill: true } } },
         { id: "study-defense", text: "Étudier sa défense pendant les exercices", choiceTag: "Sagesse",
-          success: { result: "Tu apprends à reconnaître l’instant où sa garde se renforce.", effects: { haki: 1, morale: 2 }, requiredTraits: ["calme"], flags: { studiedAvelineArmament: true } },
+          success: { result: "Tu apprends à reconnaître l’instant où sa garde se renforce.", effects: { haki: 1, morale: 2 }, requiredTitles: ["personnalite-calme"], flags: { studiedAvelineArmament: true } },
           setback: { result: "L’intendant prend tes notes pour le planning de cantine et les affiche dans toute la base.", effects: { morale: 1 }, flags: { hakiNotesPostedAsMenu: true } } },
       ],
     }),
@@ -3025,7 +3025,7 @@ const COMMON_EVENTS = [
           success: { result: "Sur le pont découvert, le pouvoir de la pirate ne lui offre plus aucune issue.", effects: { combat: 2, fortune: 12000 }, minimumStats: { combat: 20 }, flags: { capturedMiskaScreenfold: true } },
           setback: { result: "Des bras surgissent sous tes pieds et l’arrachent au pont avec ton mandat.", effects: { health: -5, morale: -2 }, flags: { miskaScreenfoldEscaped: true } } },
         { id: "track-folds", text: "Repérer les surfaces qu’elle surveille", choiceTag: "Intuition",
-          success: { result: "Les regards dérobés de ses yeux éclos révèlent la direction de sa cache.", effects: { fortune: 8000, morale: 2 }, requiredTraits: ["curieux"], flags: { metOraPaleye: true, mappedMiskaFolds: true } },
+          success: { result: "Les regards dérobés de ses yeux éclos révèlent la direction de sa cache.", effects: { fortune: 8000, morale: 2 }, requiredTitles: ["personnalite-curieux"], flags: { metOraPaleye: true, mappedMiskaFolds: true } },
           setback: { result: "Une main surgit derrière la porte et verrouille le placard avant sa fuite.", effects: { morale: -2, popularity: -1 }, flags: { foldedIntoCloset: true } } },
       ],
     }),
@@ -3036,10 +3036,10 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["contract", "fraud", "contact"],
       choices: [
         { id: "trace-client", text: "Remonter jusqu’au faux commanditaire", choiceTag: "Prudence",
-          success: { result: "Les numéros de série des billets conduisent aux racketteurs qui fabriquent les faux avis.", effects: { fortune: 10000, popularity: 2 }, requiredTraits: ["patient"], flags: { exposedWashinkContract: true, alliedWithSiaLedger: true } },
+          success: { result: "Les numéros de série des billets conduisent aux racketteurs qui fabriquent les faux avis.", effects: { fortune: 10000, popularity: 2 }, requiredTitles: ["personnalite-patient"], flags: { exposedWashinkContract: true, alliedWithSiaLedger: true } },
           setback: { result: "L’encre disparaît avec les preuves et le commanditaire ferme son bureau.", effects: { fortune: -5000, morale: -2 }, flags: { lostForgedContractTrail: true } } },
         { id: "warn-target", text: "Prévenir discrètement le marchand", choiceTag: "Honneur",
-          success: { result: "Le marchand organise un faux enlèvement qui attire les racketteurs.", effects: { morale: 3, fortune: 7000 }, requiredTraits: ["rusé"], flags: { protectedFalselyTargetedMerchant: true } },
+          success: { result: "Le marchand organise un faux enlèvement qui attire les racketteurs.", effects: { morale: 3, fortune: 7000 }, requiredTitles: ["personnalite-ruse"], flags: { protectedFalselyTargetedMerchant: true } },
           setback: { result: "Le marchand panique, fuit et te fait passer pour son ravisseur.", effects: { popularity: -2, morale: -1 }, flags: { mistakenForMerchantKidnapper: true } } },
       ],
     }),
@@ -3064,7 +3064,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["marine", "payment", "bureaucracy"],
       choices: [
         { id: "follow-procedure", text: "Retrouver le formulaire réglementaire", choiceTag: "Patience",
-          success: { result: "Le formulaire réglementaire dormait sous la tasse de l’intendant. La base verse enfin la totalité de la prime.", effects: { fortune: 15000, morale: 2 }, requiredTraits: ["patient"], flags: { masteredMarineBountyForms: true } },
+          success: { result: "Le formulaire réglementaire dormait sous la tasse de l’intendant. La base verse enfin la totalité de la prime.", effects: { fortune: 15000, morale: 2 }, requiredTitles: ["personnalite-patient"], flags: { masteredMarineBountyForms: true } },
           setback: { result: "Le bureau ferme pendant que tu attends devant le bon guichet.", effects: { morale: -3, fortune: -3000 }, flags: { marinePaymentDelayed: true } } },
         { id: "negotiate-officer", text: "Demander audience à l’officier de quart", choiceTag: "Diplomatie",
           success: { result: "L’officier valide la prise et te confie une ligne directe pour les futurs contrats.", effects: { fortune: 12000, popularity: 2 }, minimumStats: { popularity: 50 }, flags: { marineBountyContact: true } },
@@ -3078,7 +3078,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["innocent", "false-accusation", "ethics"],
       choices: [
         { id: "investigate-alibi", text: "Vérifier son histoire avant toute arrestation", choiceTag: "Honneur",
-          success: { result: "Les élèves prouvent qu’elle enseignait au moment de l’attaque et identifient le vrai pirate grâce à sa moustache.", effects: { morale: 4, popularity: 2 }, requiredTraits: ["responsable"], flags: { clearedInnocentTeacher: true, identifiedRoyalShipAttacker: true } },
+          success: { result: "Les élèves prouvent qu’elle enseignait au moment de l’attaque et identifient le vrai pirate grâce à sa moustache.", effects: { morale: 4, popularity: 2 }, requiredTitles: ["personnalite-responsable"], flags: { clearedInnocentTeacher: true, identifiedRoyalShipAttacker: true } },
           setback: { result: "Les témoins ont peur de parler et l’avis reste actif.", effects: { morale: -3 }, flags: { unresolvedTeacherBounty: true } } },
         { id: "deliver-questioning", text: "La conduire à une base en garantissant sa sécurité", choiceTag: "Prudence",
           success: { result: "L’enquête officielle reconnaît l’erreur et annule la prime.", effects: { popularity: 2, morale: 2 }, requiredFlags: { marineBountyContact: true }, flags: { escortedTeacherSafely: true } },
@@ -3107,7 +3107,7 @@ const COMMON_EVENTS = [
       important: true,
       choices: [
         { id: "hear-pica", text: "Écouter sa version avant de décider", choiceTag: "Honneur",
-          success: { result: "Les preuves confirment le complot. La tireuse rejoint ta chasse pour retrouver le véritable commanditaire.", effects: { crew: 1, morale: 3 }, requiredTraits: ["compatissant"], combatStyle: "sniper", flags: { recruitedPicaTwomoonSniper: true, protectedPicaFromFalseBounty: true }, important: true },
+          success: { result: "Les preuves confirment le complot. La tireuse rejoint ta chasse pour retrouver le véritable commanditaire.", effects: { crew: 1, morale: 3 }, requiredTitles: ["personnalite-compatissant"], combatStyle: "sniper", flags: { recruitedPicaTwomoonSniper: true, protectedPicaFromFalseBounty: true }, important: true },
           setback: { result: "Les preuves sont incomplètes et la tireuse disparaît en laissant ton chapeau cloué au mur.", effects: { morale: -1, popularity: -1 }, flags: { picaTwomoonAtLarge: true } } },
         { id: "offer-surrender", text: "Proposer une remise encadrée à la Marine", choiceTag: "Prudence",
           success: { result: "Ton contact Marine accepte une enquête avant détention.", effects: { popularity: 2, morale: 2 }, requiredFlags: { marineBountyContact: true }, flags: { arrangedPicaInquiry: true } },
@@ -3140,7 +3140,7 @@ const COMMON_EVENTS = [
           success: { result: "Les preuves forcent le ministre à abandonner son conseiller et la garde ouvre les portes.", effects: { fortune: 15000, popularity: 3 }, minimumStats: { popularity: 55 }, flags: { exposedBrassPirateAdviser: true } },
           setback: { result: "Le ministre déclare les preuves fabriquées et place une récompense locale sur ta tête.", effects: { popularity: -2 }, flags: { wantedByMinisterTalc: true } } },
         { id: "extract-target", text: "L’attirer hors du royaume", choiceTag: "Ruse",
-          success: { result: "Une fausse vente d’armes conduit la cible au-delà de la protection royale.", effects: { fortune: 18000 }, requiredTraits: ["rusé"], flags: { extractedBrassProtectedTarget: true } },
+          success: { result: "Une fausse vente d’armes conduit la cible au-delà de la protection royale.", effects: { fortune: 18000 }, requiredTitles: ["personnalite-ruse"], flags: { extractedBrassProtectedTarget: true } },
           setback: { result: "La cible reconnaît le piège et fait fermer les frontières.", effects: { fortune: -7000, morale: -2 }, flags: { brassBordersClosedToHunter: true } } },
       ],
     }),
@@ -3182,7 +3182,7 @@ const COMMON_EVENTS = [
           success: { result: "Tu anticipes le croisement des courants et désarmes le chasseur rival au seul instant possible.", effects: { combat: 3, popularity: 3 }, minimumStats: { combat: 23 }, combatStyle: "utilisateur-armes", flags: { defeatedNilsSquareInCurrents: true } },
           setback: { result: "Les barques se séparent avant le premier coup et le chasseur rival proclame sa victoire depuis très loin.", effects: { popularity: -2, morale: -1 }, flags: { nilsClaimedDriftingVictory: true } } },
         { id: "rewrite-rules", text: "Transformer le duel en chasse commune", choiceTag: "Ruse",
-          success: { result: "La cible surgit entre les barques et vous la capturez avant de reprendre la dispute.", effects: { fortune: 12000, morale: 2 }, requiredTraits: ["pragmatique"], flags: { sharedCurrentCaptureWithNils: true } },
+          success: { result: "La cible surgit entre les barques et vous la capturez avant de reprendre la dispute.", effects: { fortune: 12000, morale: 2 }, requiredTitles: ["personnalite-pragmatique"], flags: { sharedCurrentCaptureWithNils: true } },
           setback: { result: "Le chasseur rival accepte, puis facture sa coopération plus cher que la prime.", effects: { fortune: -8000 }, flags: { owesNilsSquareFee: true } } },
       ],
     }),
@@ -3210,7 +3210,7 @@ const COMMON_EVENTS = [
           success: { result: "La cible tombe avec trois faux passeports et une clé de cellule.", effects: { fortune: 15000, popularity: 2 }, minimumStats: { popularity: 45 }, flags: { capturedArmoredTransferTarget: true } },
           setback: { result: "La statue active ses roulettes et traverse la frontière à une vitesse humiliante.", effects: { popularity: -2, morale: -1 }, flags: { rollingStatueTargetEscaped: true } } },
         { id: "follow-convoy", text: "Suivre le convoi jusqu’au commanditaire", choiceTag: "Prudence",
-          success: { result: "La filature révèle un atelier produisant des identités protégées.", effects: { fortune: 10000, morale: 2 }, requiredTraits: ["patient"], flags: { uncoveredBrassFalseIdentityForge: true } },
+          success: { result: "La filature révèle un atelier produisant des identités protégées.", effects: { fortune: 10000, morale: 2 }, requiredTitles: ["personnalite-patient"], flags: { uncoveredBrassFalseIdentityForge: true } },
           setback: { result: "Le convoi se divise entre six statues identiques qui se saluent entre elles.", effects: { morale: -2 }, flags: { lostAmongSalutingStatues: true } } },
       ],
     }),
@@ -3223,10 +3223,10 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.RARE, tags: ["haki", "observation", "target"],
       choices: [
         { id: "empty-mind", text: "Suivre la piste sans préparer l’attaque", choiceTag: "Intuition",
-          success: { result: "Un bref instant, tu perçois le vétéran avant de penser à le saisir.", effects: { haki: 2, combat: 1 }, minimumStats: { haki: 2 }, addTraits: ["calme"], flags: { sensedHobbWithObservation: true } },
+          success: { result: "Un bref instant, tu perçois le vétéran avant de penser à le saisir.", effects: { haki: 2, combat: 1 }, minimumStats: { haki: 2 }, titles: ["personnalite-calme"], flags: { sensedHobbWithObservation: true } },
           setback: { result: "Essayer de ne penser à rien produit surtout beaucoup de pensées sur le fait de ne penser à rien.", effects: { morale: -2 }, flags: { hobbReadHunterIntent: true } } },
         { id: "create-chaos", text: "Lancer plusieurs pistes contradictoires", choiceTag: "Ruse",
-          success: { result: "Le vétéran ne peut anticiper une équipe qui ignore elle-même quel plan sera choisi.", effects: { fortune: 18000, morale: 2 }, requiredTraits: ["créatif"], flags: { capturedHobbNoBell: true } },
+          success: { result: "Le vétéran ne peut anticiper une équipe qui ignore elle-même quel plan sera choisi.", effects: { fortune: 18000, morale: 2 }, requiredTitles: ["personnalite-creatif"], flags: { capturedHobbNoBell: true } },
           setback: { result: "Ton équipe suit réellement les fausses pistes et le vétéran quitte l’île tranquillement.", effects: { fortune: -6000, morale: -3 }, flags: { lostHobbInOwnDecoys: true } } },
       ],
     }),
@@ -3241,7 +3241,7 @@ const COMMON_EVENTS = [
           success: { result: "La chute du pirate est diffusée par Escargophone avant que ses protecteurs réagissent.", effects: { fortune: 20000, popularity: 5 }, minimumStats: { combat: 25, popularity: 70 }, flags: { publiclyCapturedProtectedPirate: true, offendedProtectedPirateNetwork: true }, important: true },
           setback: { result: "La cible s’échappe et les fonctionnaires corrompus font annuler officiellement le contrat.", effects: { health: -7, popularity: -3 }, flags: { huntedByProtectedPirateNetwork: true } } },
         { id: "sell-proof", text: "Vendre les preuves à une faction rivale", choiceTag: "Pragmatisme",
-          success: { result: "Les documents rapportent gros et déclenchent une lutte interne chez les protecteurs.", effects: { fortune: 20000 }, requiredTraits: ["opportuniste"], flags: { soldProtectedPirateEvidence: true } },
+          success: { result: "Les documents rapportent gros et déclenchent une lutte interne chez les protecteurs.", effects: { fortune: 20000 }, requiredTitles: ["personnalite-opportuniste"], flags: { soldProtectedPirateEvidence: true } },
           setback: { result: "L’acheteur travaille pour le réseau et récupère toutes les copies.", effects: { fortune: -8000, morale: -3 }, flags: { evidenceTakenByProtectedNetwork: true } } },
       ],
     }),
@@ -3292,10 +3292,10 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["cell", "cipher-pol", "evacuation"],
       choices: [
         { id: "evacuate-cell", text: "Évacuer les agents par petits groupes", choiceTag: "Prudence",
-          success: { result: "L’agente clandestine disperse la cellule sur trois routes et conserve tous les contacts essentiels.", effects: { morale: 3, crew: 1 }, minimumStats: { ship: 3 }, dreamProgressByDream: { "build-underground-network": 2 }, flags: { savedRedWindowCell: true, alliedWithLuneFiligree: true } },
+          success: { result: "L’agente clandestine disperse la cellule sur trois routes et conserve tous les contacts essentiels.", effects: { morale: 3, intelligence: 1 }, minimumStats: { ship: 3 }, dreamProgressByDream: { "build-underground-network": 2 }, flags: { savedRedWindowCell: true, alliedWithLuneFiligree: true } },
           setback: { result: "Un groupe est suivi et force le réseau à abandonner plusieurs caches.", effects: { morale: -3, fortune: -6000 }, flags: { redWindowRoutesCompromised: true } } },
         { id: "feed-false-cell", text: "Transformer la cellule en leurre", choiceTag: "Ruse",
-          success: { result: "Le Cipher Pol surveille des appartements vides pendant que l’agente clandestine rétablit les liaisons.", effects: { morale: 2 }, requiredTraits: ["rusé"], dreamProgressByDream: { "build-underground-network": 2 }, flags: { deceivedCipherPolAtRedWindows: true } },
+          success: { result: "Le Cipher Pol surveille des appartements vides pendant que l’agente clandestine rétablit les liaisons.", effects: { morale: 2 }, requiredTitles: ["personnalite-ruse"], dreamProgressByDream: { "build-underground-network": 2 }, flags: { deceivedCipherPolAtRedWindows: true } },
           setback: { result: "Un agent reconnaît le leurre et remonte jusqu’à un dépôt réel.", effects: { morale: -2, fortune: -8000 }, flags: { cipherPolFoundRevolutionaryDepot: true } } },
       ],
     }),
@@ -3309,7 +3309,7 @@ const COMMON_EVENTS = [
           success: { result: "Les chiffres circulent par Escargophone et déclenchent une grève générale.", effects: { popularity: 4, morale: 3 }, minimumStats: { popularity: 45 }, dreamProgressByDream: { "found-free-nation": 2, "reveal-void-century": 1 }, flags: { exposedBreathTaxLedgers: true, ministerTalcRevolutionaryEnemy: true }, important: true },
           setback: { result: "Le ministre accuse des comptables innocents et augmente la surveillance.", effects: { morale: -3 }, flags: { breathTaxClerksArrested: true } } },
         { id: "disable-counters", text: "Saboter les compteurs pendant la relève", choiceTag: "Prudence",
-          success: { result: "La saboteuse bloque chaque compteur sur zéro sans toucher aux galeries.", effects: { morale: 3, fortune: 5000 }, requiredTraits: ["créatif"], flags: { disabledBreathTaxCounters: true, metPivoineSaboteur: true } },
+          success: { result: "La saboteuse bloque chaque compteur sur zéro sans toucher aux galeries.", effects: { morale: 3, fortune: 5000 }, requiredTitles: ["personnalite-creatif"], flags: { disabledBreathTaxCounters: true, metPivoineSaboteur: true } },
           setback: { result: "Les compteurs sonnent tous ensemble et alertent la garde.", effects: { health: -4, morale: -2 }, flags: { breathTaxSabotageExposed: true } } },
       ],
     }),
@@ -3323,7 +3323,7 @@ const COMMON_EVENTS = [
           success: { result: "L’agente de liaison démasque un agent du Cipher Pol grâce à une faute que seule la vraie cellule utilise.", effects: { morale: 3 }, requiredFlags: { trustedAgentCendre: true }, dreamProgressByDream: { "build-underground-network": 1 }, flags: { cendreExposedCipherInfiltrator: true } },
           setback: { result: "Le suspect s’enfuit avant l’interrogatoire et emporte plusieurs codes.", effects: { morale: -3 }, flags: { infiltratorStoleCellCodes: true } } },
         { id: "verify-both", text: "Vérifier séparément les deux identités", choiceTag: "Prudence",
-          success: { result: "L’agente clandestine confirme les soupçons de l’agente de liaison et isole l’infiltré sans fracture interne.", effects: { morale: 2 }, requiredTraits: ["patient"], flags: { restoredCendreTrust: true, capturedCipherInfiltrator: true } },
+          success: { result: "L’agente clandestine confirme les soupçons de l’agente de liaison et isole l’infiltré sans fracture interne.", effects: { morale: 2 }, requiredTitles: ["personnalite-patient"], flags: { restoredCendreTrust: true, capturedCipherInfiltrator: true } },
           setback: { result: "L’enquête nourrit les soupçons et l’agente de liaison quitte la cellule avant la conclusion.", effects: { morale: -4 }, requiredFlags: { suspectedAgentCendreSpy: true }, flags: { cendreLeftRevolutionaryNetwork: true } } },
       ],
     }),
@@ -3334,7 +3334,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["archive", "cipher-pol", "void-century"],
       choices: [
         { id: "copy-archive", text: "Copier les documents sans réveiller l’Escargophone", choiceTag: "Prudence",
-          success: { result: "L’archiviste reproduit les sceaux et plusieurs références au Siècle oublié.", effects: { morale: 3 }, requiredTraits: ["patient"], dreamProgressByDream: { "reveal-void-century": 3 }, flags: { copiedBreathingArchive: true, metNeroDrypaper: true }, important: true },
+          success: { result: "L’archiviste reproduit les sceaux et plusieurs références au Siècle oublié.", effects: { morale: 3 }, requiredTitles: ["personnalite-patient"], dreamProgressByDream: { "reveal-void-century": 3 }, flags: { copiedBreathingArchive: true, metNeroDrypaper: true }, important: true },
           setback: { result: "L’Escargophone ouvre un œil, bâille et transmet l’alerte en dormant.", effects: { morale: -2, health: -3 }, flags: { breathingArchiveAlerted: true } } },
         { id: "steal-index", text: "Prendre uniquement l’index des dossiers", choiceTag: "Intuition",
           success: { result: "L’index révèle où le Gouvernement mondial déplace les archives interdites.", effects: { morale: 2 }, dreamProgressByDream: { "reveal-void-century": 2, "build-underground-network": 1 }, flags: { stoleForbiddenArchiveIndex: true } },
@@ -3349,7 +3349,7 @@ const COMMON_EVENTS = [
       important: true,
       choices: [
         { id: "cut-chains-carefully", text: "Détacher les chaînes une section après l’autre", choiceTag: "Prudence",
-          success: { result: "Chaque prisonnier atteint les canots et la saboteuse neutralise le mécanisme central.", effects: { morale: 5, crew: 1 }, minimumStats: { ship: 3 }, dreamProgressByDream: { "break-the-chains": 3 }, flags: { liberatedHullChainPrisoners: true, recruitedPivoineSaboteur: true }, important: true },
+          success: { result: "Chaque prisonnier atteint les canots. La saboteuse neutralise le mécanisme central, puis rejoint durablement ton groupe.", effects: { morale: 5, crew: 1 }, minimumStats: { ship: 3 }, dreamProgressByDream: { "break-the-chains": 3 }, flags: { liberatedHullChainPrisoners: true, recruitedPivoineSaboteur: true }, important: true },
           setback: { result: "Une section cède trop tôt et l’évacuation se termine dans l’eau glacée.", effects: { health: -6, morale: -2 }, flags: { partialHullChainRescue: true } } },
         { id: "seize-prison-ship", text: "Prendre le contrôle du navire-prison", choiceTag: "Audace",
           success: { result: "La garde se rend et le bâtiment devient une route mobile pour les évacuations.", effects: { combat: 3, popularity: 3 }, minimumStats: { combat: 22 }, dreamProgressByDream: { "break-the-chains": 2, "build-underground-network": 2 }, flags: { seizedGovernmentPrisonShip: true }, important: true },
@@ -3363,7 +3363,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["route", "newspaper", "network"],
       choices: [
         { id: "expand-route", text: "Relier la route aux cellules voisines", choiceTag: "Organisation",
-          success: { result: "L’agente clandestine synchronise les livraisons et crée une chaîne clandestine stable.", effects: { morale: 3, fortune: 5000 }, requiredTraits: ["organisé"], dreamProgressByDream: { "build-underground-network": 3 }, flags: { expandedNewspaperAgentRoute: true, alliedWithMorganeRotary: true }, important: true },
+          success: { result: "L’agente clandestine synchronise les livraisons et crée une chaîne clandestine stable.", effects: { morale: 3, fortune: 5000 }, requiredTitles: ["personnalite-organise"], dreamProgressByDream: { "build-underground-network": 3 }, flags: { expandedNewspaperAgentRoute: true, alliedWithMorganeRotary: true }, important: true },
           setback: { result: "Une édition en retard bloque deux agents dans un kiosque pendant toute une journée.", effects: { morale: -2 }, flags: { newspaperRouteDelayed: true } } },
         { id: "keep-route-small", text: "Conserver une route discrète et locale", choiceTag: "Prudence",
           success: { result: "La liaison reste invisible et fiable pour les témoins les plus sensibles.", effects: { morale: 2 }, dreamProgressByDream: { "build-underground-network": 1 }, flags: { securedLocalNewspaperRoute: true } },
@@ -3391,7 +3391,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["insurrection", "strategy", "territory"],
       choices: [
         { id: "delay-uprising", text: "Reporter le soulèvement pour préparer les réserves", choiceTag: "Sagesse",
-          success: { result: "Les cellules stockent nourriture et médicaments sans éveiller la garnison.", effects: { fortune: -8000, morale: 3 }, requiredTraits: ["prudent"], dreamProgressByDream: { "found-free-nation": 2, "build-underground-network": 1 }, flags: { preparedSustainableUprising: true } },
+          success: { result: "Les cellules stockent nourriture et médicaments sans éveiller la garnison.", effects: { fortune: -8000, morale: 3 }, requiredTitles: ["personnalite-prudent"], dreamProgressByDream: { "found-free-nation": 2, "build-underground-network": 1 }, flags: { preparedSustainableUprising: true } },
           setback: { result: "L’attente permet à la garnison d’arrêter plusieurs meneurs.", effects: { morale: -4 }, flags: { uprisingLeadersArrested: true } } },
         { id: "ring-bell", text: "Soutenir l’insurrection immédiate", choiceTag: "Rébellion",
           success: { result: "La garnison tombe avant de verrouiller le port et la ville forme un conseil provisoire.", effects: { combat: 3, popularity: 4 }, minimumStats: { combat: 23, morale: 55 }, dreamProgressByDream: { "found-free-nation": 3 }, flags: { liberatedBellportCity: true, foundedBellportCouncil: true }, important: true },
@@ -3408,7 +3408,7 @@ const COMMON_EVENTS = [
       important: true,
       choices: [
         { id: "build-council", text: "Aider à former un conseil et des réserves", choiceTag: "Organisation",
-          success: { result: "Les habitants répartissent les ateliers, les vivres et la défense sous des règles publiques.", effects: { morale: 4, fortune: -8000 }, requiredTraits: ["organisé"], dreamProgressByDream: { "found-free-nation": 3 }, flags: { builtBrassFreeDistrictCouncil: true, brassFreeDistrictEndures: true }, important: true },
+          success: { result: "Les habitants répartissent les ateliers, les vivres et la défense sous des règles publiques.", effects: { morale: 4, fortune: -8000 }, requiredTitles: ["personnalite-organise"], dreamProgressByDream: { "found-free-nation": 3 }, flags: { builtBrassFreeDistrictCouncil: true, brassFreeDistrictEndures: true }, important: true },
           setback: { result: "Les anciennes rivalités bloquent le conseil et épuisent les premières réserves.", effects: { morale: -3, fortune: -5000 }, flags: { brassFreeDistrictDivided: true } } },
         { id: "arm-district", text: "Préparer d’abord la défense du quartier", choiceTag: "Prudence",
           success: { result: "La saboteuse transforme les ateliers en réseau défensif sans militariser les rues.", effects: { combat: 2, morale: 2 }, requiredFlags: { recruitedPivoineSaboteur: true }, dreamProgressByDream: { "found-free-nation": 2 }, flags: { fortifiedBrassFreeDistrict: true } },
@@ -3437,7 +3437,7 @@ const COMMON_EVENTS = [
       important: true,
       choices: [
         { id: "document-stone", text: "Documenter chaque symbole avant la marée", choiceTag: "Sagesse",
-          success: { result: "L’archiviste réalise un relevé complet et distingue une référence au Siècle oublié.", effects: { morale: 4 }, requiredTraits: ["curieux"], dreamProgressByDream: { "reveal-void-century": 3 }, flags: { documentedWhisperingPoneglyph: true }, important: true },
+          success: { result: "L’archiviste réalise un relevé complet et distingue une référence au Siècle oublié.", effects: { morale: 4 }, requiredTitles: ["personnalite-curieux"], dreamProgressByDream: { "reveal-void-century": 3 }, flags: { documentedWhisperingPoneglyph: true }, important: true },
           setback: { result: "La marée recouvre les dernières lignes et brouille plusieurs relevés.", effects: { health: -3, morale: -2 }, flags: { partialWhisperingPoneglyphRubbing: true } } },
         { id: "hide-stone", text: "Masquer la pierre avant l’arrivée du Cipher Pol", choiceTag: "Prudence",
           success: { result: "La saboteuse dévie le courant et ensevelit la pierre sous un récif artificiel.", effects: { ship: 1, morale: 2 }, requiredFlags: { metPivoineSaboteur: true }, dreamProgressByDream: { "reveal-void-century": 2 }, flags: { concealedWhisperingPoneglyph: true } },
@@ -3531,7 +3531,7 @@ const COMMON_EVENTS = [
           success: { result: "Toute l’opération s’aligne sur l’objectif poursuivi depuis le départ et obtient une avancée décisive.", effects: { popularity: 5, morale: 5 }, minimumStats: { morale: 65 }, dreamProgressByDream: { "break-the-chains": 5, "reveal-void-century": 5, "build-underground-network": 5, "found-free-nation": 5 }, flags: { achievedDecisiveGrandLineDreamAdvance: true }, important: true },
           setback: { result: "La concentration sauve l’essentiel, mais oblige à abandonner les autres objectifs de l’île.", effects: { health: -7, morale: -3 }, flags: { paidPriceForChosenDream: true }, important: true } },
         { id: "balance-objectives", text: "Tenter de préserver les quatre objectifs", choiceTag: "Sacrifice",
-          success: { result: "Les équipes se relaient avec une précision exceptionnelle : captifs, archives, route et conseil survivent.", effects: { morale: 5, crew: 1 }, minimumStats: { crew: 4, ship: 5 }, dreamProgressByDream: { "break-the-chains": 3, "reveal-void-century": 3, "build-underground-network": 3, "found-free-nation": 3 }, flags: { preservedFourIslandObjectives: true }, important: true },
+          success: { result: "Les équipes se relaient avec une précision exceptionnelle : captifs, archives, route et conseil survivent.", effects: { morale: 5, intelligence: 1 }, minimumStats: { crew: 4, ship: 5 }, dreamProgressByDream: { "break-the-chains": 3, "reveal-void-century": 3, "build-underground-network": 3, "found-free-nation": 3 }, flags: { preservedFourIslandObjectives: true }, important: true },
           setback: { result: "L’opération se disperse ; les prisonniers sont libérés, mais les archives et la route sont perdues.", effects: { morale: -4, health: -5 }, dreamProgressByDream: { "break-the-chains": 2 }, flags: { savedPrisonersLostIslandNetwork: true }, important: true } },
       ],
     }),
@@ -3749,7 +3749,7 @@ const COMMON_EVENTS = [
               result: `${special ? getSpecialResult(scene, scene.bold, "bold") : scene.boldResult} ${describeNarrativeEffects(winEffects)}`.trim(),
               effects: winEffects,
               minimumStats: { [mainStat]: mainStat === "bounty" ? (late ? 900000 : 400000) : late ? 26 : 20 },
-              requiredTraits: scene.boldTrait ? [scene.boldTrait] : [],
+              requiredTitles: scene.boldTrait ? [scene.boldTrait] : [],
               requiredFlags: scene.callbackFlags || {},
               flags: {
                 [advancedFlag(id, "Mastered")]: true,
@@ -3776,8 +3776,8 @@ const COMMON_EVENTS = [
               requiredCombatStyles: resolutionCategory === "action"
                 ? (scene.style ? [scene.style] : ["navigateur"])
                 : [],
-              requiredTraits: resolutionCategory === "social"
-                ? [scene.measuredTrait || "prudent"]
+              requiredTitles: resolutionCategory === "social"
+                ? [scene.measuredTrait || "personnalite-prudent"]
                 : [],
               flags: { [advancedFlag(id, "Specialist")]: true },
               weight: 1,
@@ -3807,7 +3807,7 @@ const COMMON_EVENTS = [
               id: `${id}-measured-success`,
               result: `${special ? getSpecialResult(scene, scene.measured, "measured") : scene.measuredResult} ${describeNarrativeEffects(carefulEffects)}`.trim(),
               effects: carefulEffects,
-              requiredTraits: [scene.measuredTrait || "prudent"],
+              requiredTitles: [scene.measuredTrait || "personnalite-prudent"],
               flags: {
                 [advancedFlag(id, "Prepared")]: true,
                 ...(scene.preparedFlags || {}),
@@ -3874,18 +3874,18 @@ const COMMON_EVENTS = [
     pirate: [
       // RED LINE — passages, institutions et Gouvernement mondial
       scene("red-line-government-convoy", "Les coffres aux cinq sceaux", "Un convoi du Gouvernement mondial gravit un canal fortifié. Ses manifestes mentionnent des vivres ; ses gardes portent des chaînes d’esclaves.", "Aborder le vaisseau de tête", "Substituer les manifestes", { tags: ["government", "convoy"], boldTag: "Audace", stat: "bounty", winFlags: { seizedFiveSealCargo: true } }),
-      scene("red-line-port-inspection", "L’inspectrice au monocle carré", "Une inspectrice portuaire qui mesure les pavillons à la règle, bloque ton navire pour une irrégularité qu’elle vient d’inventer.", "Faire voler la barrière", "Jouer avec son règlement", { tags: ["inspection", "port"], measuredTrait: "rusé", preparedFlags: { fooledInspectorQuarte: true } }),
+      scene("red-line-port-inspection", "L’inspectrice au monocle carré", "Une inspectrice portuaire qui mesure les pavillons à la règle bloque ton navire pour une irrégularité qu’elle vient d’inventer.", "Faire voler la barrière", "Jouer avec son règlement", { tags: ["inspection", "port"], measuredTrait: "personnalite-ruse", preparedFlags: { fooledInspectorQuarte: true } }),
       scene("red-line-underground-passage", "La veine sous le continent", "Un mineur local connaît un tunnel dont les rails plongent sous Red Line, mais une garnison utilise déjà sa sortie.", "Forcer la sortie", "Détourner le wagon postal", { tags: ["passage", "smuggling"], style: "inventeur", winFlags: { openedSilexPassage: true } }),
       scene("red-line-smuggler-offer", "La barque de la passeuse", "Une passeuse de Red Line propose un passage dans des tonneaux diplomatiques. Elle réclame en échange une faveur dont elle refuse encore de préciser la nature.", "Accepter sa dette", "Négocier une faveur limitée", { tags: ["smuggling", "debt"], stat: "fortune", preparedFlags: { owesMotherContrabandFavor: true } }),
       scene("red-line-marine-chain", "La chaîne des douze canons", "Une escadre de la Marine tend une chaîne entre deux forts et attend que le courant livre ton équipage.", "Briser le maillon central", "Faire croire à une collision", { tags: ["marine", "chase"], style: "utilisateur-armes", boldTag: "Risqué" }),
       scene("red-line-rival-route", "La capitaine rivale et la porte trop étroite", "La capitaine rivale surgit devant l’unique écluse clandestine. Selon votre histoire, elle apporte du rhum, des canons ou les deux.", "Passer côte à côte", "Lui céder la première manœuvre", { tags: ["callback", "rival"], callbackFlags: { sparedAlbaRival: true }, winFlags: { crossedRedLineWithAlba: true } }),
       scene("red-line-prison-barge", "La cale qui chante faux", "Des prisonniers politiques chantent sous le pont d’une barge. Leur libération révélerait immédiatement ta position.", "Rompre leurs chaînes", "Organiser une fuite au prochain sas", { tags: ["prisoners", "choice"], boldTag: "Sacrifice", winFlags: { freedRedLinePrisoners: true } }),
       scene("red-line-celestial-cargo", "Les caisses qui ne touchent pas le sol", "Une cargaison destinée aux Nobles Mondiaux voyage sur des coussins portés par des condamnés. Même les douaniers refusent de la regarder.", "Saisir la cargaison", "Libérer les porteurs sans voler", { tags: ["celestial-dragons", "slavery"], boldTag: "Rébellion" }),
-      scene("red-line-corrupt-officer", "Le capitaine aux poches sonores", "Un capitaine corrompu accepte les pots-de-vin, mais chaque pièce cousue dans son manteau trahit ses mouvements.", "Acheter son silence", "Enregistrer ses aveux", { tags: ["corruption", "marine"], stat: "fortune", measuredTrait: "opportuniste" }),
+      scene("red-line-corrupt-officer", "Le capitaine aux poches sonores", "Un capitaine corrompu accepte les pots-de-vin, mais chaque pièce cousue dans son manteau trahit ses mouvements.", "Acheter son silence", "Enregistrer ses aveux", { tags: ["corruption", "marine"], stat: "fortune", measuredTrait: "personnalite-opportuniste" }),
       scene("red-line-repair-yard", "Le chantier suspendu", "Le chantier naval local répare les navires au-dessus du vide. La Marine vient de réquisitionner toutes ses chaînes.", "Voler les chaînes", "Réparer pendant la relève", { tags: ["ship", "repair"], stat: "ship", style: "inventeur" }),
-      scene("red-line-rival-smugglers", "La guerre des faux passeports", "Deux réseaux vendent le même passage secret et chacun accuse l’autre d’avoir livré des équipages au Cipher Pol.", "Imposer un accord", "Tester les deux itinéraires", { tags: ["smugglers", "cipher-pol"], measuredTrait: "prudent" }),
+      scene("red-line-rival-smugglers", "La guerre des faux passeports", "Deux réseaux vendent le même passage secret et chacun accuse l’autre d’avoir livré des équipages au Cipher Pol.", "Imposer un accord", "Tester les deux itinéraires", { tags: ["smugglers", "cipher-pol"], measuredTrait: "personnalite-prudent" }),
       scene("red-line-prisoner-choice", "Le géomètre condamné", "Un géomètre sait où Red Line est creuse. Il a aussi vendu autrefois un village entier à un trafiquant.", "L’embarquer malgré son passé", "Prendre sa carte et le laisser juger", { tags: ["prisoner", "secret"], boldTag: "Quitte ou double" }),
-      scene("red-line-forbidden-elevator", "L’ascenseur des ministres absents", "Un ascenseur officiel descend vide vers un port interdit. Son Escargophone récite la liste des ministres attendus.", "Prendre leur place", "Saboter les contrepoids", { tags: ["government", "infiltration"], style: "inventeur" }),
+      scene("red-line-forbidden-elevator", "L’ascenseur des ministres absents", "À Red Line, un ascenseur réservé aux ministres doit les conduire jusqu’à un port gouvernemental interdit au public. La cabine descend vide à cause d’un retard officiel, tandis que son Escargophone récite encore leurs noms : tu peux usurper leur place pour atteindre le port, mais le contrôle suivant révélera la fraude.", "Prendre leur place", "Saboter les contrepoids", { tags: ["government", "infiltration"], style: "inventeur" }),
       scene("red-line-buster-ledger", "Le registre des îles à effacer", "Dans un bureau abandonné, un registre classe des îles selon la probabilité d’un futur Buster Call.", "Voler le registre", "Modifier les priorités", { tags: ["buster-call", "secret"], boldTag: "Sans retour", winFlags: { stoleFutureBusterCallLedger: true } }),
       scene("red-line-rare-world-bounty", "La prime qui couvre un mur", "Le journal attribue à ton équipage trois attaques commises la même nuit. La prime devient assez grande pour transformer chaque port en piège.", "Revendiquer les trois exploits", "Démasquer le faussaire", { tags: ["bounty", "newspaper"], stat: "bounty", boldTag: "Quitte ou double", major: false }),
       scene("red-line-rare-vice-admiral", "Le poing du vice-amiral", "Le vice-amiral chargé de la poursuite ferme lui-même la dernière passe. Son Fluide de l’Armement fend le quai avant même qu’il ne frappe ton navire.", "Tenir le passage", "L’attirer loin de l’équipage", { tags: ["vice-admiral", "haki"], stat: "haki", style: "epeiste" }),
@@ -3895,7 +3895,7 @@ const COMMON_EVENTS = [
       // MER SANS ÉTOILES — obscurité, voix et navigation aveugle
       scene("special-starless-sea-blind-compass", "La boussole faussée par les vibrations", "Dans la Mer sans étoiles, une boussole modifiée dévie chaque fois qu'un Escargophone transmet à proximité. Quelqu'un utilise les communications du bord pour fausser le cap.", "Naviguer sans instrument", "Isoler la transmission clandestine", { tags: ["darkness", "navigation", "sabotage"], stat: "ship", style: "navigateur" }),
       scene("special-starless-sea-lantern-pirates", "Les pirates aux lanternes éteintes", "Un équipage peint des flammes noires sur ses lanternes et rançonne ceux qui suivent leur lumière invisible.", "Suivre leur sillage", "Allumer cent leurres", { tags: ["darkness", "rivalry"], style: "sniper" }),
-      scene("special-starless-sea-voice-wreck", "Les Tone Dials de l’épave", "Une épave diffuse les voix de précédents naufragés grâce à des Tone Dials endommagés. Parmi les enregistrements, une voix décrit pourtant ton navire actuel.", "Monter à bord pour retrouver l'enregistreur", "Diffuser une fausse réponse depuis le navire", { tags: ["mystery", "tone-dial"], measuredTrait: "rusé" }),
+      scene("special-starless-sea-voice-wreck", "Les Tone Dials de l’épave", "Une épave diffuse les voix de précédents naufragés grâce à des Tone Dials endommagés. Parmi les enregistrements, une voix décrit pourtant ton navire actuel.", "Monter à bord pour retrouver l'enregistreur", "Diffuser une fausse réponse depuis le navire", { tags: ["mystery", "tone-dial"], measuredTrait: "personnalite-ruse" }),
       scene("special-starless-sea-black-feast", "Le banquet derrière les paravents", "Des habitants de la Mer sans étoiles servent un banquet derrière d'épais paravents pour ne révéler ni leurs visages ni leur refuge. Une place d'honneur attend ton capitaine.", "Accepter leur protocole", "Offrir une chanson avant de négocier", { tags: ["humor", "inhabitants"], style: "musicien" }),
       scene("special-starless-sea-rare-observation", "Voir ce que la nuit cache", "Une navigatrice aveugle affirme que l’obscurité totale peut éveiller le Fluide de l’Observation.", "Suivre son épreuve", "Observer sa manière d’écouter", { tags: ["haki", "mentor"], stat: "haki", winFlags: { trainedWithNoxClear: true } }),
       scene("special-starless-sea-very-rare-king-echo", "Le battement sous la mer noire", "Quelque chose sous la coque répond à la volonté du capitaine. Les plus faibles s’évanouissent sans qu’aucune créature apparaisse.", "Protéger l’équipage par ta volonté", "Quitter le cercle sans provoquer l’abîme", { tags: ["kings-haki", "mystery"], boldTag: "Sans retour", major: true, requiresD: true }),
@@ -3919,7 +3919,7 @@ const COMMON_EVENTS = [
       // NOUVEAU MONDE — Empereurs, flottes et rêve final
       scene("shinsekai-emperor-territory", "Le port qui paie un Empereur", "Chaque maison porte le même pavillon d’Empereur. Les habitants paient en nourriture pour éviter les razzias d’un commandant glouton.", "Arracher son pavillon", "Convaincre le port de cesser le tribut", { tags: ["emperor", "territory"], boldTag: "Rébellion", winFlags: { challengedEmperorTerritory: true } }),
       scene("shinsekai-alliance-offer", "La coupe de l’alliance brisée", "Trois capitaines proposent une alliance, mais la coupe cérémonielle porte déjà une fissure correspondant exactement à ton pavillon.", "Boire malgré le présage", "Réécrire les termes devant tous", { tags: ["alliance", "fleet"], boldTag: "Diplomatie" }),
-      scene("shinsekai-ultimatum", "Trois jours pour plier le genou", "Un commandant d’Empereur exige ton pavillon, ton Log Pose et le meilleur dessert de ton cuisinier.", "Répondre par le canon", "Livrer un dessert piégé d’humiliation", { tags: ["emperor", "ultimatum", "humor"], measuredTrait: "créatif" }),
+      scene("shinsekai-ultimatum", "Trois jours pour plier le genou", "Un commandant d’Empereur exige ton pavillon, ton Log Pose et le meilleur dessert de ton cuisinier.", "Répondre par le canon", "Livrer un dessert piégé d’humiliation", { tags: ["emperor", "ultimatum", "humor"], measuredTrait: "personnalite-creatif" }),
       scene("shinsekai-fleet-war", "La mer couverte de voiles", "Deux flottes ferment l’horizon et demandent ton choix avant la première salve.", "Percer le centre de la bataille", "Unir les capitaines indépendants", { tags: ["war", "fleet"], boldTag: "Sans retour", winFlags: { ledIndependentNewWorldFleet: true } }),
       scene("shinsekai-crew-crisis", "Le vote sous le mât fendu", "Après des semaines de guerre, l’équipage exige de choisir entre ton rêve et la survie du navire.", "Défendre ton rêve sans mentir", "Confier la décision à l’équipage", { tags: ["crew", "dream"], boldTag: "Honneur" }),
       scene("shinsekai-public-battle", "Une bataille diffusée dans toutes les mers", "La responsable des presses clandestines détourne un réseau d’Escargophones : ton affrontement contre un équipage pirate sera retransmis en direct. Des otages se trouvent encore sur le navire ennemi.", "Attaquer devant les Escargophones", "Couper le signal et sauver les otages", { tags: ["newspaper", "public"], stat: "popularity" }),
@@ -3928,7 +3928,7 @@ const COMMON_EVENTS = [
       scene("shinsekai-kingdom-choice", "La couronne dans la cale", "Un royaume chassé de son île offre sa couronne à qui reprendra le port occupé.", "Reconquérir le port sans garder la couronne", "Transformer la flotte royale en alliance", { tags: ["kingdom", "territory"], boldTag: "Honneur" }),
       scene("shinsekai-black-market-fruit", "L’enchère aux pouvoirs enfermés", "Le marché noir vend un Fruit du Démon authentique au milieu de neuf imitations explosives.", "Voler la caisse authentique", "Détruire le registre des acheteurs", { tags: ["devil-fruit", "black-market"], boldTag: "Quitte ou double" }),
       scene("shinsekai-advanced-haki", "Le pont que les poings ne touchent pas", "Un vétéran du Nouveau Monde attend sur un pont détruit et enseigne à frapper sans laisser la volonté se disperser.", "Affronter son dernier exercice", "Protéger l’équipage pendant sa démonstration", { tags: ["haki", "mentor"], stat: "haki", callbackFlags: { trainedByGaroHandcalm: true } }),
-      scene("shinsekai-emperor-banquet", "Le banquet des cent desserts", "Un Empereur absent invite cent équipages à dîner ; chaque gâteau contient un ordre différent.", "Lire ton ordre à voix haute", "Échanger les gâteaux entre capitaines", { tags: ["emperor", "feast", "humor"], measuredTrait: "rusé" }),
+      scene("shinsekai-emperor-banquet", "Le banquet des cent desserts", "Un Empereur absent invite cent équipages à dîner ; chaque gâteau contient un ordre différent.", "Lire ton ordre à voix haute", "Échanger les gâteaux entre capitaines", { tags: ["emperor", "feast", "humor"], measuredTrait: "personnalite-ruse" }),
       scene("shinsekai-rare-world-bounty", "Le chiffre que le journal hésite à imprimer", "Ta prime dépasse celle de plusieurs royaumes réunis. Les imprimeurs demandent si ton portrait doit sourire.", "Assumer la légende", "Faire imprimer les noms de l’équipage", { tags: ["bounty", "newspaper"], stat: "bounty", boldTag: "Quitte ou double" }),
       scene("shinsekai-rare-emperor-seat", "Le siège laissé vide", "La chute d’un seigneur pirate libère un territoire assez vaste pour faire de toi un Empereur, si les peuples et les flottes te reconnaissent.", "Réunir les pavillons libres", "Protéger le territoire sans revendiquer le titre", { tags: ["emperor", "status"], boldTag: "Sans retour", major: true, winFlags: { candidateForEmperorStatus: true } }),
       scene("shinsekai-rare-forgotten-route", "Quatre cartes indiquent une mer inconnue", "Les relevés de la tempête, des récifs et d’un Road Ponéglyphe indiquent tous les mêmes coordonnées, absentes des cartes officielles.", "Naviguer vers les coordonnées", "Partager les relevés avec les alliés", { tags: ["history", "road-poneglyph"], boldTag: "Intuition", major: true }),
@@ -3942,7 +3942,7 @@ const COMMON_EVENTS = [
       scene("red-line-dignitary-escort", "Le dignitaire et ses douze oreillers", "Un ministre exige une escorte pour lui-même, ses bagages et douze oreillers diplomatiques tandis qu’un village attend des médicaments.", "Diviser l’escorte", "Imposer un chargement prioritaire", { tags: ["escort", "government"], boldTag: "Devoir", winFlags: { protectedMinisterPalanAndMedicine: true } }),
       scene("red-line-convoy-inspection", "Le treizième navire", "Un convoi officiel compte douze bâtiments sur le manifeste et treize dans le canal.", "Monter à bord du treizième", "Fermer les deux sorties", { tags: ["inspection", "convoy"], style: "sniper" }),
       scene("red-line-pirate-interception", "Les pavillons sous la peinture", "Un transport civil dissimule trois pavillons pirates sous une peinture encore fraîche.", "Intercepter avant l’écluse", "Vérifier les passagers", { tags: ["pirates", "civilians"], boldTag: "Prudence" }),
-      scene("red-line-cipher-collaboration", "Le masque posé sur ton bureau", "L’agente du Cipher Pol demande ton unité pour une arrestation sans mandat et laisse son masque en guise de signature.", "Exiger le dossier", "Participer pour surveiller l’opération", { tags: ["cipher-pol", "justice"], measuredTrait: "responsable" }),
+      scene("red-line-cipher-collaboration", "Le masque posé sur ton bureau", "L’agente du Cipher Pol demande ton unité pour une arrestation sans mandat et laisse son masque en guise de signature.", "Exiger le dossier", "Participer pour surveiller l’opération", { tags: ["cipher-pol", "justice"], measuredTrait: "personnalite-responsable" }),
       scene("red-line-unjust-order", "L’ordre de fermer les pompes", "La hiérarchie ordonne de couper l’eau d’un quartier qui refuse une nouvelle taxe du Gouvernement mondial.", "Maintenir les pompes", "Retarder l’ordre par la procédure", { tags: ["justice", "taxes"], boldTag: "Justice", winFlags: { defiedRedLineWaterOrder: true } }),
       scene("red-line-civilian-shield", "Le quai entre deux tirs", "Des familles restent prises entre une batterie pirate et les canons du fort.", "Former un écran d’évacuation", "Négocier une minute de silence", { tags: ["civilians", "battle"], boldTag: "Sacrifice" }),
       scene("red-line-corrupt-officer", "Les clés du commandant corrompu", "Le commandant corrompu loue les cellules de la Marine à des trafiquants durant la nuit.", "L’arrêter devant la garnison", "Réunir ses registres", { tags: ["corruption", "prison"], boldTag: "Honneur", winFlags: { arrestedCommanderBell: true } }),
@@ -3950,7 +3950,7 @@ const COMMON_EVENTS = [
       scene("red-line-strategic-gate", "La porte des deux océans", "Une panne menace de bloquer le passage stratégique avec trois flottes de chaque côté.", "Prendre le contrôle des treuils", "Coordonner les capitaines", { tags: ["strategy", "passage"], stat: "ship", style: "inventeur" }),
       scene("red-line-mutiny", "Les fusils posés en cercle", "Une compagnie refuse d’escorter des esclaves présentés comme prisonniers administratifs.", "Écouter les mutins", "Désarmer tout le monde avant le débat", { tags: ["mutiny", "slavery"], boldTag: "Justice" }),
       scene("red-line-promotion-offer", "Les galons dans l’enveloppe noire", "Le Cipher Pol propose une promotion immédiate si un rapport compromettant disparaît.", "Refuser les galons", "Accepter pour conserver le dossier", { tags: ["promotion", "cipher-pol"], boldTag: "Honneur" }),
-      scene("red-line-joint-operation", "Cinq uniformes, aucun commandement", "Marine, douanes et trois services secrets encerclent le même contrebandier avec cinq plans incompatibles.", "Unifier l’opération", "Laisser le contrebandier révéler sa sortie", { tags: ["operation", "smuggling"], measuredTrait: "organisé" }),
+      scene("red-line-joint-operation", "Cinq uniformes, aucun commandement", "Marine, douanes et trois services secrets encerclent le même contrebandier avec cinq plans incompatibles.", "Unifier l’opération", "Laisser le contrebandier révéler sa sortie", { tags: ["operation", "smuggling"], measuredTrait: "personnalite-organise" }),
       scene("red-line-prisoner-transfer", "La prisonnière au nom censuré", "Une historienne transférée vers une prison secrète affirme pouvoir prouver que son ordre d’arrestation est postérieur à sa capture.", "Suspendre le transfert", "Authentifier les dates", { tags: ["prisoner", "history"], boldTag: "Justice" }),
       scene("red-line-celestial-tribute", "Le tribut avant les secours", "Le tribut destiné aux Nobles Mondiaux occupe les remorqueurs nécessaires à un quartier menacé d’effondrement.", "Réquisitionner les remorqueurs", "Faire évacuer le tribut à la main", { tags: ["celestial-dragons", "civilians"], boldTag: "Sacrifice" }),
       scene("red-line-rare-secret-audit", "Les comptes du commodore corrompu", "Les falsifications du commodore corrompu relient plusieurs bases à un trafic protégé par le Gouvernement mondial.", "Publier l’audit", "Remonter jusqu’au protecteur", { tags: ["callback", "corruption"], callbackFlags: { reportedCommanderSoria: true }, winFlags: { exposedRonceRedLineNetwork: true } }),
@@ -3960,7 +3960,7 @@ const COMMON_EVENTS = [
 
       // MER SANS ÉTOILES
       scene("special-starless-sea-dark-patrol", "La patrouille sans fanaux", "Dans la Mer sans étoiles, les signaux lumineux attirent des silhouettes qui copient les formations de la Marine.", "Maintenir la formation dans le noir", "Changer tous les codes", { tags: ["darkness", "patrol"], stat: "ship" }),
-      scene("special-starless-sea-missing-unit", "L’unité qui répond demain", "Une unité disparue répond aux appels avec exactement un jour d’avance.", "Suivre ses coordonnées", "Poser une question dont tu ignores la réponse", { tags: ["mystery", "escargophone"], measuredTrait: "curieux" }),
+      scene("special-starless-sea-missing-unit", "L’unité qui répond demain", "Une unité disparue répond aux appels avec exactement un jour d’avance.", "Suivre ses coordonnées", "Poser une question dont tu ignores la réponse", { tags: ["mystery", "escargophone"], measuredTrait: "personnalite-curieux" }),
       scene("special-starless-sea-prison-lights", "Les cellules aux yeux fermés", "Un navire-prison éteint dérive ; ses détenus refusent toute lumière et accusent le geôlier d’attirer la nuit.", "Monter avec une équipe", "Évacuer les détenus à distance", { tags: ["prison", "darkness"], boldTag: "Prudence" }),
       scene("special-starless-sea-nox-test", "Le rapport de la navigatrice aveugle", "Une navigatrice locale, habituée à se diriger par le son, accuse un officier de la Marine d’avoir vendu les routes sûres à des pirates aux lanternes noires.", "Suivre ses indications sonores", "Comparer son rapport aux échos de la patrouille", { tags: ["local", "investigation"], stat: "haki" }),
       scene("special-starless-sea-rare-observation", "La bataille que personne ne voit", "Deux navires combattent sans lumière ni bruit. Seul le Fluide de l’Observation permet de distinguer l’agresseur.", "Intervenir selon les présences", "Attendre le premier tir", { tags: ["haki", "battle"], stat: "haki" }),
@@ -3968,7 +3968,7 @@ const COMMON_EVENTS = [
 
       // ARCHIPEL MOUVANT
       scene("special-wandering-archipelago-mobile-base", "La base partie sans permission", "Une petite base de la Marine s’est réveillée sur une autre île, laissant son port et tous ses formulaires derrière elle.", "Remorquer la base", "Déclarer officiellement son déménagement", { tags: ["moving-islands", "humor"], stat: "ship" }),
-      scene("special-wandering-archipelago-cartographer", "Le procès du cartographe", "Un cartographe local est accusé d’avoir falsifié une carte officielle, alors que l’île représentée a réellement changé de position.", "Présenter les relevés du cartographe", "Reconstituer le déplacement devant le tribunal", { tags: ["justice", "local"], measuredTrait: "patient" }),
+      scene("special-wandering-archipelago-cartographer", "Le procès du cartographe", "Un cartographe local est accusé d’avoir falsifié une carte officielle, alors que l’île représentée a réellement changé de position.", "Présenter les relevés du cartographe", "Reconstituer le déplacement devant le tribunal", { tags: ["justice", "local"], measuredTrait: "personnalite-patient" }),
       scene("special-wandering-archipelago-border", "La frontière qui dérive", "Deux royaumes se déclarent la guerre chaque fois que leurs îles se touchent, puis signent la paix en s’éloignant.", "Imposer une zone neutre mobile", "Organiser une conférence sur radeau", { tags: ["politics", "moving-islands"], boldTag: "Diplomatie" }),
       scene("special-wandering-archipelago-smuggler-islet", "L’îlot sous séquestre", "Un îlot entier sert d’entrepôt de contrebande et tente de s’éloigner pendant l’inspection.", "L’encercler avec les patrouilleurs", "Marquer sa route magnétique", { tags: ["smuggling", "geography"], style: "navigateur" }),
       scene("special-wandering-archipelago-rare-rescue", "La collision des neuf villages", "Neuf îles convergent vers le même point avec leurs villages incapables de manœuvrer.", "Commander l’évacuation générale", "Modifier les courants avec les flottes", { tags: ["rescue", "disaster"], boldTag: "Devoir", winFlags: { savedNineWanderingVillages: true } }),
@@ -3976,7 +3976,7 @@ const COMMON_EVENTS = [
 
       // ÎLE DE LA TEMPÊTE
       scene("special-tempest-isle-rescue", "Sept secondes pour accoster", "Un navire civil dérive vers le port entre deux impacts réguliers.", "Le remorquer dans l’intervalle", "Faire évacuer par petites embarcations", { tags: ["storm", "rescue"], stat: "ship" }),
-      scene("special-tempest-isle-garrison", "La garnison en bottes de bois", "La garnison locale porte des bottes isolantes si hautes que personne ne peut plier les genoux pendant l’inspection.", "Adapter les patrouilles", "Faire rire l’inspecteur jusqu’à la relève", { tags: ["humor", "garrison"], measuredTrait: "charismatique" }),
+      scene("special-tempest-isle-garrison", "La garnison en bottes de bois", "La garnison locale porte des bottes isolantes si hautes que personne ne peut plier les genoux pendant l’inspection.", "Adapter les patrouilles", "Faire rire l’inspecteur jusqu’à la relève", { tags: ["humor", "garrison"], measuredTrait: "personnalite-charismatique" }),
       scene("special-tempest-isle-fruit-trafficking", "Les faux fruits sous parafoudre", "Un réseau vend des Fruits du Démon peints aux soldats, puis reprend les caisses après chaque électrocution.", "Arrêter les vendeurs", "Suivre l’argent", { tags: ["devil-fruit", "fraud"], boldTag: "Devoir" }),
       scene("special-tempest-isle-fulga-dispute", "La cloche des gardiens", "La responsable des gardiens accuse une unité du Gouvernement mondial d’avoir volé la cloche qui détourne les éclairs du village avant une nouvelle salve.", "Inspecter le navire officiel malgré les ordres", "Protéger le village pendant la recherche des preuves", { tags: ["local", "government"], boldTag: "Justice" }),
       scene("special-tempest-isle-rare-haki", "Le coup porté dans la foudre", "Un instructeur affirme que le Fluide de l’Armement peut détourner un impact sans condamner celui qui le reçoit.", "Tenter l’interception", "Étudier le point de décharge", { tags: ["haki", "training"], stat: "haki" }),
@@ -3991,7 +3991,7 @@ const COMMON_EVENTS = [
       scene("shinsekai-high-rank-offer", "La veste aux épaulettes lourdes", "Une promotion vers le haut commandement arrive avant une mission presque impossible.", "Accepter la responsabilité", "Exiger des moyens avant les galons", { tags: ["promotion", "career"], boldTag: "Devoir" }),
       scene("shinsekai-emperor-confrontation", "L’ombre d’un Empereur", "La présence d’un Empereur immobilise les lignes de la Marine sans qu’il ait encore donné un ordre.", "Maintenir l’évacuation sous son regard", "Négocier le retrait des civils", { tags: ["emperor", "haki"], stat: "haki", boldTag: "Courage" }),
       scene("shinsekai-justice-crisis", "La justice sous deux pavillons", "Un royaume allié exige l’arrestation de résistants qui ont protégé sa population contre un équipage pirate.", "Refuser l’extradition", "Organiser un jugement public", { tags: ["justice", "kingdom"], boldTag: "Justice" }),
-      scene("shinsekai-five-elders-mission", "Le dossier des Cinq Doyens", "Le Conseil des Cinq Doyens ordonne de récupérer une pierre gravée sans laisser de témoin.", "Protéger les archéologues", "Remplacer la pierre par une copie", { tags: ["five-elders", "poneglyph"], measuredTrait: "rusé" }),
+      scene("shinsekai-five-elders-mission", "Le dossier des Cinq Doyens", "Le Conseil des Cinq Doyens ordonne de récupérer une pierre gravée sans laisser de témoin.", "Protéger les archéologues", "Remplacer la pierre par une copie", { tags: ["five-elders", "poneglyph"], measuredTrait: "personnalite-ruse" }),
       scene("shinsekai-cipher-operation", "Le masque de l’agente du Cipher Pol se fissure", "L’agente du Cipher Pol mène une opération contre un réseau révolutionnaire et réclame tes soldats sans expliquer les charges.", "Retirer ton unité", "Infiltrer son opération", { tags: ["cipher-pol", "callback"], callbackFlags: { suspectedAgentCendreSpy: true } }),
       scene("shinsekai-reform-council", "Le conseil des justices", "Des officiers débattent de la justice absolue, morale et pragmatique tandis qu’une base assiégée attend une décision concrète.", "Proposer une doctrine nouvelle", "Donner la parole aux soldats", { tags: ["reform", "marine"], boldTag: "Sagesse" }),
       scene("shinsekai-hero-rescue", "Le navire-hôpital sous les tirs", "Un navire-hôpital transporte blessés pirates et soldats, ce qui en fait une cible pour les deux flottes.", "Le défendre contre tous", "Révéler sa cargaison au monde", { tags: ["hero", "rescue"], boldTag: "Sacrifice" }),
@@ -4006,17 +4006,17 @@ const COMMON_EVENTS = [
     "bounty-hunter": [
       // RED LINE
       scene("red-line-cipher-protected-target", "La cible sous le masque blanc", "Ta cible marche entourée d’agents du Cipher Pol qui prétendent ne pas la connaître.", "L’arracher à leur escorte", "Prouver la protection secrète", { tags: ["cipher-pol", "target"], boldTag: "Risqué" }),
-      scene("red-line-fraud-contract", "Le contrat imprimé demain", "Un contrat daté du lendemain promet une prime déjà encaissée par quelqu’un d’autre.", "Retrouver l’encaisseur", "Faire authentifier l’encre", { tags: ["fraud", "contract"], measuredTrait: "prudent" }),
+      scene("red-line-fraud-contract", "Le contrat imprimé demain", "Un contrat daté du lendemain promet une prime déjà encaissée par quelqu’un d’autre.", "Retrouver l’encaisseur", "Faire authentifier l’encre", { tags: ["fraud", "contract"], measuredTrait: "personnalite-prudent" }),
       scene("red-line-convoy-target", "La troisième cabine blindée", "Une cible voyage dans un convoi officiel où chaque cabine porte le même numéro.", "Ouvrir les cabines en marche", "Identifier ses habitudes", { tags: ["convoy", "hunt"], style: "sniper" }),
-      scene("red-line-veteran-competitor", "Une chasseuse vétérane ne manque jamais", "Une chasseuse vétérane annonce toujours sa capture avant de commencer et n’a encore jamais corrigé une affiche.", "Accepter sa course", "Partager une fausse piste", { tags: ["competitor", "rival"], measuredTrait: "rusé" }),
+      scene("red-line-veteran-competitor", "Une chasseuse vétérane ne manque jamais", "Une chasseuse vétérane annonce toujours sa capture avant de commencer et n’a encore jamais corrigé une affiche.", "Accepter sa course", "Partager une fausse piste", { tags: ["competitor", "rival"], measuredTrait: "personnalite-ruse" }),
       scene("red-line-former-officer", "La prime du manteau retourné", "Un ancien officier recherché possède les preuves d’un trafic de prisonniers dans sa propre base.", "Le capturer avec ses preuves", "Négocier son témoignage", { tags: ["marine", "corruption"], boldTag: "Honneur" }),
       scene("red-line-secret-bounty", "Le chiffre écrit sous le papier", "En chauffant l’affiche, une seconde prime apparaît, dix fois supérieure et payable dans un bureau sans adresse.", "Suivre le paiement secret", "Avertir la cible", { tags: ["secret", "bounty"], boldTag: "Quitte ou double" }),
       scene("red-line-innocent-target", "Le visage ajouté au dernier instant", "Le portrait de ta cible a été collé sur une vieille affiche après son arrestation.", "Suspendre la chasse", "Retrouver le commanditaire", { tags: ["innocent", "ethics"], boldTag: "Honneur" }),
-      scene("red-line-marine-negotiation", "Le reçu à trois signatures", "La Marine accepte de payer si trois services rivaux reconnaissent la capture.", "Obtenir les trois signatures", "Négocier directement avec le commandant", { tags: ["marine", "payment"], measuredTrait: "charismatique" }),
+      scene("red-line-marine-negotiation", "Le reçu à trois signatures", "La Marine accepte de payer si trois services rivaux reconnaissent la capture.", "Obtenir les trois signatures", "Négocier directement avec le commandant", { tags: ["marine", "payment"], measuredTrait: "personnalite-charismatique" }),
       scene("red-line-celestial-contract", "Le gant du Noble Mondial", "Un intermédiaire offre une fortune pour reprendre un esclave évadé décrit comme une propriété perdue.", "Retourner le contrat contre l’intermédiaire", "Faire disparaître la cible", { tags: ["celestial-dragons", "slavery"], boldTag: "Rébellion" }),
       scene("red-line-conspiracy-witness", "La cible qui mémorise les sceaux", "Un faussaire recherché connaît la chaîne reliant des contrats secrets au Gouvernement mondial.", "Le garder vivant", "Copier sa mémoire dessinée", { tags: ["conspiracy", "witness"], winFlags: { protectedSealMemoryWitness: true } }),
       scene("red-line-port-duel", "Le duel sur les grues", "Le chasseur rival te défie sur des grues suspendues au-dessus du port, tandis que la cible tente discrètement de prendre un billet.", "Accepter sans perdre la cible", "Transformer le duel en chasse", { tags: ["callback", "duel"], callbackFlags: { sharedContractWithJasko: true } }),
-      scene("red-line-smuggler-hunt", "Le passeur aux sept doublures", "Chaque couche du manteau de la cible contient un passeport différent et une personnalité encore plus convaincante.", "L’arrêter au contrôle", "Identifier son vrai nom", { tags: ["smuggling", "humor"], measuredTrait: "curieux" }),
+      scene("red-line-smuggler-hunt", "Le passeur aux sept doublures", "Chaque couche du manteau de la cible contient un passeport différent et une personnalité encore plus convaincante.", "L’arrêter au contrôle", "Identifier son vrai nom", { tags: ["smuggling", "humor"], measuredTrait: "personnalite-curieux" }),
       scene("red-line-prison-contract", "La prime derrière les barreaux", "Une prison offre une prime pour retrouver un détenu qui n’a jamais quitté sa cellule.", "Inspecter la prison", "Interroger le détenu", { tags: ["prison", "mystery"], boldTag: "Intuition" }),
       scene("red-line-corrupt-broker", "Le courtier corrompu vend deux fois la même tête", "Le courtier corrompu a promis la même cible au Gouvernement mondial et à un réseau clandestin.", "Exiger le vrai contrat", "Vendre une troisième version", { tags: ["callback", "broker"], callbackFlags: { capturedBrokerCalame: true } }),
       scene("red-line-rare-conspiracy", "La liste des primes impossibles", "Une archive révèle que certaines primes servent à faire disparaître des témoins plutôt qu’à punir des criminels.", "Publier la liste", "Traquer ses auteurs", { tags: ["conspiracy", "government"], winFlags: { exposedPoliticalBountyList: true } }),
@@ -4026,7 +4026,7 @@ const COMMON_EVENTS = [
 
       // MER SANS ÉTOILES
       scene("special-starless-sea-silent-target", "La cible qui efface son sillage", "Dans l’obscurité, la cible remonte derrière ton navire et efface chaque remous avec une rame capitonnée.", "Couper les voiles et écouter", "Semer des clochettes flottantes", { tags: ["darkness", "hunt"], style: "sniper" }),
-      scene("special-starless-sea-false-voices", "Quatre voix pour une prime", "Quatre voix revendiquent le nom de la cible depuis quatre directions, mais une seule respire.", "Choisir selon le souffle", "Répondre avec un faux montant", { tags: ["mystery", "target"], measuredTrait: "calme" }),
+      scene("special-starless-sea-false-voices", "Quatre voix pour une prime", "Quatre voix revendiquent le nom de la cible depuis quatre directions, mais une seule respire.", "Choisir selon le souffle", "Répondre avec un faux montant", { tags: ["mystery", "target"], measuredTrait: "personnalite-calme" }),
       scene("special-starless-sea-nox-contract", "Le contrat de la navigatrice aveugle", "Une navigatrice locale offre un contrat contre un pilleur qui vole les lanternes des naufragés et les utilise pour attirer de nouvelles victimes.", "Suivre la piste des lumières volées", "Tendre un fanal sans flamme au pilleur", { tags: ["local", "contract"], stat: "haki" }),
       scene("special-starless-sea-jasko-shadow", "Le rival et la voix volée", "Le chasseur rival rencontré lors d’un ancien contrat poursuit un imitateur qui revendique ses crimes avec sa voix. Votre accord passé explique pourquoi il te demande de l’aide.", "Coordonner la capture avec le chasseur rival", "Enregistrer les deux voix avant d’intervenir", { tags: ["callback", "competitor"], callbackFlags: { sharedContractWithJasko: true } }),
       scene("special-starless-sea-rare-invisible-bounty", "L’affiche entièrement noire", "Une affiche noire ne révèle le portrait qu’à ceux qui maîtrisent leur peur dans l’obscurité.", "Accepter la chasse aveugle", "Chercher pourquoi le visage est caché", { tags: ["rare-bounty", "mystery"], boldTag: "Intuition" }),
@@ -4036,13 +4036,13 @@ const COMMON_EVENTS = [
       scene("special-wandering-archipelago-moving-target", "La cible sur l’île d’à côté", "Chaque fois que tu accostes, l’île de la cible échange sa place avec une autre.", "Sauter pendant l’échange", "Prévoir la séquence des îles", { tags: ["moving-islands", "hunt"], stat: "ship" }),
       scene("special-wandering-archipelago-turtle-warrant", "Le mandat tatoué", "Le seul mandat reconnu par les clans est tatoué sur la tortue du cartographe local, partie nager entre les îles mouvantes.", "Rattraper la tortue entre deux dérives", "Faire certifier une copie par les clans", { tags: ["humor", "contract"], style: "navigateur" }),
       scene("special-wandering-archipelago-nomad-thief", "Le voleur de rivages", "Une cible vole des plages entières en détachant les îlots pendant le sommeil des habitants.", "Reprendre les rivages", "Piéger son prochain détachement", { tags: ["local", "target"], boldTag: "Honneur" }),
-      scene("special-wandering-archipelago-competitors", "La chasse aux six cartes", "Six chasseurs possèdent chacun une carte correcte d’une heure différente.", "Organiser les six itinéraires", "Acheter seulement la carte suivante", { tags: ["competitors", "navigation"], measuredTrait: "organisé" }),
+      scene("special-wandering-archipelago-competitors", "La chasse aux six cartes", "Six chasseurs possèdent chacun une carte correcte d’une heure différente.", "Organiser les six itinéraires", "Acheter seulement la carte suivante", { tags: ["competitors", "navigation"], measuredTrait: "personnalite-organise" }),
       scene("special-wandering-archipelago-rare-island-prisoner", "Le prisonnier devenu île", "Un utilisateur de Fruit du Démon transforme son corps en refuge mouvant pour des fugitifs.", "Négocier avec l’île vivante", "Capturer le véritable criminel caché", { tags: ["devil-fruit", "ethics"], boldTag: "Diplomatie" }),
       scene("special-wandering-archipelago-very-rare-world-map", "La carte qui refuse les frontières", "Le cartographe possède un relevé unique des routes secrètes vers le Nouveau Monde, convoité par tous les chasseurs du monde.", "Défendre le cartographe", "Partager la carte sous serment", { tags: ["world-route", "alliance"], boldTag: "Sans retour", major: true, winFlags: { earnedWanderingWorldMap: true } }),
 
       // ÎLE DE LA TEMPÊTE
       scene("special-tempest-isle-lightning-target", "La cible entre les impacts", "La cible ne se déplace que pendant les sept secondes où le port est accessible.", "L’intercepter dans l’intervalle", "Bloquer son prochain abri", { tags: ["storm", "hunt"], stat: "ship" }),
-      scene("special-tempest-isle-burned-poster", "L’affiche frappée par la foudre", "Chaque impact change le visage et le montant de la prime.", "Capturer le modèle original", "Suivre le papier conducteur", { tags: ["humor", "bounty"], measuredTrait: "curieux" }),
+      scene("special-tempest-isle-burned-poster", "L’affiche frappée par la foudre", "Chaque impact change le visage et le montant de la prime.", "Capturer le modèle original", "Suivre le papier conducteur", { tags: ["humor", "bounty"], measuredTrait: "personnalite-curieux" }),
       scene("special-tempest-isle-fruit-broker", "Le courtier aux gants de cuivre", "Un courtier vend l’emplacement d’un Fruit du Démon et porte des gants reliés à tous les paratonnerres du marché.", "Le saisir entre deux éclairs", "Acheter le nom de son fournisseur", { tags: ["devil-fruit", "black-market"], boldTag: "Risqué" }),
       scene("special-tempest-isle-fulga-warrant", "Le mandat contre la cheffe des gardiens", "Le Gouvernement mondial offre une prime sur la cheffe des gardiens pour avoir refusé de céder le mécanisme météorologique de son peuple.", "Refuser le contrat", "Enquêter sur le mécanisme", { tags: ["government", "local"], boldTag: "Honneur" }),
       scene("special-tempest-isle-rare-armament-target", "Le fugitif qui saisit la foudre", "La cible recouvre ses bras de Fluide de l’Armement et dévie les impacts vers ses poursuivants.", "Briser son rythme", "L’épuiser sans combattre", { tags: ["haki", "target"], stat: "haki" }),
@@ -4050,7 +4050,7 @@ const COMMON_EVENTS = [
 
       // NOUVEAU MONDE
       scene("shinsekai-emperor-linked-target", "La cuisinière de l’Empereur", "Une cuisinière recherchée connaît les mouvements d’une flotte d’Empereur, mais sa prime punit surtout son refus d’empoisonner un banquet.", "La protéger de la flotte", "Négocier son témoignage", { tags: ["emperor", "target"], boldTag: "Honneur" }),
-      scene("shinsekai-impossible-contract", "Capturer un navire sans toucher l’équipage", "Le commanditaire exige un navire d’élite intact, sans blessé et avant le dîner.", "Aborder pendant le repas", "Retourner son propre équipage", { tags: ["contract", "elite"], measuredTrait: "rusé" }),
+      scene("shinsekai-impossible-contract", "Capturer un navire sans toucher l’équipage", "Le commanditaire exige un navire d’élite intact, sans blessé et avant le dîner.", "Aborder pendant le repas", "Retourner son propre équipage", { tags: ["contract", "elite"], measuredTrait: "personnalite-ruse" }),
       scene("shinsekai-world-bounty", "L’affiche traduite en cent langues", "Une prime mondiale déclenche des chasses simultanées dans tous les ports du Nouveau Monde.", "Former une équipe internationale", "Garder seul la piste principale", { tags: ["world-bounty", "competitors"], boldTag: "Diplomatie" }),
       scene("shinsekai-temporary-alliance", "Les menottes partagées", "Toi et le chasseur rival êtes attachés à la même chaîne par une cible qui tient les clés.", "Combattre ensemble", "Faire croire à votre dispute", { tags: ["callback", "alliance"], callbackFlags: { sharedContractWithJasko: true } }),
       scene("shinsekai-rival-return", "Le chasseur rival et la dernière affiche", "Le chasseur rival possède une moitié de l’affiche ; tu possèdes l’autre, et le portrait complet change tout.", "Réunir les deux moitiés", "Courir jusqu’à la cible", { tags: ["callback", "rival"], callbackFlags: { defeatedByJaskoRival: true } }),
@@ -4058,7 +4058,7 @@ const COMMON_EVENTS = [
       scene("shinsekai-political-target", "Le prince aux deux actes de naissance", "Deux royaumes revendiquent la même cible comme héritier et criminel.", "Organiser une confrontation publique", "Vérifier les archives royales", { tags: ["politics", "kingdom"], boldTag: "Justice" }),
       scene("shinsekai-rigged-bounty", "La prime qui augmente à chaque refus", "Le montant monte chaque fois qu’un chasseur décline, signe évident que le client achète le silence.", "Accepter pour approcher le client", "Détruire le marché", { tags: ["fraud", "black-market"], boldTag: "Quitte ou double" }),
       scene("shinsekai-world-changing-target", "La gardienne du fragment rouge", "Une archéologue recherchée transporte un fragment permettant d’identifier un Road Ponéglyphe.", "La défendre", "Séparer la piste du fragment", { tags: ["road-poneglyph", "history"], boldTag: "Sacrifice" }),
-      scene("shinsekai-marine-offer", "Le bureau flottant de la Marine", "Une base avancée offre immunité et fortune pour une série de captures impossibles.", "Négocier chaque cible", "Refuser l’immunité", { tags: ["marine", "career"], measuredTrait: "pragmatique" }),
+      scene("shinsekai-marine-offer", "Le bureau flottant de la Marine", "Une base avancée offre immunité et fortune pour une série de captures impossibles.", "Négocier chaque cible", "Refuser l’immunité", { tags: ["marine", "career"], measuredTrait: "personnalite-pragmatique" }),
       scene("shinsekai-black-market-auction", "La vente des chasseurs eux-mêmes", "Un marché noir met aux enchères les contrats et les chasseurs capables de les remplir.", "Enchérir sur ton propre nom", "Libérer les chasseurs endettés", { tags: ["black-market", "humor"], boldTag: "Rébellion" }),
       scene("shinsekai-emperor-officer", "La prime au bout de la flotte", "Un officier d’Empereur ne quitte jamais le centre de cent navires.", "Traverser la flotte", "Faire sortir la cible par une fausse rébellion", { tags: ["emperor", "fleet"], boldTag: "Sans retour" }),
       scene("shinsekai-rare-legendary-contract", "La chasse des quatre océans", "Quatre gouvernements et trois Empereurs recherchent le même trafiquant de secrets.", "Prendre le contrat légendaire", "Retourner les commanditaires entre eux", { tags: ["legendary-contract", "world"], boldTag: "Sans retour", major: true }),
@@ -4072,14 +4072,14 @@ const COMMON_EVENTS = [
     revolutionary: [
       // RED LINE
       scene("red-line-free-prisoners", "Le train des cages", "Un train blindé transporte des prisonniers politiques à travers Red Line. La saboteuse a caché une clé dans chaque essieu.", "Faire dérailler les cages vides", "Ouvrir les serrures en marche", { tags: ["prison", "liberation"], boldTag: "Rébellion", winFlags: { freedRedLineTrainPrisoners: true } }),
-      scene("red-line-infiltrate-convoy", "Le convoi aux uniformes neufs", "Des agents clandestins doivent remplacer l’escorte d’un convoi sans qu’aucun uniforme ne porte deux fois la même taille.", "Prendre la relève", "Créer une inspection fictive", { tags: ["infiltration", "convoy"], measuredTrait: "rusé" }),
+      scene("red-line-infiltrate-convoy", "Le convoi aux uniformes neufs", "Des agents clandestins doivent remplacer l’escorte d’un convoi sans qu’aucun uniforme ne porte deux fois la même taille.", "Prendre la relève", "Créer une inspection fictive", { tags: ["infiltration", "convoy"], measuredTrait: "personnalite-ruse" }),
       scene("red-line-steal-archives", "Les archives qui descendent seules", "Chaque nuit, les archives du Gouvernement mondial empruntent un ascenseur sans gardien.", "Entrer avec les dossiers", "Remplacer les caisses", { tags: ["archive", "government"], winFlags: { stoleDescendingArchives: true } }),
       scene("red-line-sabotage-installation", "La porte alimentée par les chaînes", "Une installation utilise le travail forcé pour actionner la porte militaire.", "Saboter les engrenages", "Organiser l’arrêt des travailleurs", { tags: ["sabotage", "slavery"], style: "inventeur" }),
       scene("red-line-smuggle-agents", "Les pèlerins aux chaussures identiques", "Douze agents doivent franchir un contrôle où l’inspecteur reconnaît les mensonges aux semelles.", "Traverser en procession", "Diviser le groupe dans les convois", { tags: ["network", "infiltration"], boldTag: "Prudence" }),
       scene("red-line-protect-witness", "Le témoin qui compte les marches", "Un comptable évadé connaît chaque versement du tribut céleste mais ne se calme qu’en comptant les marches.", "L’escorter par le grand escalier", "Créer une route sans marche", { tags: ["witness", "tribute"], boldTag: "Sacrifice" }),
       scene("red-line-unjust-tax", "La taxe sur les fenêtres ouvertes", "Un quartier doit payer pour chaque fenêtre donnant sur les installations du Gouvernement mondial.", "Publier le registre", "Murer les bureaux fiscaux", { tags: ["tax", "propaganda"], stat: "popularity" }),
       scene("red-line-save-slaves", "Les porteurs du tribut", "Des esclaves portent une cargaison destinée aux Nobles Mondiaux sur un pont interdit aux personnes libres.", "Briser les colliers", "Substituer des mannequins", { tags: ["slavery", "celestial-dragons"], boldTag: "Rébellion", winFlags: { savedCelestialTributePorters: true } }),
-      scene("red-line-expose-trafficking", "Les passeports numérotés", "L’archiviste découvre que les numéros de passeport correspondent aux bracelets d’une vente clandestine.", "Diffuser la correspondance", "Remonter jusqu’au ministère", { tags: ["trafficking", "documents"], measuredTrait: "curieux" }),
+      scene("red-line-expose-trafficking", "Les passeports numérotés", "L’archiviste découvre que les numéros de passeport correspondent aux bracelets d’une vente clandestine.", "Diffuser la correspondance", "Remonter jusqu’au ministère", { tags: ["trafficking", "documents"], measuredTrait: "personnalite-curieux" }),
       scene("red-line-establish-cell", "La blanchisserie des drapeaux", "Une blanchisserie lave les pavillons officiels et peut cacher une cellule au cœur du port.", "Installer le relais", "Tester d’abord les employés", { tags: ["cell", "network"], winFlags: { foundedRedLineLaundryCell: true } }),
       scene("red-line-prepare-uprising", "La cloche des trois quartiers", "Trois quartiers veulent se soulever à trois heures différentes et chacun refuse de changer son horaire.", "Unifier le signal", "Préparer trois retraites", { tags: ["uprising", "coordination"], boldTag: "Organisation" }),
       scene("red-line-cipher-agent", "Les leurres du couloir des miroirs", "Une agente du Cipher Pol utilise des projections et des vitres sans tain pour surveiller chaque accès. L’agente de liaison repère le seul reflet qui ne reproduit pas la lumière.", "Neutraliser la salle de projection", "Suivre le reflet décalé", { tags: ["cipher-pol", "callback"], callbackFlags: { trustedAgentCendre: true } }),
@@ -4682,7 +4682,7 @@ const COMMON_EVENTS = [
               minimumStats: entry.minimumStats || {
                 combat: rarity === EVENT_RARITY.VERY_RARE ? 27 : 20,
               },
-              requiredTraits: entry.requiredTraits || [],
+              requiredTitles: entry.requiredTitles || [],
               requiredCombatStyles: entry.requiredCombatStyles || [],
               requiredFlags: entry.callbackFlags || {},
               requiresD: entry.kings ? true : null,
@@ -4710,7 +4710,7 @@ const COMMON_EVENTS = [
                 ),
               effects: insightEffects,
               minimumStats: { haki: rarity === EVENT_RARITY.VERY_RARE ? 5 : 3 },
-              requiredTraits: [entry.insightTrait || "calme"],
+              requiredTitles: [entry.insightTrait || "personnalite-calme"],
               flags: {
                 [worldFlag]: true,
                 [`${worldFlag}Insight`]: true,
@@ -4743,7 +4743,7 @@ const COMMON_EVENTS = [
               id: `${id}-redirected`,
               result: `${entry.redirected} ${describeNarrativeEffects(redirectEffects)}`.trim(),
               effects: redirectEffects,
-              requiredTraits: [entry.redirectTrait || "prudent"],
+              requiredTitles: [entry.redirectTrait || "personnalite-prudent"],
               flags: {
                 [worldFlag]: true,
                 [`${worldFlag}Redirected`]: true,
@@ -4774,7 +4774,7 @@ const COMMON_EVENTS = [
 
   const EXCEPTIONAL_SCENES = Object.freeze({
     pirate: [
-      { slug: "red-haired-rumor", title: "Le verre que Shanks laissa derrière lui", description: "Dans une taverne d’une mer cardinale, personne n’ose reprendre un verre que Shanks aurait laissé des années plus tôt. Une carte humide glissée dessous mentionne un équipage disparu.", commit: "Suivre la carte avant la marée", redirect: "Retrouver les familles des disparus", mastery: "La carte mène aux survivants, qui racontent qu’un simple avertissement de Shanks leur a sauvé la vie.", redirected: "Les familles arment une expédition et promettent de transmettre ton pavillon.", cost: "La carte était suivie par des pillards ; tu échappes à leur embuscade avec un mât fendu.", tags: ["shanks", "indirect"], insightTrait: "curieux" },
+      { slug: "red-haired-rumor", title: "Le verre que Shanks laissa derrière lui", description: "Dans une taverne d’une mer cardinale, personne n’ose reprendre un verre que Shanks aurait laissé des années plus tôt. Une carte humide glissée dessous mentionne un équipage disparu.", commit: "Suivre la carte avant la marée", redirect: "Retrouver les familles des disparus", mastery: "La carte mène aux survivants, qui racontent qu’un simple avertissement de Shanks leur a sauvé la vie.", redirected: "Les familles arment une expédition et promettent de transmettre ton pavillon.", cost: "La carte était suivie par des pillards ; tu échappes à leur embuscade avec un mât fendu.", tags: ["shanks", "indirect"], insightTrait: "personnalite-curieux" },
       { slug: "reverse-impossible-pursuit", title: "La silhouette au sommet du courant", description: "Un éclaireur arborant le pavillon de Barbe Noire traverse le sommet de Reverse Mountain sans ralentir. Il ne te poursuit pas encore, mais ses vigies ont remarqué ton pavillon.", commit: "Tenir le courant sans céder la route", redirect: "Disparaître derrière les navires en dérive", mastery: "Tu franchis le sommet sans provoquer une bataille impossible et gagnes le respect silencieux de tes hommes.", redirected: "Les courants avalent ton sillage avant que les vigies puissent confirmer ton identité.", cost: "Un tir perdu pulvérise la roche près de la coque ; la fuite devient la seule victoire raisonnable.", tags: ["blackbeard", "emperor"], dangerTheme: true, important: true, minimumStats: { ship: 4, morale: 58 }, masteryFlags: { emperorCrewNoticedPlayer: true } },
       { slug: "world-bounty-edition", title: "L’édition que Morgans refuse de corriger", description: "Le journal de Big News Morgans attribue à ton équipage une victoire publique contre trois capitaines. Le vrai vainqueur exige un démenti avant que la nouvelle prime ne circule.", commit: "Assumer la version imprimée", redirect: "Publier la vérité avec ton propre récit", mastery: "L’édition spéciale traverse Grand Line et ta prime entre brutalement dans une nouvelle catégorie.", masteryEffects: { bounty: 1800000, popularity: 7 }, redirected: "Le démenti devient plus populaire encore que le mensonge et protège l’équipage lésé.", cost: "Les preuves arrivent après les affiches ; ta prime monte, mais ta parole perd du poids.", costEffects: { bounty: 700000, popularity: -5 }, tags: ["newspaper", "bounty"], important: true },
       { slug: "fruit-black-market", kind: "devil-fruit", title: "La caisse aux enchères", description: "Dans Paradise, un marché noir prétend vendre un Fruit du Démon authentique tandis que plusieurs agents infiltrés se disputent la caisse.", commit: "Atteindre la caisse pendant la panique", redirect: "Démasquer les trafiquants avant la vente", mastery: "La caisse est sécurisée et confiée à un dépôt neutre avant que le marché puisse reprendre.", redirected: "Les registres désignent les chefs du marché et les acheteurs fuient sans leur marchandise.", cost: "La caisse disparaît par un passage dérobé pendant que les trafiquants ferment toutes les sorties.", tags: ["devil-fruit", "black-market"], important: true, commitTag: "Quitte ou double", masteryEffects: { morale: 3 }, minimumStats: { combat: 25, haki: 4 } },
@@ -4784,7 +4784,7 @@ const COMMON_EVENTS = [
       { slug: "hollow-rival", kind: "devil-fruit", title: "Les Hollows dans la nuit", description: "Dans la Mer sans étoiles, les Hollows de Perona traversent un convoi abandonné et brisent la volonté de ceux qu’ils touchent. Son objectif reste invisible dans l'obscurité.", commit: "Repérer leur trajectoire au Fluide", redirect: "Éloigner les Hollows de l’équipage", mastery: "Ton Fluide suit leur trajectoire jusqu'à leur point d'origine et force Perona à rappeler ses fantômes.", redirected: "Des leurres attirent les Hollows loin du pont et dégagent une route de fuite.", cost: "Le découragement disperse les postes de défense ; une partie des vivres disparaît pendant le repli.", tags: ["devil-fruit", "perona"], dangerTheme: true, minimumStats: { haki: 5 }, loreCharacters: ["Perona"], masteryFlags: { survivedPeronaHollows: true } },
       { slug: "road-fragment", title: "Le rouge derrière le cuivre", description: "Un fragment de relevé lié à un Road Ponéglyphe apparaît dans les archives de Red Line. Trois traductions incompatibles circulent déjà.", commit: "Comparer le fragment aux anciennes routes", redirect: "Confier une copie à des archéologues indépendants", mastery: "Les routes concordent sur un point encore inconnu du Nouveau Monde.", redirected: "Trois copies quittent Red Line par des chemins différents, rendant leur effacement impossible.", cost: "Cipher Pol saisit l’original ; une seule ligne reste mémorisée.", tags: ["road-poneglyph", "history"], dream: true, masteryFlags: { exceptionalRoadFragmentRecovered: true } },
       { slug: "law-short-alliance", title: "Le plan de Law en trois silences", description: "Dans le Nouveau Monde, Trafalgar Law propose une alliance limitée à une seule nuit. Il ne promet ni explication ni secours après l’aube.", commit: "Suivre le plan sans lui céder le commandement", redirect: "Négocier une sortie pour les deux équipages", mastery: "L’opération réussit parce que chacun respecte exactement la limite annoncée.", redirected: "La route de retraite sauve les blessés des deux camps avant la rupture de l’accord.", cost: "La cible avait prévu l’alliance ; Law disparaît avec ses hommes tandis que tu couvres seul la retraite.", tags: ["law", "short-appearance"], important: false },
-      { slug: "emperor-clash", kind: "lore", title: "Le ciel fendu au-dessus de la flotte", description: "Deux puissances d’Empereur se rencontrent au-delà de l’horizon. Leur choc fend les nuages et transforme les flottes voisines en débris potentiels.", commit: "Maintenir l’équipage debout sous la pression", redirect: "Sauver les navires pris entre les volontés", mastery: "Ta volonté protège les tiens sans prétendre rivaliser avec les monstres qui se font face.", insight: "Un instant, ta présence répond à la pression avant de disparaître ; personne ne sait encore ce qu’elle signifie.", redirected: "Plusieurs petits équipages survivent grâce au corridor que tu ouvres.", cost: "La mer elle-même rejette ton navire hors de la zone, coque brisée mais équipage vivant.", tags: ["emperor", "kings-haki"], dangerTheme: true, important: true, kings: true, minimumStats: { haki: 7, popularity: 82, morale: 70 }, requiredTraits: ["courageux"], insightFlags: { kingsHakiMayAwaken: true }, worldFlag: "pirateEmperorClashResolved" },
+      { slug: "emperor-clash", kind: "lore", title: "Le ciel fendu au-dessus de la flotte", description: "Deux puissances d’Empereur se rencontrent au-delà de l’horizon. Leur choc fend les nuages et transforme les flottes voisines en débris potentiels.", commit: "Maintenir l’équipage debout sous la pression", redirect: "Sauver les navires pris entre les volontés", mastery: "Ta volonté protège les tiens sans prétendre rivaliser avec les monstres qui se font face.", insight: "Un instant, ta présence répond à la pression avant de disparaître ; personne ne sait encore ce qu’elle signifie.", redirected: "Plusieurs petits équipages survivent grâce au corridor que tu ouvres.", cost: "La mer elle-même rejette ton navire hors de la zone, coque brisée mais équipage vivant.", tags: ["emperor", "kings-haki"], dangerTheme: true, important: true, kings: true, minimumStats: { haki: 7, popularity: 82, morale: 70 }, requiredTitles: ["personnalite-courageux"], insightFlags: { kingsHakiMayAwaken: true }, worldFlag: "pirateEmperorClashResolved" },
       { slug: "emperor-candidate", title: "Les pavillons qui demandent un nom", description: "Après la chute d’un tyran pirate, plusieurs capitaines libres proposent de placer leurs navires sous ton pavillon. Les habitants veulent savoir quel monde tu bâtirais.", commit: "Former une flotte sans soumission", redirect: "Protéger le territoire sans revendiquer de couronne", mastery: "Les capitaines jurent une alliance révocable et ton nom entre parmi ceux que le Nouveau Monde surveille.", redirected: "Le territoire reste libre et reconnaît ton équipage comme garant, non comme propriétaire.", cost: "Les ambitions incompatibles brisent la réunion avant que l’alliance ne soit scellée.", tags: ["emperor", "fleet", "dream"], important: true, dream: true, masteryFlags: { exceptionalEmperorCandidacy: true }, commitTag: "Sans retour" },
     ],
     marine: [
@@ -5106,23 +5106,23 @@ const COMMON_EVENTS = [
   const FINAL_DREAM_SCENES = Object.freeze({
     "one-piece": finalDreamScene(
       "La dernière route vers Laugh Tale",
-      "Les relevés des quatre Road Ponéglyphes convergent enfin. Au-delà d’une mer où le Log Pose devient muet se trouve Laugh Tale, mais une flotte rivale fonce sur les mêmes coordonnées et la moindre erreur condamnera la route.",
-      "Ouvrir la route vers Laugh Tale sous le feu rival",
-      "Superposer les quatre relevés et lire le dernier courant",
-      "Unir les équipages alliés autour d’un cap unique",
+      "Les quatre Road Ponéglyphes révèlent enfin la route de Laugh Tale. Une flotte rivale possède les mêmes coordonnées et tente d’atteindre l’île avant toi. C’est la dernière étape avant le One Piece.",
+      "Forcer le passage malgré la flotte rivale",
+      "Vérifier les quatre relevés pour trouver le bon passage",
+      "Rassembler les équipages alliés pour sécuriser la traversée",
       "navigation",
       {
-        success: ["Tu contiens la flotte rivale jusqu’au courant décisif. Ton navire franchit la mer impossible, atteint Laugh Tale et ton équipage découvre enfin ce que Roger y avait trouvé : le One Piece est trouvé, sans que son secret soit livré au reste du monde.", "Les quatre relevés révèlent l’erreur cachée dans les coordonnées. Tu guides seul ton équipage jusqu’à Laugh Tale et comprends la portée du trésor laissé au terme de Grand Line.", "Les pavillons alliés protègent la traversée sans se disputer la découverte. Tu poses le pied sur Laugh Tale et deviens la personne qui a trouvé le One Piece."],
-        mixed: "La route exacte apparaît, mais la flotte rivale détruit un relevé avant le départ. Laugh Tale reste localisée sans pouvoir être atteinte cette fois.",
-        failure: "La mer sans repère disperse les navires et la flotte rivale emporte un élément essentiel. Laugh Tale disparaît de nouveau derrière ses courants.",
+        success: ["La flotte rivale est distancée. Ton équipage atteint Laugh Tale et découvre enfin le One Piece.", "Les quatre relevés révèlent le bon passage. Tu guides ton équipage jusqu’à Laugh Tale et découvres le One Piece.", "Les équipages alliés protègent la traversée. Ton pavillon atteint Laugh Tale et le One Piece sans leur disputer la découverte."],
+        mixed: "Tu localises Laugh Tale, mais la flotte rivale détruit un relevé avant la traversée. La route est connue, sans pouvoir être empruntée cette fois.",
+        failure: "La flotte rivale s’empare d’un relevé essentiel et les courants dispersent les navires. La route de Laugh Tale est de nouveau perdue.",
       },
       [{ haki: 24, crew: 2 }, { intelligence: 50 }, { health: 50, crew: 3 }],
     ),
     "sea-emperor": finalDreamScene(
       "Une grande flotte attaque ton territoire",
-      "Le port fortifié de l’Archipel d’Obsidienne commande trois routes du Nouveau Monde. Son peuple accepte ton pacte, mais une grande flotte pirate vient reprendre le tribut : tenir ce territoire décidera si ton pavillon devient une puissance mondiale ou un souvenir.",
+      "Le peuple de l’Archipel d’Obsidienne a placé ses ports sous ta protection. Une grande flotte pirate vient reprendre son tribut. Défendre ce territoire peut faire de ton pavillon une puissance mondiale.",
       "Tenir les passes jusqu’au retrait de la grande flotte",
-      "Couper ses dépôts et retourner ses routes de ravitaillement",
+      "Détruire ses dépôts et couper son ravitaillement",
       "Fédérer les ports libres sous un pacte de défense",
       "war",
       { success: ["La flotte recule et les passes restent sous ta protection. Les journaux annoncent qu’un nouveau pavillon contrôle désormais une puissance territoriale du Nouveau Monde : le monde te reconnaît comme Empereur des mers.", "Privée de vivres et de munitions, la grande flotte abandonne le tribut. Ton réseau de ports devient un territoire cohérent et les puissances du monde te comptent parmi les Empereurs.", "Les ports combattent ensemble sans perdre leur autonomie. Leur pacte porte ton pavillon et transforme ton influence en puissance impériale reconnue."], mixed: "Le port est sauvé, mais les routes restent disputées et aucun bloc durable ne reconnaît encore ton autorité impériale.", failure: "La coalition se brise sous le blocus. Les habitants sont évacués, mais le territoire stratégique et la reconnaissance mondiale t’échappent." },
@@ -5130,9 +5130,9 @@ const COMMON_EVENTS = [
     ),
     "worlds-greatest-fortune": finalDreamScene(
       "La réserve des sept comptoirs",
-      "Les livres du monde souterrain localisent une réserve historique alimentée depuis des décennies par sept comptoirs. Le coffre dérive vers un gouffre volcanique tandis que créanciers et corsaires contestent chaque titre de propriété.",
+      "Les sept comptoirs du monde souterrain ont réuni une réserve plus vaste que toute fortune pirate connue. Son convoi dérive vers un gouffre volcanique tandis que plusieurs créanciers la revendiquent.",
       "Arracher la réserve au convoi avant le gouffre",
-      "Dénouer les sociétés-écrans et réclamer chaque actif",
+      "Démasquer les faux propriétaires grâce aux registres",
       "Financer le sauvetage puis racheter les sept créances",
       "commerce",
       { success: ["Tu prends le convoi intact et sécurises ses coffres dans plusieurs ports. Leur valeur dépasse toutes les fortunes pirates recensées : tu deviens le Seigneur des trésors.", "Les faux propriétaires s’effondrent devant leurs propres registres. Comptoirs, cargaisons et réserves te reviennent légalement dans le monde souterrain, constituant une fortune sans équivalent.", "Ton capital sauve les cargaisons et absorbe les créances au juste moment. Les sept comptoirs passent sous ton réseau et consacrent la plus grande fortune des mers."], mixed: "Une partie de la réserve est sauvée, mais les dettes et les pertes empêchent ta fortune de dépasser celles des plus grands trésoriers.", failure: "Le gouffre engloutit les coffres pendant que les faux créanciers saisissent le réseau. L’occasion d’amasser la plus grande fortune disparaît." },
@@ -5140,7 +5140,7 @@ const COMMON_EVENTS = [
     ),
     "forgotten-history": finalDreamScene(
       "Cipher Pol attaque le dernier Ponéglyphe",
-      "Un Ponéglyphe du Nouveau Monde complète les fragments sauvés d’Ohara. Cipher Pol encercle le sanctuaire et prépare son effacement ; il faut interpréter la pierre puis préserver la vérité sans prétendre révéler ce que le monde ignore encore.",
+      "Un dernier Ponéglyphe complète les fragments sauvés d’Ohara. Cipher Pol encercle le sanctuaire et s’apprête à détruire la pierre. Tu dois comprendre son message et préserver la vérité.",
       "Protéger le sanctuaire jusqu’à la fin du relevé",
       "Reconstituer la chronologie avec les fragments d’Ohara",
       "Confier des copies chiffrées à plusieurs gardiens",
@@ -5150,7 +5150,7 @@ const COMMON_EVENTS = [
     ),
     "greatest-bounty-hunter": finalDreamScene(
       "La cible que tous avaient perdue",
-      "Le cerveau anonyme d’un réseau de fausses primes réapparaît dans le Nouveau Monde avec trois doublures et des contrats contradictoires. Les meilleurs chasseurs ont tous échoué ; cette capture décidera qui devient la référence mondiale de la profession.",
+      "Le responsable d’un vaste réseau de fausses primes réapparaît avec trois doublures. Tous les grands chasseurs ont échoué à le capturer. Cette traque décidera qui devient la référence de la profession.",
       "Démasquer la cible et la prendre vivante devant les rivaux",
       "Piéger les doublures avec la signature des faux contrats",
       "Imposer une remise publique indépendante des commanditaires",
@@ -5160,7 +5160,7 @@ const COMMON_EVENTS = [
     ),
     "most-dangerous-criminals": finalDreamScene(
       "La rafle des trois pavillons noirs",
-      "Trois cellules responsables des crimes suivis durant ta carrière se réunissent dans une forteresse flottante. Leurs chefs préparent de nouvelles identités et une fuite séparée ; une erreur condamnerait des innocents à leur place.",
+      "Les chefs de trois réseaux criminels se cachent dans une forteresse flottante. Ils préparent leur fuite sous de fausses identités. Une arrestation précipitée condamnerait des innocents à leur place.",
       "Fermer les trois ponts et capturer les chefs vivants",
       "Croiser les preuves avant de déclencher la rafle",
       "Retourner les équipages contre les trois cellules",
@@ -5170,27 +5170,27 @@ const COMMON_EVENTS = [
     ),
     "hunt-an-emperor": finalDreamScene(
       "La chasse sous le pavillon impérial",
-      "Le lieutenant qui tient les routes, les armes et les tributs d’une puissance impériale rejoint son navire-amiral. L’Empereur ne peut être abattu seul, mais arracher ce pilier à sa flotte ferait vaciller un empire que personne n’osait traquer.",
+      "Le principal lieutenant d’un Empereur rejoint son navire-amiral. Le capturer priverait la flotte impériale de ses routes et de ses tributs. Personne n’a encore osé mener une telle traque.",
       "Capturer le lieutenant au milieu de l’avant-garde",
-      "Effondrer simultanément ses routes et isoler son navire",
-      "Soulever les ports tributaires pendant l’extraction",
+      "Couper ses routes pour isoler son navire",
+      "Rallier les ports soumis pour couvrir la capture",
       "hunt",
       { success: ["Tu survis au choc de l’avant-garde et extrais le lieutenant vivant. La perte de ce pilier force la puissance impériale à abandonner plusieurs mers : ta traque mérite le nom de Tombeur d’Empereur.", "Dépôts, relais et navire-amiral sont isolés au même instant. La puissance impériale recule sans bataille absurde contre l’Empereur lui-même, vaincue par ta traque.", "Les ports refusent ensemble le tribut et couvrent ta capture. L’empire perd son lieutenant et son assise ; le monde retient que tu as osé le faire tomber."], mixed: "Le lieutenant perd son réseau, mais rejoint l’Empereur avant la capture. La puissance impériale est blessée, pas tombée.", failure: "L’avant-garde referme le piège et le lieutenant s’échappe. Tu survis à la puissance impériale sans accomplir la traque décisive." },
       [{ combat: 52, haki: 22 }, { haki: 20, intelligence: 46 }, { health: 50, crew: 2 }],
     ),
     "contract-fortune": finalDreamScene(
       "Le contrat aux cent millions de clauses",
-      "Le plus grand contrat indépendant jamais publié exige la capture d’un réseau de contrebandiers, mais une clause secrète autorise le commanditaire à saisir la cible, les preuves et le paiement. Toute ta fortune et ta liberté se jouent à la remise.",
-      "Accomplir la capture et verrouiller physiquement le paiement",
+      "Le plus grand contrat indépendant jamais publié promet une fortune pour démanteler un réseau de contrebandiers. Une clause cachée permet pourtant au commanditaire de reprendre la cible, les preuves et le paiement lors de la remise.",
+      "Livrer la cible tout en sécurisant le paiement",
       "Retourner la clause cachée contre le commanditaire",
-      "Garantir la remise auprès de chasseurs et courtiers rivaux",
+      "Faire garantir la remise par des chasseurs et des courtiers",
       "commerce",
       { success: ["La cible et les preuves sont remises pendant que ton équipe sécurise chaque coffre. Le contrat est accompli, payé et impossible à confisquer : ta fortune vient bien de ta carrière de chasseur.", "La clause secrète prouve la fraude du client et déclenche ses propres garanties. Tu encaisses le contrat ultime sans devenir son pion.", "Les garants assistent ensemble à la remise et imposent le paiement intégral. Ton indépendance survit et tes contrats ont bâti une fortune légendaire."], mixed: "Le contrat est accompli, mais les frais, les litiges et une partie du paiement saisi empêchent la fortune ultime.", failure: "Le commanditaire active la clause avant la remise et disparaît avec paiement et preuves. Le contrat ruine sa propre récompense." },
       [{ bounty: 100000, fortune: 18000 }, { intelligence: 50, fortune: 14000 }, { charisma: 34, bounty: 90000 }],
     ),
     "break-the-chains": finalDreamScene(
       "Le centre du trafic d’esclaves",
-      "Le centre du plus vaste réseau d’esclavage du Nouveau Monde coordonne convois, ventes et colliers pour des intermédiaires des Dragons Célestes. Des milliers de captifs attendent le signal qui peut libérer tous les sites et rendre la route inutilisable.",
+      "Le principal réseau d’esclavage dirige ses convois depuis un centre unique. Des milliers de captifs attendent le signal qui ouvrira leurs colliers. Détruire ce centre peut mettre fin au trafic.",
       "Prendre le centre de contrôle et ouvrir chaque convoi",
       "Saboter colliers, comptes et routes au même instant",
       "Donner aux captifs et aux cellules le signal du soulèvement",
@@ -5200,7 +5200,7 @@ const COMMON_EVENTS = [
     ),
     "reveal-void-century": finalDreamScene(
       "Cipher Pol attaque la diffusion mondiale",
-      "Les fragments authentifiés et les témoins sont réunis. Cipher Pol attaque le dernier relais d’Escargophones avant une diffusion simultanée vers plusieurs mers ; il ne s’agit plus de découvrir la vérité, mais de la rendre impossible à effacer.",
+      "Les preuves du Siècle oublié et leurs témoins sont enfin réunis. Cipher Pol attaque le dernier relais avant leur diffusion mondiale. Tu dois rendre cette vérité impossible à effacer.",
       "Tenir le relais jusqu’à la dernière transmission",
       "Fractionner preuves et témoignages entre mille récepteurs",
       "Faire certifier la diffusion par des peuples de chaque mer",
@@ -5210,17 +5210,17 @@ const COMMON_EVENTS = [
     ),
     "build-underground-network": finalDreamScene(
       "Cipher Pol infiltre le nouveau réseau",
-      "Toutes les cellules, routes et soutiens de ta carrière doivent se connecter cette nuit par un protocole d’Escargophones traversant Red Line. Cipher Pol a infiltré un relais et espère détruire le réseau au moment même de sa naissance.",
-      "Extraire l’infiltré sans interrompre la connexion mondiale",
-      "Déployer un protocole distribué sans quartier général",
-      "Unifier les cellules rivales autour de codes communs",
+      "Cipher Pol a infiltré le relais qui doit unir tes cellules clandestines. L’agent s’apprête à révéler leurs identités. Tu dois le neutraliser sans faire tomber le réseau.",
+      "Capturer l’agent sans couper les communications",
+      "Réorganiser le réseau pour qu’aucun relais ne soit indispensable",
+      "Convaincre les cellules d’adopter des codes communs",
       "network",
       { success: ["L’infiltré est isolé et chaque cellule reste en ligne. Le réseau coordonne sa première opération mondiale avant que Cipher Pol comprenne qu’il n’a plus de centre à frapper.", "Les relais se vérifient mutuellement et remplacent aussitôt tout nœud détruit. Ton infrastructure clandestine traverse désormais les mers et Red Line.", "Les cellules conservent leur autonomie tout en partageant routes, alertes et ressources. Leur première action commune consacre le plus grand réseau clandestin révolutionnaire."], mixed: "Les cellules communiquent, mais l’infiltration impose de sacrifier plusieurs routes. Le réseau existe sans encore devenir l’infrastructure mondiale rêvée.", failure: "Le faux relais divise les cellules et révèle leurs codes. Les survivants se dispersent avant que le réseau puisse fonctionner." },
       [{ bounty: 90000, crew: 3 }, { intelligence: 51 }, { charisma: 36, crew: 3 }],
     ),
     "found-free-nation": finalDreamScene(
       "La République des Récifs sous blocus",
-      "Le territoire libéré proclame son nom et son conseil élu, mais une flotte gouvernementale ferme le port tandis que pénurie et anciens dignitaires menacent sa première journée. La nation n’existera que si sa population peut la défendre et la gouverner durablement.",
+      "La République des Récifs vient de proclamer son indépendance. Une flotte gouvernementale bloque déjà son port tandis que les réserves s’épuisent. La jeune nation doit survivre à cette première crise.",
       "Briser le blocus en protégeant les quartiers civils",
       "Garantir vivres, institutions et défense pour cent jours",
       "Obtenir du peuple et des ports voisins un pacte de reconnaissance",
@@ -5230,9 +5230,9 @@ const COMMON_EVENTS = [
     ),
     "admiral": finalDreamScene(
       "Le corridor qui décidera du prochain Amiral",
-      "Une crise du Nouveau Monde coupe un corridor rempli de civils tandis qu’un siège d’Amiral est soumis à sélection. L’état-major observe qui peut commander plusieurs unités, vaincre la menace et refuser de sacrifier la population pour une victoire rapide.",
+      "Une attaque coupe l’unique corridor d’évacuation de plusieurs navires civils. L’état-major doit choisir le prochain Amiral. Il jugera ta capacité à vaincre sans abandonner la population.",
       "Prendre la ligne de front et maintenir le corridor",
-      "Coordonner les unités autour d’une évacuation offensive",
+      "Coordonner les unités pour évacuer tout en contre-attaquant",
       "Assumer devant l’état-major la priorité donnée aux civils",
       "war",
       { success: ["Tu contiens la menace jusqu’au dernier navire civil et ramènes les unités. L’état-major confirme officiellement ta nomination comme Amiral.", "Chaque unité ouvre puis referme le corridor selon ton plan. La crise est gagnée sans abandonner les civils et la Marine te confie le siège d’Amiral.", "Soldats et survivants témoignent de ton commandement. La hiérarchie reconnaît que ta justice possède la force et l’autorité d’un Amiral."], mixed: "Le corridor est évacué, mais la désobéissance désorganise les unités. Ta valeur est reconnue sans que la nomination soit confirmée.", failure: "La menace coupe le corridor et la hiérarchie retire ta candidature. La crise survit à ton opération, pas ton accession au rang d’Amiral." },
@@ -5240,9 +5240,9 @@ const COMMON_EVENTS = [
     ),
     "fleet-admiral": finalDreamScene(
       "Toutes les flottes attendent ton ordre",
-      "Une crise mondiale rend les ordres actuels incompatibles et ouvre une transition à la tête de la Marine. Plusieurs flottes attendent une doctrine unique tandis que le Gouvernement et les vice-amiraux évaluent qui peut empêcher l’institution de se déchirer.",
+      "Des ordres contradictoires divisent les flottes pendant une crise mondiale. La direction de la Marine est vacante. Tu dois rétablir un commandement commun pour devenir Amiral en chef.",
       "Prendre le commandement opérationnel des flottes divisées",
-      "Présenter une doctrine qui résout les trois crises ensemble",
+      "Présenter un plan commun pour résoudre les trois crises",
       "Obtenir l’adhésion des vice-amiraux et du Gouvernement",
       "command",
       { success: ["Les flottes exécutent ton ordre commun et la crise s’achève sans guerre interne. La transition est ratifiée : tu deviens officiellement Amiral en chef.", "Ta doctrine protège les populations tout en restaurant la chaîne de commandement. Aucun autre plan ne tient face à l’état-major, qui te confie la direction de la Marine.", "Vice-amiraux et représentants gouvernementaux acceptent une même ligne de justice. Leur vote difficile confirme ton accession au poste d’Amiral en chef."], mixed: "Les flottes cessent de s’affronter, mais aucun accord institutionnel ne confirme la transition. Tu sauves la Marine sans la diriger.", failure: "Les ordres concurrents divisent l’opération et la hiérarchie choisit une autre transition. Le commandement suprême t’échappe." },
@@ -5250,17 +5250,17 @@ const COMMON_EVENTS = [
     ),
     "reform-the-marines": finalDreamScene(
       "La Marine doit choisir une nouvelle justice",
-      "Les preuves d’abus accumulées convergent avec une crise où l’ancienne procédure condamne des civils. L’état-major doit voter un ordre général contraignant sur les détentions, la protection des populations et la responsabilité du commandement.",
-      "Appliquer la nouvelle procédure pendant la crise",
-      "Rendre les preuves et le dispositif juridiquement indissociables",
-      "Former une majorité d’officiers autour de l’ordre général",
+      "Des preuves d’abus arrivent devant l’état-major pendant une crise qui menace des civils. C’est ta dernière chance d’imposer une réforme durable de la Marine.",
+      "Prouver la réforme en l’appliquant pendant la crise",
+      "Relier chaque mesure proposée à une preuve d’abus",
+      "Rallier une majorité d’officiers à la réforme",
       "justice",
       { success: ["Ton opération sauve les civils en suivant la procédure proposée, rendant le statu quo indéfendable. L’ordre général est adopté et appliqué dans toutes les bases.", "Chaque abus prouve la nécessité d’un article précis et chaque article reçoit un contrôle réel. L’état-major ratifie une réforme impossible à enterrer dans un rapport.", "Les officiers imposent ensemble le vote et s’engagent à l’exécuter. La chaîne de commandement, les détentions et la protection civile changent durablement."], mixed: "L’état-major adopte des recommandations sans mécanisme d’application. Un précédent existe, mais la Marine n’est pas encore durablement réformée.", failure: "Les preuves sont isolées de la crise et l’ordre général est rejeté. Quelques responsables tombent sans que l’institution change." },
       [{ bounty: 80000, charisma: 32 }, { intelligence: 52 }, { charisma: 40, bounty: 80000 }],
     ),
     "greatest-marine-hero": finalDreamScene(
       "Cent mille civils pris dans la bataille",
-      "Une île du Nouveau Monde s’effondre sous une attaque et une catastrophe maritime. L’ordre officiel privilégie la victoire navale, mais cent mille civils et des unités encerclées n’ont qu’un corridor ; vaincre sans les sauver ne ferait de personne un héros.",
+      "Une bataille et une catastrophe maritime menacent cent mille civils. L’ordre officiel privilégie la victoire navale, mais il condamnerait l’unique corridor d’évacuation. Ton dernier acte décidera de la personne que la Marine appellera son héros.",
       "Tenir seul l’entrée du corridor pendant l’évacuation",
       "Transformer toute l’opération militaire en sauvetage",
       "Conduire soldats et civils contre l’ordre d’abandon",
@@ -5361,7 +5361,7 @@ const COMMON_EVENTS = [
       chance: options.chance ?? 1,
       fallback: Boolean(options.fallback),
       minimumStats: options.minimumStats || {},
-      requiredTraits: options.requiredTraits || [],
+      requiredTitles: options.requiredTitles || [],
       requiredFlags: options.requiredFlags || {},
       condition: typeof options.condition === "function" ? options.condition : null,
       requiresD: options.requiresD ?? null,
@@ -5431,7 +5431,6 @@ const COMMON_EVENTS = [
     const tierContext = {
       1: "Les premiers choix de ta carrière reviennent déjà peser sur cette crise.",
       2: "Tes alliances, tes dettes et ta réputation accumulées donnent à cette crise une portée nouvelle.",
-      3: "Il n’existe désormais plus de détour entre cette crise et l’accomplissement de ton rêve.",
     }[tier];
 
     const approaches = decisiveCategory === "action"
@@ -5449,7 +5448,9 @@ const COMMON_EVENTS = [
     return createEvent({
       id,
       title: trial.title,
-      description: `${trial.premise} À {zone}, ${profile.organization} ${organizationVerb} désormais prendre position. ${tierContext}`,
+      description: tier === 3
+        ? trial.premise
+        : `${trial.premise} ${profile.organization} ${organizationVerb} maintenant réagir. ${tierContext}`,
       eventType: EVENT_TYPES.DECISIVE,
       resolutionCategory: decisiveCategory,
       category: `decisive-stage-${tier}`,
@@ -5552,8 +5553,8 @@ const COMMON_EVENTS = [
       stage1: Object.freeze({
         id: "haki-awakening-pirate",
         title: "Laboon et les pillards ferment la passe",
-        description: "À {zone}, Laboon percute la passe au moment où des pillards tentent de monter à bord. Crocus refuse d’abandonner la baleine ou ton navire : sous son regard d’ancien compagnon de Roger, l’urgence pousse tes sens, ta garde et ta volonté au-delà de leur limite.",
-        introDialogue: { speaker: "Crocus", role: "Gardien du phare de Reverse Mountain", text: "Laboon ne déviera pas, et ces pillards comptent sur ta panique. Je vais protéger la baleine ; montre-moi ce que ta volonté protège, elle." },
+        description: "À {zone}, Laboon bloque soudain la passe et force ton navire à ralentir. Des pillards attendaient précisément cet arrêt : ils lancent leurs grappins et montent sur le pont pendant que Crocus tente d’écarter la baleine. Ton équipage doit contenir l’abordage, et l’urgence pousse tes sens, ta garde et ta volonté au-delà de leur limite.",
+        introDialogue: { speaker: "Crocus", role: "Gardien du phare de Reverse Mountain", text: "Je m’occupe de Laboon. Les pillards profitent de notre arrêt pour monter à bord : ne les laisse pas atteindre ton équipage." },
         loreCharacters: ["Crocus"],
         choices: ["Lire le prochain mouvement de Laboon et des pillards", "Faire de ton corps le rempart du pont", "Briser l’élan des assaillants par ta seule volonté"],
       }),
@@ -5893,7 +5894,7 @@ const COMMON_EVENTS = [
       ],
       "bounty-hunter": [
         ["Un contrat au cœur de la flotte de {emperor}", "Un avis mondial promet une prime pour {objective}. {emperorThreat} Une seconde clause, ajoutée après publication, exige pourtant la disparition des preuves.", ["Identifier l’auteur de la seconde clause", "Suivre la cible dans la flotte", "Rassembler quelques chasseurs fiables"]],
-        ["Un commandant protège la cible", "Un commandant de {emperor} prend la cible et les preuves sous sa garde. {emperorCounterattack} Il faut séparer ce que réclame le contrat de ce que protège réellement la flotte.", ["Éloigner le commandant de la cible", "Récupérer les preuves sans combattre", "Piéger publiquement le commanditaire"]],
+        ["Un commandant protège la cible", "La personne recherchée et les preuves du contrat sont désormais à bord du navire d’un commandant de {emperor}, qui tente de les exfiltrer sous la protection de sa flotte. {emperorCounterattack} Tu dois reprendre la cible ou sécuriser les preuves avant que ce navire ne quitte la zone, tout en découvrant pourquoi le commanditaire voulait les faire disparaître.", ["Éloigner le commandant de la cible", "Récupérer les preuves sans combattre", "Piéger publiquement le commanditaire"]],
         ["{emperor} couvre la fuite de la cible", "{emperorArrival} La capture reste possible quelques instants, à condition que les chasseurs agissent ensemble et renoncent à affronter seuls toute la flotte.", ["Capturer la cible avec les renforts", "Prendre les preuves puis décrocher", "Obtenir la reddition de ses complices"]],
       ],
       revolutionary: [

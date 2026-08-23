@@ -65,9 +65,11 @@ const GAME_DATA = {
       {
         id: "sea-emperor",
         label: "Devenir un Empereur des mers",
+        femaleLabel: "Devenir une Impératrice des mers",
         description:
           "Bâtis une puissance capable de rivaliser avec les plus grandes flottes.",
         ultimate: "Empereur des mers",
+        femaleUltimate: "Impératrice des mers",
         ultimateId: "empereur-des-mers",
       },
       {
@@ -76,6 +78,7 @@ const GAME_DATA = {
         description:
           "Découvre des trésors, négocie habilement et protège tes richesses.",
         ultimate: "Seigneur des trésors",
+        femaleUltimate: "Dame des trésors",
         ultimateId: "seigneur-des-tresors",
       },
       {
@@ -84,6 +87,7 @@ const GAME_DATA = {
         description:
           "Recherche les traces du passé et révèle les secrets que le monde dissimule.",
         ultimate: "Gardien de l’Histoire oubliée",
+        femaleUltimate: "Gardienne de l’Histoire oubliée",
         ultimateId: "gardien-histoire-oubliee",
       },
     ],
@@ -91,6 +95,7 @@ const GAME_DATA = {
       {
         id: "greatest-bounty-hunter",
         label: "Devenir le plus grand chasseur de primes",
+        femaleLabel: "Devenir la plus grande chasseuse de primes",
         description:
           "Enchaîne les contrats difficiles sans perdre ton indépendance.",
         ultimate: "Légende des chasseurs",
@@ -110,6 +115,7 @@ const GAME_DATA = {
         description:
           "Développe une force et un réseau suffisants pour affronter une puissance mondiale.",
         ultimate: "Tombeur d’Empereur",
+        femaleUltimate: "Tombeuse d’Empereur",
         ultimateId: "tombeur-empereur",
       },
       {
@@ -118,6 +124,7 @@ const GAME_DATA = {
         description:
           "Sélectionne les missions les plus rentables et survis aux pièges des commanditaires.",
         ultimate: "Maître des contrats",
+        femaleUltimate: "Maîtresse des contrats",
         ultimateId: "maitre-des-contrats",
       },
     ],
@@ -128,6 +135,7 @@ const GAME_DATA = {
         description:
           "Mettre fin à l’esclavage, démanteler ses réseaux et libérer ceux que le monde a condamnés à vivre enchaînés.",
         ultimate: "Briseur de chaînes",
+        femaleUltimate: "Briseuse de chaînes",
         ultimateId: "chain-breaker",
         progressionTags: [
           "prisoner-rescue",
@@ -142,6 +150,7 @@ const GAME_DATA = {
         description:
           "Découvrir la véritable histoire du monde et la rendre impossible à étouffer.",
         ultimate: "Porteur de la vérité",
+        femaleUltimate: "Porteuse de la vérité",
         ultimateId: "truth-bearer",
         progressionTags: [
           "poneglyph",
@@ -170,6 +179,7 @@ const GAME_DATA = {
         description:
           "Créer un territoire indépendant du Gouvernement mondial et protéger durablement son peuple.",
         ultimate: "Fondateur du peuple libre",
+        femaleUltimate: "Fondatrice du peuple libre",
         ultimateId: "founder-of-free-people",
         progressionTags: [
           "liberated-territory",
@@ -183,17 +193,21 @@ const GAME_DATA = {
       {
         id: "admiral",
         label: "Devenir Amiral",
+        femaleLabel: "Devenir Amirale",
         description:
           "Accomplis des missions majeures et impose ta vision de la justice.",
         ultimate: "Amiral",
+        femaleUltimate: "Amirale",
         ultimateId: "amiral",
       },
       {
         id: "fleet-admiral",
         label: "Devenir Amiral en chef",
+        femaleLabel: "Devenir Amirale en chef",
         description:
           "Gravis toute la hiérarchie et assume la direction de la Marine.",
         ultimate: "Amiral en chef",
+        femaleUltimate: "Amirale en chef",
         ultimateId: "amiral-en-chef",
       },
       {
@@ -207,9 +221,11 @@ const GAME_DATA = {
       {
         id: "greatest-marine-hero",
         label: "Devenir le plus grand héros de la Marine",
+        femaleLabel: "Devenir la plus grande héroïne de la Marine",
         description:
           "Protège les innocents lors des crises qui marqueront l’histoire.",
         ultimate: "Héros de la Marine",
+        femaleUltimate: "Héroïne de la Marine",
         ultimateId: "heros-de-la-marine",
       },
     ],

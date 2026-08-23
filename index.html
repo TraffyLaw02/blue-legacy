@@ -6,7 +6,7 @@
 <meta content="Blue Legacy, une aventure narrative sur les mers." name="description"/>
 <!-- À mettre à jour lors de chaque déploiement public afin d’invalider le cache. -->
 <meta content="2026-08-21-02" name="blue-legacy-build"/>
-<title>Blue Legacy — 1.0.1</title>
+<title>Blue Legacy — 1.0.2</title>
 <script>
 /* Les ressources locales reprennent automatiquement la build du meta tag ci-dessus. */
 window.BLUE_LEGACY_CURRENT_BUILD = document.querySelector('meta[name="blue-legacy-build"]').content;
@@ -59,7 +59,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <button class="menu-button home-secondary-button" data-screen-target="pantheon-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">👑</span><span class="home-secondary-button__label">Panthéon</span></button>
 <button class="menu-button home-secondary-button" data-screen-target="achievements-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🏆</span><span class="home-secondary-button__label">Succès</span></button>
 <button class="menu-button home-secondary-button" data-screen-target="titles-screen" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">🎖️</span><span class="home-secondary-button__label">Titres</span></button>
-<button class="menu-button home-secondary-button statistics-menu-button" data-screen-target="statistics-screen" type="button"><img class="menu-button-icon menu-button-custom-icon" src="assets/icone.png" alt=""/><span class="home-secondary-button__label">Statistiques</span></button>
+<button class="menu-button home-secondary-button statistics-menu-button" data-screen-target="statistics-screen" type="button"><img class="menu-button-icon menu-button-custom-icon" src="assets/icone.png" alt=""/><span class="home-secondary-button__label">Carte de légende</span></button>
 <button aria-label="Réinitialiser entièrement le profil joueur" class="menu-button home-secondary-button home-reset-button" id="reset-profile-btn" type="button"><span class="menu-button-icon home-secondary-button__icon" aria-hidden="true">↺</span><span class="home-secondary-button__label">Réinitialiser le profil</span></button>
 </nav>
 <p class="home-reset-status" id="reset-profile-status" aria-live="polite"></p>
@@ -101,7 +101,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <div id="shop-equipped-items"></div>
 </section>
 <section class="shop-catalog-section" aria-labelledby="shop-adventure-items-title"><h3 id="shop-adventure-items-title">Objets d'aventure</h3><div class="shop-grid" id="shop-items"></div></section>
-<section class="shop-catalog-section" aria-labelledby="shop-cosmetics-title"><h3 id="shop-cosmetics-title">Cosmétiques</h3><p>Achète ici, puis personnalise ta carte depuis Statistiques.</p><div class="shop-grid" id="shop-cosmetics"></div></section>
+<section class="shop-catalog-section" aria-labelledby="shop-cosmetics-title"><h3 id="shop-cosmetics-title">Cosmétiques</h3><p>Achète ici, puis personnalise ta carte depuis Carte de légende.</p><div class="shop-grid" id="shop-cosmetics"></div></section>
 </section>
 <!-- PROFIL ET STATISTIQUES PERMANENTES -->
 <section aria-labelledby="statistics-title" class="screen layout-wide statistics-screen" hidden="" id="statistics-screen">
@@ -131,7 +131,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <header class="slide-header">
 <p class="slide-number">Étape 1</p>
 <h3 id="sex-slide-title">Choisis ton personnage</h3>
-<p>Ce choix influencera uniquement les noms proposés.</p>
+<p>Ce choix adaptera les noms proposés et certains textes de ton aventure.</p>
 </header>
 <div aria-label="Sexe du personnage" class="choice-grid choice-grid-small" role="radiogroup">
 <button aria-checked="false" class="choice-card" data-choice-type="sex" data-choice-value="male" role="radio" type="button">
@@ -479,39 +479,18 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <section class="logbook-section logbook-news-section" aria-labelledby="logbook-news-title">
 <div class="logbook-news-heading">
 <h3 id="logbook-news-title"><span aria-hidden="true">📰</span> Big News Morgans</h3>
-<span class="logbook-news-edition">Édition spéciale</span>
 </div>
-<p class="logbook-news-subtitle">Les nouvelles qui ont fait trembler les mers.</p>
 <ul class="logbook-news-list" id="logbook-narrative"></ul>
 </section>
-<section class="logbook-section logbook-discoveries-section" id="logbook-discoveries-section" hidden="">
-<h3>✨ Rencontres et pouvoirs</h3>
-<div id="logbook-discoveries"></div>
-</section>
-<section class="logbook-section logbook-highlights-section">
-<h3>⭐ Faits marquants</h3>
-<ul class="logbook-highlights" id="logbook-highlights"></ul>
-</section>
-</div>
-<div class="logbook-summary-column">
 <section class="logbook-section logbook-stats-section">
-<h3>📊 Bilan chiffré</h3>
+<h3>Évolution de la période</h3>
 <div class="logbook-stats-grid" id="logbook-stat-changes"></div>
 </section>
-<div class="logbook-footer-grid">
-<section class="logbook-section">
-<h3>🎁 Récompense</h3>
-<div class="reward-card" id="logbook-reward"></div>
+<section class="logbook-section logbook-discoveries-section" id="logbook-discoveries-section" hidden="">
+<h3>Nouveautés</h3>
+<div id="logbook-discoveries"></div>
 </section>
-<section class="logbook-section">
-<h3>🎖️ Titres</h3>
-<div class="title-list" id="logbook-titles"></div>
-</section>
-<section class="logbook-section logbook-destination-section">
-<h3>🧭 Destination</h3>
-<div class="destination-card" id="logbook-next-destination"></div>
-</section>
-</div>
+<p class="logbook-next-line">🧭 Prochaine destination : <strong id="logbook-next-destination"></strong></p>
 </div>
 </div>
 </article>
@@ -679,7 +658,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h2 id="welcome-identity-title">Bienvenue dans Blue Legacy</h2>
 </div>
 <p>Avant de prendre la mer, renseignez le nom et prénom de votre légende</p>
-<p class="welcome-identity-note">Cette identité apparaît dans votre carte Statistiques et dans le leaderboard. Vous pourrez la modifier plus tard depuis Statistiques.</p>
+<p class="welcome-identity-note">Cette identité apparaît dans votre Carte de légende et dans le leaderboard. Vous pourrez la modifier plus tard depuis Carte de légende.</p>
 <label>Nom<input name="lastName" maxlength="40" autocomplete="family-name" required></label>
 <label>Prénom<input name="firstName" maxlength="40" autocomplete="given-name" required></label>
 <p class="welcome-identity-error" id="welcome-identity-error" aria-live="polite"></p>
