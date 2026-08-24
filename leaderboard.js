@@ -336,9 +336,11 @@
   }
 
   function normalizeEntry(row) {
-    const legendaryTitles = Array.isArray(row?.legendary_titles)
+    const rawLegendaryTitles = Array.isArray(row?.legendary_titles)
       ? row.legendary_titles
       : Array.isArray(row?.legendaryTitles) ? row.legendaryTitles : [];
+    const legendaryTitles = rawLegendaryTitles
+      .map((title) => String(title || "").trim()).filter(Boolean).slice(0, 3);
     const rawFirstName = String(row?.player_first_name || row?.first_name || row?.playerFirstName || "").trim();
     const rawLastName = String(row?.player_last_name || row?.last_name || row?.playerLastName || "").trim();
     const identityAllowed = validatePlayerIdentity({
@@ -353,7 +355,8 @@
       identityMasked: !identityAllowed,
       characterName: String(row?.character_name || row?.characterName || "Légende sans nom").trim(),
       characterTitle: String(row?.character_title || row?.characterTitle || "").trim(),
-      legendaryTitles: legendaryTitles.map((title) => String(title || "").trim()).filter(Boolean).slice(0, 3),
+      legendaryTitles,
+      legendaryTitleCount: Math.min(3, Math.max(0, Number(row?.legendary_title_count ?? row?.legendaryTitleCount ?? legendaryTitles.length) || 0)),
       dreamCompleted: row?.dream_completed === true || row?.dreamCompleted === true,
       score: Math.max(0, Number(row?.score) || 0),
       updatedAt: String(row?.updated_at || row?.updatedAt || ""),
@@ -385,8 +388,8 @@
 
   async function getMonthlyTop(limit = 5) {
     const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 5)));
-    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,legendary_titles,dream_completed,score,updated_at";
-    const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, order: "score.desc,updated_at.asc", limit: String(safeLimit) });
+    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,legendary_titles,legendary_title_count,dream_completed,score,updated_at";
+    const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, order: "score.desc,legendary_title_count.desc,updated_at.asc", limit: String(safeLimit) });
     const result = await request(`/rest/v1/${CONFIG.table}?${query}`);
     return (result.data || []).map(normalizeEntry);
   }
@@ -433,7 +436,7 @@
   async function getCurrentPlayerMonthlyEntry() {
     const session = await ensureAnonymousAuth();
     logCurrentUserId("personal-entry", session);
-    const query = new URLSearchParams({ select: "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,legendary_titles,dream_completed,score,updated_at", month_key: `eq.${monthKey()}`, user_id: `eq.${session.user.id}`, limit: "1" });
+    const query = new URLSearchParams({ select: "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,character_title,legendary_titles,legendary_title_count,dream_completed,score,updated_at", month_key: `eq.${monthKey()}`, user_id: `eq.${session.user.id}`, limit: "1" });
     const result = await request(`/rest/v1/${CONFIG.table}?${query}`, { auth: true });
     return result.data?.[0] ? normalizeEntry(result.data[0]) : null;
   }
@@ -447,11 +450,50 @@
   async function getCurrentPlayerRank(entry) {
     const current = entry || await getCurrentPlayerMonthlyEntry();
     if (!current) return null;
-    const [higher, earlierTie] = await Promise.all([
+    const [higher, moreLegendaryTitles, earlierCompleteTie] = await Promise.all([
       countRows({ score: `gt.${current.score}` }),
-      countRows({ score: `eq.${current.score}`, updated_at: `lt.${current.updatedAt}` }),
+      countRows({ score: `eq.${current.score}`, legendary_title_count: `gt.${current.legendaryTitleCount}` }),
+      countRows({ score: `eq.${current.score}`, legendary_title_count: `eq.${current.legendaryTitleCount}`, updated_at: `lt.${current.updatedAt}` }),
     ]);
-    return higher + earlierTie + 1;
+    return higher + moreLegendaryTitles + earlierCompleteTie + 1;
+  }
+
+  function compareLeaderboardEntries(left, right) {
+    return (right.score - left.score) ||
+      (right.legendaryTitleCount - left.legendaryTitleCount) ||
+      String(left.updatedAt).localeCompare(String(right.updatedAt));
+  }
+
+  function shouldReplaceMonthlyBest(previous, candidate) {
+    return candidate.score > previous.score ||
+      (candidate.score === previous.score && candidate.legendaryTitleCount > previous.legendaryTitleCount);
+  }
+
+  function runLeaderboardTieBreakAudit() {
+    const entry = (id, score, titles, updatedAt) => normalizeEntry({
+      user_id: id, player_first_name: "Test", player_last_name: id,
+      score, legendary_titles: Array.from({ length: titles }, (_, index) => `Titre ${index + 1}`), updated_at: updatedAt,
+    });
+    const ordered = [
+      entry("recent-one", 100, 1, "2026-08-02T00:00:00Z"),
+      entry("score-99", 99, 3, "2026-08-01T00:00:00Z"),
+      entry("old-one", 100, 1, "2026-08-01T00:00:00Z"),
+      entry("two", 100, 2, "2026-08-03T00:00:00Z"),
+      entry("score-99-zero", 99, 0, "2026-08-01T00:00:00Z"),
+    ].sort(compareLeaderboardEntries);
+    const previous = entry("previous", 98, 2, "2026-08-01T00:00:00Z");
+    const replacements = {
+      equalMoreTitles: shouldReplaceMonthlyBest(previous, entry("new", 98, 3, "2026-08-02T00:00:00Z")),
+      equalFewerTitles: !shouldReplaceMonthlyBest(previous, entry("new", 98, 1, "2026-08-02T00:00:00Z")),
+      completeTie: !shouldReplaceMonthlyBest(previous, entry("new", 98, 2, "2026-08-02T00:00:00Z")),
+      higherScore: shouldReplaceMonthlyBest(entry("old", 97, 3, "2026-08-01T00:00:00Z"), entry("new", 98, 0, "2026-08-02T00:00:00Z")),
+      lowerScore: !shouldReplaceMonthlyBest(entry("old", 98, 3, "2026-08-01T00:00:00Z"), entry("new", 97, 3, "2026-08-02T00:00:00Z")),
+    };
+    const expectedOrder = ["two", "old-one", "recent-one", "score-99", "score-99-zero"];
+    return Object.freeze({
+      pass: ordered.map((item) => item.userId).join(",") === expectedOrder.join(",") && Object.values(replacements).every(Boolean),
+      order: ordered.map((item) => item.userId), expectedOrder, replacements,
+    });
   }
 
   async function submitCareer({ playerFirstName, playerLastName, playerDCosmetic = false, characterName, characterTitle = null, legendaryTitles = [], dreamCompleted = false, score, finishedAt }) {
@@ -506,10 +548,19 @@
           stored_score: storedEntry?.score ?? null,
           row: storedEntry,
         });
-        if (!storedEntry || storedEntry.score < payload.p_score) {
+        const submittedLegendaryCount = payload.p_legendary_titles.length;
+        const expectedReplacement = storedEntry && (
+          payload.p_score > storedEntry.score ||
+          (payload.p_score === storedEntry.score && submittedLegendaryCount > storedEntry.legendaryTitleCount)
+        );
+        if (!storedEntry || (expectedReplacement && (
+          storedEntry.score !== payload.p_score || storedEntry.legendaryTitleCount !== submittedLegendaryCount
+        ))) {
           console.error(`${LOG_PREFIX} Score verification failed`, {
             submitted_score: payload.p_score,
             stored_score: storedEntry?.score ?? null,
+            submitted_legendary_count: submittedLegendaryCount,
+            stored_legendary_count: storedEntry?.legendaryTitleCount ?? null,
             diagnosis: "La RPC a répondu sans enregistrer le meilleur score attendu.",
           });
         }
@@ -779,7 +830,16 @@
       document.body.append(output);
       output.showPopover?.();
     }
+    if (new URLSearchParams(window.location.search).has("leaderboardTieBreakAudit")) {
+      const audit = runLeaderboardTieBreakAudit();
+      document.documentElement.dataset.leaderboardTieBreakAudit = JSON.stringify(audit);
+      const output = document.createElement("output");
+      output.id = "leaderboard-tiebreak-audit-output";
+      output.style.cssText = "position:fixed;inset:8px auto auto 8px;z-index:99999;padding:12px;background:#fff;color:#111;border:3px solid #111;font:700 20px monospace";
+      output.textContent = `LEADERBOARD TIE-BREAK AUDIT: ${audit.pass ? "PASS" : "FAIL"}`;
+      document.body.append(output);
+    }
   }
 
-  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, refreshOnline, submitCareer, reservePlayerProfile, syncPlayerDCosmetic, normalizePlayerNamePart, normalizePlayerNameForModeration, validatePlayerNamePart, validatePlayerIdentity, runPlayerIdentityModerationAudit, getMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
+  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, refreshOnline, submitCareer, reservePlayerProfile, syncPlayerDCosmetic, normalizePlayerNamePart, normalizePlayerNameForModeration, validatePlayerNamePart, validatePlayerIdentity, runPlayerIdentityModerationAudit, runLeaderboardTieBreakAudit, getMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
 })();

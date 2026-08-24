@@ -242,6 +242,11 @@ alter table public.monthly_leaderboard
   add column if not exists legendary_titles text[] not null default '{}'::text[];
 
 alter table public.monthly_leaderboard
+  add column if not exists legendary_title_count smallint generated always as (
+    cardinality(coalesce(legendary_titles, '{}'::text[]))
+  ) stored;
+
+alter table public.monthly_leaderboard
   drop constraint if exists monthly_leaderboard_allowed_public_name;
 alter table public.monthly_leaderboard
   add constraint monthly_leaderboard_allowed_public_name check (
@@ -320,7 +325,12 @@ begin
         dream_completed = excluded.dream_completed,
         score = excluded.score,
         updated_at = now()
-    where excluded.score > public.monthly_leaderboard.score;
+    where excluded.score > public.monthly_leaderboard.score
+       or (
+         excluded.score = public.monthly_leaderboard.score
+         and cardinality(coalesce(excluded.legendary_titles, '{}'::text[])) >
+           cardinality(coalesce(public.monthly_leaderboard.legendary_titles, '{}'::text[]))
+       );
 
   return query
     select * from public.monthly_leaderboard

@@ -5600,10 +5600,6 @@ body.shake #app,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .origin-grid .origin-card:last-child {
-    grid-column: 1 / -1;
-  }
-
   .stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -5632,15 +5628,17 @@ body.shake #app,
   }
 
   .origin-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .origin-grid .origin-card:last-child {
-    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .collection-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .origin-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

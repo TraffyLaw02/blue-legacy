@@ -46,7 +46,7 @@
   const PRODUCTION_HOSTNAMES = new Set(["bluelegacy.fr", "www.bluelegacy.fr"]);
   const isProductionHostname = (hostname) => PRODUCTION_HOSTNAMES.has(String(hostname || "").toLowerCase());
   const IS_PRODUCTION = isProductionHostname(window.location.hostname);
-  const BUILD_UPDATE_CHECK_INTERVAL = 15 * 60 * 1000;
+  const BUILD_UPDATE_CHECK_INTERVAL = 5 * 60 * 1000;
   const BUILD_UPDATE_FETCH_TIMEOUT = 8000;
   const BUILD_UPDATE_RELOAD_SESSION_KEY = "blueLegacyLastAutomaticBuildReload";
 
@@ -387,6 +387,11 @@
       "Naël", "Nassim", "Nilo", "Oren", "Pavel", "Qadir", "Rael", "Rayan",
       "Ryo", "Samir", "Silas", "Tarek", "Tenzin", "Vadim", "Yago", "Yanis",
       "Zahir", "Zoran", "Aster", "Boro", "César", "Dimas", "Eren", "Kento",
+      "Aurel", "Bahir", "Cassian", "Deyan", "Elias", "Farid", "Galen", "Hadrien",
+      "Idris", "Jovan", "Kaito", "Lazlo", "Maël", "Nadir", "Osric", "Piero",
+      "Quillan", "Rami", "Savio", "Thiago", "Ulric", "Vasco", "Wylan", "Xeran",
+      "Yusef", "Zayan", "Amon", "Bruno", "Corin", "Darian", "Evren", "Fintan",
+      "Gaspard", "Hideo", "Iskander", "Joris", "Kellan", "Lucan", "Miro", "Nolan",
     ],
     female: [
       "Asha", "Aya", "Celia", "Elya", "Hana", "Iris", "June",
@@ -399,6 +404,11 @@
       "Priya", "Ranya", "Réva", "Sanaa", "Sena", "Shirin", "Tara", "Théa",
       "Vega", "Yara", "Ysia", "Zara", "Aelis", "Doria", "Ilyne", "Kenza",
       "Luma", "Neria", "Oria", "Sélène", "Tessa", "Vanya", "Zélie", "Mouna",
+      "Aveline", "Belisa", "Carys", "Delia", "Esra", "Fiora", "Galia", "Helia",
+      "Imani", "Joane", "Kalea", "Livia", "Maïra", "Nahla", "Olena", "Phaedra",
+      "Quina", "Raisa", "Safia", "Thalia", "Ulani", "Velia", "Wenna", "Xylia",
+      "Yelena", "Zahra", "Amina", "Brielle", "Céliane", "Douna", "Eleni", "Fenna",
+      "Gisèle", "Hedda", "Inès", "Jessamine", "Koral", "Lysia", "Maris", "Néva",
     ],
     neutral: [
       "Ari", "Eden", "Kai", "Noa", "Robin", "Sasha", "Sol", "Tao",
@@ -420,6 +430,11 @@
       "Sablétoile", "Sillage", "Solevent", "Souffremer", "Tonnebrume", "Tramontane",
       "Vaguebrune", "Vent-Sec", "Vigie", "Voilegrise", "Abyssal", "Brisefer",
       "Cap-Serein", "Éclat", "Millecaps", "Rive-Noire", "Rochebrume", "Vif-Argent",
+      "Ardent", "Bassemer", "Beaumont", "Belvédère", "Brise-Sud", "Cabestan",
+      "Clairécume", "Cormoran", "Delmare", "Dorsale", "Estran", "Fierro",
+      "Grandcourant", "Havre", "Ivoire", "Jaspe", "Kermeur", "Lamarre",
+      "Marin", "Nacrier", "Orme", "Portel", "Quille", "Rivage",
+      "Serein", "Tamaris", "Valmer", "Warden", "Zéphyr", "Aubemer",
     ],
   });
 
@@ -1363,18 +1378,26 @@
     remoteBuild: null,
     notifiedBuild: null,
     checkPromise: null,
+    adventureEntryPromise: null,
     initialized: false,
+    lastCheckAt: null,
+    lastCheckReason: null,
+    lastCheckResult: null,
   };
 
   function getBuildUpdateStatus() {
     return {
       currentBuild: CURRENT_BUILD,
       isProduction: IS_PRODUCTION,
+      productionHostname: window.location.hostname,
       updateAvailable: buildUpdateState.updateAvailable,
       remoteBuild: buildUpdateState.remoteBuild,
       pendingCriticalWrites: state.pendingCriticalWrites,
       activeRun: hasActiveRunForBuildUpdate(),
       reloadSafe: isBuildUpdateReloadSafe(),
+      lastCheckAt: buildUpdateState.lastCheckAt,
+      lastCheckReason: buildUpdateState.lastCheckReason,
+      lastCheckResult: buildUpdateState.lastCheckResult,
     };
   }
 
@@ -1460,8 +1483,14 @@
     return true;
   }
 
-  async function checkForBuildUpdate() {
-    if (!IS_PRODUCTION) return { checked: false, reason: "non-production" };
+  async function checkForBuildUpdate(reason = "manual") {
+    if (!IS_PRODUCTION) {
+      const result = { checked: false, reason: "non-production" };
+      buildUpdateState.lastCheckAt = new Date().toISOString();
+      buildUpdateState.lastCheckReason = reason;
+      buildUpdateState.lastCheckResult = result;
+      return result;
+    }
     if (buildUpdateState.checkPromise) return buildUpdateState.checkPromise;
     buildUpdateState.checkPromise = (async () => {
       const controller = new AbortController();
@@ -1500,20 +1529,58 @@
         return { checked: false, reason: error?.name === "AbortError" ? "timeout" : "network-error" };
       } finally {
         window.clearTimeout(timeout);
-        buildUpdateState.checkPromise = null;
       }
     })();
-    return buildUpdateState.checkPromise;
+    try {
+      const result = await buildUpdateState.checkPromise;
+      buildUpdateState.lastCheckAt = new Date().toISOString();
+      buildUpdateState.lastCheckReason = reason;
+      buildUpdateState.lastCheckResult = result;
+      return result;
+    } finally {
+      buildUpdateState.checkPromise = null;
+    }
+  }
+
+  async function ensureCurrentBuildBeforeAdventure(button, action) {
+    if (buildUpdateState.adventureEntryPromise) return false;
+    const originalDisabled = button?.disabled === true;
+    const originalLabel = button?.textContent;
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Vérification…";
+    }
+    buildUpdateState.adventureEntryPromise = (async () => {
+      const result = await checkForBuildUpdate("adventure-entry");
+      if (result.updateAvailable || buildUpdateState.updateAvailable) {
+        maybeApplyPendingBuildUpdate();
+        return false;
+      }
+      action();
+      return true;
+    })();
+    try {
+      return await buildUpdateState.adventureEntryPromise;
+    } finally {
+      buildUpdateState.adventureEntryPromise = null;
+      if (button && button.isConnected) {
+        button.disabled = originalDisabled;
+        button.textContent = originalLabel;
+      }
+    }
   }
 
   function initializeBuildUpdateMonitoring() {
     if (!IS_PRODUCTION || buildUpdateState.initialized) return false;
     buildUpdateState.initialized = true;
+    window.addEventListener("pageshow", () => void checkForBuildUpdate("pageshow"));
+    window.addEventListener("focus", () => void checkForBuildUpdate("focus"));
+    window.addEventListener("online", () => void checkForBuildUpdate("online"));
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") void checkForBuildUpdate();
+      if (document.visibilityState === "visible") void checkForBuildUpdate("visibilitychange");
     });
-    window.setInterval(() => void checkForBuildUpdate(), BUILD_UPDATE_CHECK_INTERVAL);
-    void checkForBuildUpdate();
+    window.setInterval(() => void checkForBuildUpdate("interval"), BUILD_UPDATE_CHECK_INTERVAL);
+    void checkForBuildUpdate("initialization");
     return true;
   }
 
@@ -1795,8 +1862,8 @@
 
   function retainPantheonCareers(profile) {
     const runs = (profile?.pantheon || []).filter(Boolean);
-    if (runs.length <= 15) return runs;
-    const recent = new Set(runs.slice(0, 15));
+    if (runs.length <= 12) return runs;
+    const recent = new Set(runs.slice(0, 12));
     const top = [...runs]
       .map((run, index) => ({ run, index, score: Number(run.popularityScore ?? run.stats?.popularity) || 0 }))
       .sort((left, right) => right.score - left.score || left.index - right.index)
@@ -10986,16 +11053,16 @@
       stats: { ...createDefaultStats(), popularity: index >= 15 ? 100 - index : 50 - index },
       visitedZoneIds: ["east-blue", "reverse-mountain"],
     }));
-    const expectedRecentIds = profile.pantheon.slice(0, 15).map((run) => run.id);
+    const expectedRecentIds = profile.pantheon.slice(0, 12).map((run) => run.id);
     const expectedHistoricalTopIds = ["retention-15", "retention-16", "retention-17"];
     retainPantheonCareers(profile);
     const retainedIds = profile.pantheon.map((run) => run.id);
     const checks = {
-      maximum18: retainedIds.length === 18,
+      maximum15: retainedIds.length === 15,
       noDuplicates: new Set(retainedIds).size === retainedIds.length,
-      recent15: expectedRecentIds.every((id) => retainedIds.includes(id)),
+      recent12: expectedRecentIds.every((id) => retainedIds.includes(id)),
       historicalTop3: expectedHistoricalTopIds.every((id) => retainedIds.includes(id)),
-      archived2: profile.pantheonHistory?.archivedRuns === 2,
+      archived5: profile.pantheonHistory?.archivedRuns === 5,
       completedCounter: calculateProfileStatistics(profile).completed === 20,
     };
     return { pass: Object.values(checks).every(Boolean), checks, retainedIds };
@@ -12204,8 +12271,12 @@
       return;
     }
 
-    const pantheon =
-      getProfile().pantheon;
+    const profile = getProfile();
+    const pantheon = profile.pantheon;
+    const completedAdventures = Math.max(
+      pantheon.length,
+      Math.floor(Number(profile.statistics?.completedAdventures) || 0),
+    );
 
     const popularityScores = pantheon.map((entry) =>
       clampCareerScore(
@@ -12218,7 +12289,7 @@
     const representedFactions = new Set(
       pantheon.map((entry) => entry.faction).filter(Boolean),
     ).size;
-    const legendLabel = `${pantheon.length} légende${pantheon.length > 1 ? "s" : ""} enregistrée${pantheon.length > 1 ? "s" : ""}`;
+    const legendLabel = `${completedAdventures} aventure${completedAdventures > 1 ? "s" : ""} terminée${completedAdventures > 1 ? "s" : ""}`;
 
     if (dom.pantheonSummary) {
       dom.pantheonSummary.textContent = legendLabel;
@@ -12227,7 +12298,7 @@
       dom.pantheonOverview.innerHTML = `
         <div class="pantheon-overview-item">
           <span aria-hidden="true">🏛️</span>
-          <span><strong>${pantheon.length}</strong> légende${pantheon.length > 1 ? "s" : ""}</span>
+          <span>Aventures terminées <strong>${completedAdventures}</strong></span>
         </div>
         <div class="pantheon-overview-item">
           <span aria-hidden="true">⭐</span>
@@ -13097,19 +13168,19 @@
 
     dom.startAdventure?.addEventListener(
       "click",
-      (event) => {
+      async (event) => {
         event.preventDefault();
         event.stopPropagation();
-        startCreation(false);
+        await ensureCurrentBuildBeforeAdventure(dom.startAdventure, () => startCreation(false));
       },
     );
 
     dom.resumeAdventure?.addEventListener(
       "click",
-      (event) => {
+      async (event) => {
         event.preventDefault();
         event.stopPropagation();
-        resumeGame();
+        await ensureCurrentBuildBeforeAdventure(dom.resumeAdventure, resumeGame);
       },
     );
 
@@ -13289,12 +13360,13 @@
 
     dom.confirmNewGame?.addEventListener(
       "click",
-      (event) => {
+      async (event) => {
         event.preventDefault();
         event.stopPropagation();
-
-        closeDialog(dom.newGameModal);
-        startCreation(true);
+        await ensureCurrentBuildBeforeAdventure(dom.confirmNewGame, () => {
+          closeDialog(dom.newGameModal);
+          startCreation(true);
+        });
       },
     );
 
@@ -16108,6 +16180,28 @@
     initializeBuildUpdateMonitoring();
     preloadRouteAssets(state.game);
     preloadBackgroundFeatureAssets();
+    if (developmentQuery.has("originGridPreview")) {
+      state.creationStep = 3;
+      showCreationSlide(3);
+      openScreen(SCREEN.CREATION, { save: false });
+      dom.welcomeIdentityModal?.remove();
+      requestAnimationFrame(() => {
+        const grid = document.querySelector(".origin-grid");
+        const cards = [...document.querySelectorAll(".origin-grid .origin-card")];
+        const audit = {
+          viewport: [window.innerWidth, window.innerHeight],
+          documentWidth: document.documentElement.scrollWidth,
+          columns: getComputedStyle(grid).gridTemplateColumns.split(" ").length,
+          widths: cards.map((card) => Math.round(card.getBoundingClientRect().width)),
+          heights: cards.map((card) => Math.round(card.getBoundingClientRect().height)),
+        };
+        document.documentElement.dataset.originGridAudit = JSON.stringify(audit);
+        const output = document.createElement("output");
+        output.style.cssText = "position:fixed;inset:6px auto auto 6px;z-index:99999;padding:7px;background:#fff;color:#111;border:2px solid #111;font:700 12px monospace";
+        output.textContent = `GRID ${audit.viewport[0]}px · ${audit.columns} col · widths ${audit.widths.join('/')} · doc ${audit.documentWidth}px`;
+        document.body.append(output);
+      });
+    }
     if (developmentQuery.has("shopPreview")) {
       openScreen(SCREEN.SHOP, { save: false });
       requestAnimationFrame(() => {
