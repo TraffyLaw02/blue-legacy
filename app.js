@@ -23,7 +23,7 @@
   ]);
 
   const CONFIG = Object.freeze({
-    version: "1.0.1",
+    version: "1.0.2",
     saveKey: STORAGE_KEYS.save,
     profileKey: STORAGE_KEYS.profile,
     legacySaveKeys: STORAGE_KEYS.legacySaves,
@@ -653,6 +653,7 @@
     dom.welcomeIdentityModal = byId("welcome-identity-modal");
     dom.welcomeIdentityForm = byId("welcome-identity-form");
     dom.welcomeIdentityError = byId("welcome-identity-error");
+    dom.welcomeIdentityLegacyNotice = byId("welcome-identity-legacy-notice");
 
     dom.abandonModal = byId("abandon-modal");
     dom.confirmAbandon = byId("confirm-abandon-btn");
@@ -1017,6 +1018,9 @@
   function showWelcomeIdentityIfNeeded() {
     const profile = getProfile();
     if (!dom.welcomeIdentityModal || isPlayerIdentityValid(profile)) return false;
+    if (dom.welcomeIdentityLegacyNotice) {
+      dom.welcomeIdentityLegacyNotice.hidden = CONFIG.version !== "1.0.2";
+    }
     if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = "";
     if (dom.welcomeIdentityForm) {
       dom.welcomeIdentityForm.elements.lastName.value = profile.playerIdentity.lastName;
