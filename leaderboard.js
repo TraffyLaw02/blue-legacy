@@ -8,6 +8,8 @@
     publishableKey: "sb_publishable_EOeyk2sVpWdHCrxC_X6_cw_2ykfTKAt",
     table: "monthly_leaderboard",
     submitRpc: "submit_monthly_score",
+    storyTable: "monthly_story_leaderboard",
+    storySubmitRpc: "submit_monthly_story_score",
   });
   const AUTH_STORAGE_KEY = "blueLegacySupabaseAuth";
   const CACHE_STORAGE_KEY = "blueLegacyLeaderboardCache";
@@ -355,6 +357,8 @@
       identityMasked: !identityAllowed,
       characterName: String(row?.character_name || row?.characterName || "Légende sans nom").trim(),
       characterTitle: String(row?.character_title || row?.characterTitle || "").trim(),
+      storyId: String(row?.story_id || row?.storyId || "").trim(),
+      storyTitle: String(row?.story_title || row?.storyTitle || "").trim(),
       legendaryTitles,
       legendaryTitleCount: Math.min(3, Math.max(0, Number(row?.legendary_title_count ?? row?.legendaryTitleCount ?? legendaryTitles.length) || 0)),
       dreamCompleted: row?.dream_completed === true || row?.dreamCompleted === true,
@@ -392,6 +396,22 @@
     const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, order: "score.desc,legendary_title_count.desc,updated_at.asc", limit: String(safeLimit) });
     const result = await request(`/rest/v1/${CONFIG.table}?${query}`);
     return (result.data || []).map(normalizeEntry);
+  }
+
+  async function getStoryMonthlyTop(limit = 5) {
+    const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 5)));
+    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,story_id,story_title,score,updated_at";
+    const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, order: "score.desc,updated_at.asc", limit: String(safeLimit) });
+    const result = await request(`/rest/v1/${CONFIG.storyTable}?${query}`);
+    return (result.data || []).map(normalizeEntry);
+  }
+
+  async function getCurrentPlayerStoryEntry() {
+    const session = await ensureAnonymousAuth();
+    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,story_id,story_title,score,updated_at";
+    const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, user_id: `eq.${session.user.id}`, limit: "1" });
+    const result = await request(`/rest/v1/${CONFIG.storyTable}?${query}`, { auth: true });
+    return result.data?.[0] ? normalizeEntry(result.data[0]) : null;
   }
 
   function loadTopFive({ force = false } = {}) {
@@ -576,6 +596,31 @@
     }
   }
 
+  async function submitStoryCareer({ playerFirstName, playerLastName, playerDCosmetic = false, characterName, storyId, storyTitle, score, finishedAt }) {
+    const identityValidation = validatePlayerIdentity({ firstName: playerFirstName, lastName: playerLastName });
+    if (!identityValidation.ok) return { submitted: false, reason: identityValidation.reason, message: identityValidation.message };
+    const payload = {
+      p_month_key: monthKey(new Date(finishedAt || Date.now())),
+      p_player_first_name: identityValidation.firstName,
+      p_player_last_name: identityValidation.lastName,
+      p_player_d_cosmetic: playerDCosmetic === true,
+      p_character_name: String(characterName || "Légende sans nom").trim().slice(0, 100),
+      p_story_id: String(storyId || "").trim().slice(0, 50),
+      p_story_title: String(storyTitle || "").trim().slice(0, 120),
+      p_score: Math.min(100, Math.max(1, Math.round(Number(score) || 1))),
+    };
+    if (!payload.p_story_id || !payload.p_story_title) return { submitted: false, reason: "missing-story" };
+    try {
+      await ensureAnonymousAuth();
+      const result = await request(`/rest/v1/rpc/${CONFIG.storySubmitRpc}`, { method: "POST", body: payload, auth: true });
+      void refreshStoryHome();
+      return { submitted: true, rpcResult: result.data };
+    } catch (error) {
+      logError("story-submission", error);
+      return { submitted: false, ...publicProfileFailure(error) };
+    }
+  }
+
   function clear(element) { while (element?.firstChild) element.removeChild(element.firstChild); }
   function text(tag, className, value) { const node = document.createElement(tag); if (className) node.className = className; node.textContent = value; return node; }
 
@@ -604,7 +649,9 @@
     const rankNode = text("strong", "leaderboard-entry__rank", `#${rank}`);
     const names = document.createElement("div"); names.className = "leaderboard-entry__names";
     const playerIdentity = text("strong", "leaderboard-entry__player", "");
-    if (identityRenderer) {
+    if (entry.storyTitle) {
+      playerIdentity.textContent = entry.characterName;
+    } else if (identityRenderer) {
       identityRenderer(playerIdentity, {
         playerIdentity: { firstName: entry.playerFirstName, lastName: entry.playerLastName },
         profileCosmetics: {
@@ -616,7 +663,8 @@
       playerIdentity.textContent = formatLeaderboardIdentity(entry);
     }
     names.append(playerIdentity);
-    names.append(text("span", "leaderboard-entry__character", entry.characterName));
+    if (!entry.storyTitle) names.append(text("span", "leaderboard-entry__character", entry.characterName));
+    if (entry.storyTitle) names.append(text("span", "leaderboard-entry__title", `Roger — ${entry.storyTitle}`));
     if (entry.characterTitle) names.append(text("span", "leaderboard-entry__title", entry.characterTitle));
     if (entry.legendaryTitles?.length) {
       const legendaryTitles = document.createElement("div");
@@ -631,11 +679,11 @@
     return row;
   }
 
-  function renderList(element, entries, { full = false } = {}) {
+  function renderList(element, entries, { full = false, story = false } = {}) {
     clear(element);
     if (!entries.length) {
       const empty = document.createElement("div"); empty.className = "monthly-leaderboard-empty";
-      empty.append(text("p", "", "Aucune légende n’a encore marqué les mers ce mois-ci."), text("small", "", "Soyez le premier."));
+      empty.append(text("p", "", story ? "Aucune légende n’a encore été écrite en Mode Histoire." : "Aucune légende n’a encore marqué les mers ce mois-ci."), text("small", "", "Soyez le premier."));
       element.append(empty); return;
     }
     entries.forEach((entry, index) => element.append(createRow(entry, index + 1, full)));
@@ -682,6 +730,34 @@
       const cache = readTopFiveCache();
       if (cache) renderCachedTopFive(element, cache);
       else renderError(element);
+    }
+  }
+
+  async function refreshStoryHome() {
+    const element = document.getElementById("leaderboard-story-empty-home");
+    if (!element) return;
+    clear(element);
+    element.append(text("p", "monthly-leaderboard-status", "Chargement des histoires…"));
+    try {
+      renderList(element, await getStoryMonthlyTop(5), { story: true });
+    } catch (error) {
+      logError("story-top5", error);
+      clear(element);
+      element.append(text("p", "", "Le classement Histoire sera disponible après l’installation de son extension Supabase."));
+    }
+  }
+
+  async function refreshStoryFull() {
+    const element = document.getElementById("leaderboard-story-empty-full");
+    if (!element) return;
+    clear(element);
+    element.append(text("p", "monthly-leaderboard-status", "Chargement des histoires…"));
+    try {
+      renderList(element, await getStoryMonthlyTop(50), { full: true, story: true });
+    } catch (error) {
+      logError("story-top50", error);
+      clear(element);
+      element.append(text("p", "", "Le classement Histoire sera disponible après l’installation de son extension Supabase."));
     }
   }
 
@@ -841,5 +917,5 @@
     }
   }
 
-  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, refreshOnline, submitCareer, reservePlayerProfile, syncPlayerDCosmetic, normalizePlayerNamePart, normalizePlayerNameForModeration, validatePlayerNamePart, validatePlayerIdentity, runPlayerIdentityModerationAudit, runLeaderboardTieBreakAudit, getMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
+  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, refreshStoryHome, refreshStoryFull, refreshOnline, submitCareer, submitStoryCareer, reservePlayerProfile, syncPlayerDCosmetic, normalizePlayerNamePart, normalizePlayerNameForModeration, validatePlayerNamePart, validatePlayerIdentity, runPlayerIdentityModerationAudit, runLeaderboardTieBreakAudit, getMonthlyTop, getStoryMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
 })();

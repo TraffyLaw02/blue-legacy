@@ -1,6 +1,6 @@
 /* ==========================================================
    BLUE LEGACY — EVENTS.JS
-   Version 1.0.1
+   Version 1.1
 
    Ce fichier contient uniquement les événements narratifs.
 
@@ -652,6 +652,9 @@
       decisiveKind: event.decisiveKind || event.bossType || "",
       intro: event.intro || "",
       introDialogue: event.introDialogue || null,
+      // Les scènes alternatives sont réservées aux rendez-vous décisifs
+      // obligatoires (notamment les deux Éveils du Haki).
+      variants: eventType === EVENT_TYPES.DECISIVE ? event.variants || [] : [],
 
       requiresD: event.requiresD ?? null,
       requiresFruit: event.requiresFruit ?? null,
@@ -1312,10 +1315,11 @@ const COMMON_EVENTS = [
           "Elle accepte, prend la barre, évite trois récifs et vomit sur le quatrième. Elle embarque durablement dans ton équipage : une excellente professeure et une très mauvaise passagère.",
 
         effects: {
-          crew: 1,
           ship: 2,
           morale: 3,
         },
+
+        crewMember: { id: "nessa-navigator", name: "Nessa", role: "Navigatrice", rarity: "rare" },
 
         flags: {
           recruitedNessa: true,
@@ -1750,7 +1754,8 @@ const COMMON_EVENTS = [
               id: "joins-crew",
               result:
                 "Impressionnée par ton équipage et ta route, la naufragée accepte de devenir ta navigatrice jusqu’à la prochaine île — puis oublie opportunément de partir.",
-              effects: { crew: 1, ship: 1 },
+              effects: { ship: 1 },
+              crewMember: { id: "maelys-navigator", name: "Maëlys", role: "Navigatrice", rarity: "rare" },
               minimumStats: { morale: 52 },
               flags: { rescuedNavigator: true, recruitedMaelysNavigator: true },
               weight: 3,
@@ -1931,7 +1936,8 @@ const COMMON_EVENTS = [
               id: "cook-joins",
               result:
                 "Après avoir goûté vos réserves, le cuisinier déclare que vous mourrez sans lui. Il embarque pour sauver vos estomacs.",
-              effects: { crew: 1, morale: 2 },
+              effects: { morale: 2 },
+              crewMember: { id: "basile-cook", name: "Basile", role: "Cuisinier", rarity: "rare" },
               minimumStats: { crew: 1 },
               flags: { recruitedBasileCook: true, baratieApprenticeMet: true },
               weight: 3,
@@ -1955,7 +1961,8 @@ const COMMON_EVENTS = [
               id: "grateful-cook",
               result:
                 "Le restaurateur accepte les berrys. Le cuisinier, bouleversé, jure de rembourser sa dette en servant ton équipage.",
-              effects: { fortune: -8000, crew: 1 },
+              effects: { fortune: -8000 },
+              crewMember: { id: "basile-cook", name: "Basile", role: "Cuisinier", rarity: "rare" },
               minimumStats: { fortune: 8000 },
               flags: { recruitedBasileCook: true, paidBasileDebt: true },
               weight: 4,
@@ -2190,7 +2197,7 @@ const COMMON_EVENTS = [
       id: "pirate-village-protection",
       title: "Le pavillon sur le puits",
       description:
-        "Un village côtier verse chaque mois des vivres à un équipage pirate qui promet de le protéger. Cette fois, les protecteurs ne sont pas venus, mais leur pavillon flotte encore sur la place.",
+        "Un village côtier verse chaque mois des vivres à un équipage pirate qui promet de le protéger. Les protecteurs ont disparu malgré une attaque imminente, mais leur pavillon flotte encore sur la place.",
       category: "dilemme",
       tags: ["pirate", "village", "morale", "protection"],
       paths: [PATHS.PIRATE],
@@ -2624,7 +2631,7 @@ const COMMON_EVENTS = [
       important: true,
       choices: [
         { id: "free-clinic", text: "Racheter la clinique sans discuter", choiceTag: "Sacrifice",
-          success: { result: "Le médecin rembourse ta générosité en rejoignant l’équipage avec une armoire entière de sirops imbuvables.", effects: { fortune: -12000, crew: 1 }, minimumStats: { fortune: 12000 }, flags: { recruitedTomaSaltDoctor: true, freedFloatingClinic: true }, combatStyle: "medecin", important: true },
+          success: { result: "Le médecin rembourse ta générosité en rejoignant l’équipage avec une armoire entière de sirops imbuvables.", effects: { fortune: -12000 }, crewMember: { id: "toma-salt-doctor", name: "Toma Salt", role: "Médecin", rarity: "rare" }, minimumStats: { fortune: 12000 }, flags: { recruitedTomaSaltDoctor: true, freedFloatingClinic: true }, combatStyle: "medecin", important: true },
           setback: { result: "Le prêteur augmente le prix au moment de signer. Le médecin sauve ses instruments, mais reste à quai.", effects: { fortune: -8000, morale: -2 }, flags: { helpedTomaSaltDoctor: true } } },
         { id: "expose-lender", text: "Retourner ses registres contre le prêteur", choiceTag: "Ruse",
           success: { result: "Les dettes inventées apparaissent dans le journal local. La clinique reste libre et le médecin devient un allié sûr.", effects: { popularity: 2, morale: 2 }, requiredTitles: ["personnalite-ruse"], flags: { exposedPortAzurLender: true, alliedWithTomaSaltDoctor: true } },
@@ -2894,7 +2901,7 @@ const COMMON_EVENTS = [
       zones: ["whispering-reefs"], rarity: EVENT_RARITY.UNCOMMON, tags: ["cipher-pol", "archive", "mystery"],
       choices: [
         { id: "copy-silently", text: "Copier les dossiers sans prononcer un nom", choiceTag: "Prudence",
-          success: { result: "L’enquêteur rejoint ton unité avec les copies cousues dans sa veste à rayures.", effects: { crew: 1, morale: 2 }, requiredTitles: ["personnalite-patient"], flags: { recruitedSennMarineInvestigator: true, copiedCipherReefFiles: true }, important: true },
+          success: { result: "L’enquêteur rejoint ton unité avec les copies cousues dans sa veste à rayures.", effects: { morale: 2 }, crewMember: { id: "senn-marine-investigator", name: "Senn", role: "Enquêteur", rarity: "rare" }, requiredTitles: ["personnalite-patient"], flags: { recruitedSennMarineInvestigator: true, copiedCipherReefFiles: true }, important: true },
           setback: { result: "Un éternuement de l’enquêteur réveille l’écho et annonce votre présence à toute la baie.", effects: { health: -3, morale: -1 }, flags: { exposedAtCipherReefArchive: true } } },
         { id: "seal-archive", text: "Sceller la chambre pour une unité spécialisée", choiceTag: "Devoir",
           success: { result: "Le sceau tient et la commandante reçoit les coordonnées complètes.", effects: { popularity: 2 }, flags: { securedCipherReefArchive: true } },
@@ -3092,7 +3099,7 @@ const COMMON_EVENTS = [
       rarity: EVENT_RARITY.COMMON, tags: ["storm", "hunt", "tracker"],
       choices: [
         { id: "follow-ora", text: "Suivre les indications de la pisteuse", choiceTag: "Intuition",
-          success: { result: "La pisteuse retrouve la cible et accepte de poursuivre la route à tes côtés.", effects: { crew: 1, ship: 1 }, minimumStats: { morale: 50 }, flags: { recruitedOraPaleyeTracker: true, caughtCloudstepTarget: true }, important: true },
+          success: { result: "La pisteuse retrouve la cible et accepte de poursuivre la route à tes côtés.", effects: { ship: 1 }, crewMember: { id: "ora-paleye-tracker", name: "Ora Paleye", role: "Pisteuse", rarity: "rare" }, minimumStats: { morale: 50 }, flags: { recruitedOraPaleyeTracker: true, caughtCloudstepTarget: true }, important: true },
           setback: { result: "Les traces appartenaient à un troupeau d’oiseaux très organisé.", effects: { ship: -2, morale: 1 }, flags: { followedStormBirdTracks: true } } },
         { id: "cut-through-storm", text: "Couper directement à travers le front", choiceTag: "Audace",
           success: { result: "La manœuvre intercepte la cible au moment où elle croyait avoir disparu.", effects: { fortune: 12000, ship: -1 }, minimumStats: { ship: 4 }, flags: { interceptedHorizontalRainTarget: true } },
@@ -3107,7 +3114,7 @@ const COMMON_EVENTS = [
       important: true,
       choices: [
         { id: "hear-pica", text: "Écouter sa version avant de décider", choiceTag: "Honneur",
-          success: { result: "Les preuves confirment le complot. La tireuse rejoint ta chasse pour retrouver le véritable commanditaire.", effects: { crew: 1, morale: 3 }, requiredTitles: ["personnalite-compatissant"], combatStyle: "sniper", flags: { recruitedPicaTwomoonSniper: true, protectedPicaFromFalseBounty: true }, important: true },
+          success: { result: "Les preuves confirment le complot. La tireuse rejoint ta chasse pour retrouver le véritable commanditaire.", effects: { morale: 3 }, crewMember: { id: "pica-twomoon-sniper", name: "Pica Twomoon", role: "Tireuse", rarity: "rare" }, requiredTitles: ["personnalite-compatissant"], combatStyle: "sniper", flags: { recruitedPicaTwomoonSniper: true, protectedPicaFromFalseBounty: true }, important: true },
           setback: { result: "Les preuves sont incomplètes et la tireuse disparaît en laissant ton chapeau cloué au mur.", effects: { morale: -1, popularity: -1 }, flags: { picaTwomoonAtLarge: true } } },
         { id: "offer-surrender", text: "Proposer une remise encadrée à la Marine", choiceTag: "Prudence",
           success: { result: "Ton contact Marine accepte une enquête avant détention.", effects: { popularity: 2, morale: 2 }, requiredFlags: { marineBountyContact: true }, flags: { arrangedPicaInquiry: true } },
@@ -3349,7 +3356,7 @@ const COMMON_EVENTS = [
       important: true,
       choices: [
         { id: "cut-chains-carefully", text: "Détacher les chaînes une section après l’autre", choiceTag: "Prudence",
-          success: { result: "Chaque prisonnier atteint les canots. La saboteuse neutralise le mécanisme central, puis rejoint durablement ton groupe.", effects: { morale: 5, crew: 1 }, minimumStats: { ship: 3 }, dreamProgressByDream: { "break-the-chains": 3 }, flags: { liberatedHullChainPrisoners: true, recruitedPivoineSaboteur: true }, important: true },
+          success: { result: "Chaque prisonnier atteint les canots. La saboteuse neutralise le mécanisme central, puis rejoint durablement ton groupe.", effects: { morale: 5 }, crewMember: { id: "pivoine-saboteur", name: "Pivoine", role: "Saboteuse", rarity: "rare" }, minimumStats: { ship: 3 }, dreamProgressByDream: { "break-the-chains": 3 }, flags: { liberatedHullChainPrisoners: true, recruitedPivoineSaboteur: true }, important: true },
           setback: { result: "Une section cède trop tôt et l’évacuation se termine dans l’eau glacée.", effects: { health: -6, morale: -2 }, flags: { partialHullChainRescue: true } } },
         { id: "seize-prison-ship", text: "Prendre le contrôle du navire-prison", choiceTag: "Audace",
           success: { result: "La garde se rend et le bâtiment devient une route mobile pour les évacuations.", effects: { combat: 3, popularity: 3 }, minimumStats: { combat: 22 }, dreamProgressByDream: { "break-the-chains": 2, "build-underground-network": 2 }, flags: { seizedGovernmentPrisonShip: true }, important: true },
@@ -5639,6 +5646,63 @@ const COMMON_EVENTS = [
     }),
   });
 
+  const HAKI_DECISIVE_ALTERNATIVES = Object.freeze({
+    pirate: Object.freeze({
+      stage1: Object.freeze([
+        { id: "shanks-burning-harbor", title: "Face au Roux", description: "À {zone}, des pillards incendient les amarres d’un port pour pousser les navires civils dans leur ligne de tir. Shanks maintient leur capitaine à distance, mais les flammes gagnent les coques et la foule se presse sur une jetée condamnée.", introDialogue: { speaker: "Shanks le Roux", role: "Empereur", text: "Ne regarde pas mon adversaire. Regarde ceux qui n’ont plus de route, puis décide de ce que ta présence vaut pour eux." }, loreCharacters: ["Shanks"], choices: ["Repérer l’amarre qui libérera le passage", "Tenir la jetée sous les tirs jusqu’à l’évacuation", "Marcher vers les pillards et leur ordonner de reculer"], resultLead: "Shanks contient leur capitaine tandis que ton choix décide du sort du port." },
+      ]),
+      stage2: Object.freeze([
+        { id: "rayleigh-sabaody", title: "Rayleigh laisse la passerelle céder", description: "Aux abords de {zone}, près des routes de Sabaody, des trafiquants font céder une passerelle chargée de captifs pour couvrir leur fuite. Silvers Rayleigh retient un câble, mais te laisse choisir comment sauver les prisonniers sans offrir ton équipage aux tirs.", introDialogue: { speaker: "Silvers Rayleigh", role: "Ancien second des Roger Pirates", text: "Je peux retenir ce câble quelques instants. Ce qui compte maintenant, c’est la volonté avec laquelle tu vas employer ce temps." }, loreCharacters: ["Silvers Rayleigh"], zones: ["red-line", "seven-current-archipelago"], choices: ["Protéger les captifs pendant la rupture de la passerelle", "Neutraliser le treuil qui commande l’effondrement", "Ordonner aux trafiquants d’abandonner le quai"], resultLead: "Sous le regard calme de Rayleigh, la passerelle devient une épreuve de volonté plutôt qu’une leçon offerte." },
+      ]),
+    }),
+    marine: Object.freeze({
+      stage1: Object.freeze([
+        { id: "fujitora-hospital", title: "La justice devant l’hôpital", description: "À {zone}, un ordre falsifié désigne un hôpital comme dépôt de contrebande. Les soldats préparent l’assaut pendant que les véritables trafiquants prennent les patients sous le feu depuis les toits voisins. Fujitora perçoit le mensonge, mais te laisse reprendre le contrôle de ton unité.", introDialogue: { speaker: "Fujitora", role: "Amiral", text: "La justice qui frappe la mauvaise porte devient une arme pour les coupables. Montrez à vos hommes où se trouve réellement le danger." }, loreCharacters: ["Fujitora"], choices: ["Lire la trajectoire des tirs avant l’assaut", "Recevoir la salve devant les patients", "Arrêter l’unité et la retourner contre les toits"], resultLead: "Sous le regard de Fujitora, l’ordre officiel ne peut plus remplacer ton jugement." },
+      ]),
+      stage2: Object.freeze([
+        { id: "garp-evacuation", title: "Garp tient la jetée qui s’effondre", description: "Aux abords de {zone}, une jetée chargée de civils cède sous une attaque pirate. Garp retient les assaillants, mais l’évacuation exige un corridor, une initiative contre les explosifs ou un commandement capable de dominer la panique.", introDialogue: { speaker: "Garp", role: "Héros de la Marine", text: "Je retiens les pirates ! Toi, empêche cette foule de se battre contre sa propre peur !" }, loreCharacters: ["Garp"], choices: ["Tenir le corridor jusqu’au dernier civil", "Détruire les charges avant la prochaine rupture", "Rendre une direction commune aux soldats et aux habitants"], resultLead: "Même avec Garp sur la ligne, personne ne peut décider à ta place comment sauver la jetée." },
+      ]),
+    }),
+    "bounty-hunter": Object.freeze({
+      stage1: Object.freeze([
+        { id: "crocodile-auction", title: "L’enchère de Crocodile", description: "À {zone}, une vente clandestine met aux enchères le registre qui prouve l’identité de ta cible. Crocodile fait verrouiller la salle dès que les tireurs d’un commanditaire rival apparaissent aux balcons. Il n’est ni ta cible ni ton allié : il attend de voir qui conservera le contrôle du marché.", introDialogue: { speaker: "Crocodile", role: "Ancien Corsaire", text: "La prime est toujours valable. Reste à savoir si tu sauras sortir d’ici avec la preuve, ou seulement avec une belle histoire." }, loreCharacters: ["Crocodile"], choices: ["Repérer le signal qui déclenchera les tirs", "Couvrir les témoins au moment de la salve", "Forcer la cible et ses complices à se découvrir"], resultLead: "Crocodile laisse le piège se refermer et juge la manière dont tu arraches le contrat au chaos." },
+      ]),
+      stage2: Object.freeze([
+        { id: "mihawk-crossing", title: "Mihawk coupe la route du contrat", description: "Près de {zone}, Dracule Mihawk traverse le champ d’une capture au moment où la cible menace de couler les preuves avec ses otages. Il ne réclame ni prime ni alliance ; il observe seulement ce que vaut ta décision sous cette pression.", introDialogue: { speaker: "Dracule Mihawk", role: "Œil de Faucon", text: "Je ne suis ni ta cible ni ton soutien. Montre simplement si ton contrat mérite la volonté que tu lui consacres." }, loreCharacters: ["Dracule Mihawk"], choices: ["Protéger les otages avant de reprendre la traque", "Saisir les preuves pendant que la cible hésite", "Imposer seul la poursuite malgré la pression"], resultLead: "Mihawk ne facilite rien ; sa présence retire seulement toute excuse à une décision faible." },
+      ]),
+    }),
+    revolutionary: Object.freeze({
+      stage1: Object.freeze([
+        { id: "ivankov-prison-barge", title: "Le signal d’Ivankov", description: "À {zone}, une barge chargée de prisonniers politiques appareille avant l’heure prévue. Ivankov surgit parmi les détenus et provoque les gardes, mais les amarres sont déjà larguées et une batterie côtière vise toute embarcation qui approcherait.", introDialogue: { speaker: "Emporio Ivankov", role: "Commandant révolutionnaire", text: "Les miracles n’attendent pas au fond d’une cellule, mon petit ! Trouve-nous une ouverture, tiens cette passerelle ou fais trembler ceux qui croient déjà avoir gagné !" }, loreCharacters: ["Emporio Ivankov"], choices: ["Lire la rotation des gardes avant l’abordage", "Maintenir la passerelle ouverte sous les tirs", "Faire reculer les gardes par une volonté commune"], resultLead: "Ivankov soulève les prisonniers tandis que ton action décide si la barge devient une fuite ou un tombeau." },
+      ]),
+      stage2: Object.freeze([
+        { id: "sabo-broken-network", title: "Sabo protège le relais aux trois sorties", description: "Près de {zone}, une attaque coupe simultanément trois routes d’évacuation d’un relais révolutionnaire. Sabo retient le chef adverse, mais chaque cellule attend une direction différente.", introDialogue: { speaker: "Sabo", role: "Chef d’état-major", text: "Je retiens leur chef. Ne cherche pas à gagner mon combat : rends aux cellules une route qu’elles puissent réellement suivre." }, loreCharacters: ["Sabo"], choices: ["Protéger la sortie où convergent les familles", "Détruire le poste qui coordonne l’encerclement", "Donner aux trois cellules un commandement commun"], resultLead: "Sabo maintient le duel loin du relais, sans résoudre l’épreuve de volonté qui t’appartient." },
+      ]),
+    }),
+  });
+
+  function createHakiNarrativeVariant(scene, eventId, stage) {
+    const stageOneResults = [
+      ["L’anticipation révèle l’ouverture et permet une réussite nette.", "Tu comprends une partie du danger, mais trop tard pour éveiller un pouvoir nouveau.", "La lecture échoue et la retraite impose blessures et fatigue."],
+      ["Ta garde arrête réellement l’impact et protège l’objectif.", "La garde tient assez pour limiter le désastre, puis cède sans nouvel éveil.", "L’impact traverse ta défense et laisse une blessure durable."],
+      ["Ta volonté renverse les plus faibles et ouvre concrètement la voie.", "Ton commandement rassemble les tiens, mais aucun Haki souverain ne s’éveille.", "La pression adverse brise l’élan et entame la confiance du groupe."],
+    ];
+    const stageTwoResults = [
+      "Ta maîtrise souveraine traverse la crise avec précision et protège ceux que tu as choisis.",
+      "Le Haki des Rois s’éveille pour la première fois et ouvre un passage sans vaincre artificiellement l’adversaire.",
+      "Tu préserves l’essentiel, mais la pression étouffe tout nouvel éveil.",
+      "La tentative échoue et la retraite coûte blessures, autorité ou ressources selon l’approche engagée.",
+    ];
+    return {
+      ...scene,
+      choices: scene.choices.map((text, choiceIndex) => ({
+        text,
+        outcomes: (stage === 1 ? stageOneResults[choiceIndex] : stageTwoResults)
+          .map((result) => ({ result: `${scene.resultLead} ${result}` })),
+      })),
+    };
+  }
+
   function hasRunTitle(game, titleId) {
     return Boolean(game?.runTitles?.some((title) => (title?.id || title) === titleId));
   }
@@ -5730,6 +5794,8 @@ const COMMON_EVENTS = [
       loreCharacters: scene.loreCharacters || [], decisiveKind: stage === 1 ? "awakening" : "will-confrontation",
       intro: stage === 1 ? "Une faculté encore inconnue cherche sa forme dans l’urgence." : "La pression adverse met ta volonté personnelle à l’épreuve.",
       introDialogue: scene.introDialogue,
+      variants: (HAKI_DECISIVE_ALTERNATIVES[faction]?.[`stage${stage}`] || [])
+        .map((variant) => createHakiNarrativeVariant(variant, scene.id, stage)),
       choices: scene.choices.map((text, index) => stage === 1
         ? createHakiStageOneChoice(scene.id, faction, index, text)
         : createHakiStageTwoChoice(scene.id, index, text)),
@@ -5761,7 +5827,7 @@ const COMMON_EVENTS = [
       "Tashigi", "Fujitora", "Sakazuki", "Koby", "Garp",
       "Crocus", "Smoker", "Mr. 5", "Borsalino", "Trafalgar Law",
       "Eustass Kid", "Shanks", "Issho", "Basil Hawkins", "Dracule Mihawk",
-      "Killer", "Karasu", "Morley", "Dragon",
+      "Killer", "Karasu", "Morley", "Dragon", "Silvers Rayleigh", "Emporio Ivankov",
     ]);
     const validFactions = new Set(["pirate", "bounty-hunter", "revolutionary", "marine"]);
     const knownTitles = new Set((window.SEA_OF_LEGENDS_TITLES || []).map((title) => title.id));
@@ -5837,6 +5903,55 @@ const COMMON_EVENTS = [
   ======================================================== */
 
   const LEGENDARY_ARC_STORIES = Object.freeze({
+    davy: {
+      pirate: [
+        ["La course du Davy", "Au début de Paradise, Luffy te propose de rejoindre les Mugiwara. Ton refus devient un défi : trois épreuves, et chaque victoire permettra au vainqueur de choisir un membre de l’équipage adverse. Nami et Usopp préparent déjà la première course.", ["Lire les courants avant Nami", "Tenir la coque dans le passage le plus violent", "Faire tomber Usopp dans sa propre diversion"]],
+        ["Le Groggy Ring", "Zoro et Sanji entrent sur un terrain circulaire où les contacts sont permis et les règles semblent changer à chaque protestation. Il faut porter le ballon humain jusqu’au but sans laisser le chaos briser ton équipe.", ["Percer la défense entre Zoro et Sanji", "Retourner les règles absurdes contre leur équipe", "Protéger le porteur jusqu’à la ligne"]],
+        ["Le duel des capitaines", "Les équipages forment un cercle sur la plage. Luffy avance seul : cette dernière manche oppose désormais sa volonté et ses poings aux tiens.", ["Affronter Luffy coup pour coup", "L’attirer hors du cercle par une feinte", "Encaisser son élan avant de contre-attaquer"]],
+      ],
+      marine: [
+        ["La course du Davy", "Au début de Paradise, Luffy décide qu’un Marine aussi intéressant devrait rejoindre son équipage. Tu retournes son défi : à chaque victoire, l’un de ses hommes repartira sous ta responsabilité. Nami et Usopp lancent la course.", ["Lire les courants avant Nami", "Maintenir la vedette dans le passage violent", "Déjouer les projectiles truqués d’Usopp"]],
+        ["Le Groggy Ring", "Zoro et Sanji défendent le terrain tandis que tes hommes découvrent des règles que la Marine n’aurait jamais homologuées. Il faut gagner sans perdre la cohésion de l’unité.", ["Rompre leur ligne par une charge réglée", "Exploiter chaque faute annoncée", "Escorter le porteur derrière une formation mobile"]],
+        ["Le duel des capitaines", "Luffy refuse de laisser ses nakamas partir sans combattre lui-même. Devant les deux équipages, il serre les poings et te laisse choisir le premier mouvement.", ["Répondre directement à ses assauts", "Le pousser à franchir la limite du terrain", "Tenir jusqu’à épuiser son impulsion"]],
+      ],
+      "bounty-hunter": [
+        ["La course du Davy", "Luffy veut recruter le chasseur capable de suivre sa trace jusque dans Paradise. Tu refuses et imposes ta clause : chaque manche gagnée te donnera le choix d’un Mugiwara. Nami et Usopp arment leur embarcation.", ["Anticiper la route choisie par Nami", "Forcer le raccourci malgré les vagues", "Piéger les pièges d’Usopp"]],
+        ["Le Groggy Ring", "Zoro et Sanji transforment le Groggy Ring en mêlée furieuse. Les règles autorisent presque tout, mais seule la maîtrise du terrain conduira le porteur au but.", ["Faire céder leur défense au contact", "Monter une feinte autour du ballon", "Couvrir méthodiquement le porteur"]],
+        ["Le duel des capitaines", "Luffy entre dans le cercle avec le sourire, puis son regard devient sérieux. Aucune prime ne compte ici : il faut battre le capitaine devant son équipage.", ["Soutenir son rythme au corps à corps", "Préparer une sortie de cercle calculée", "Absorber sa charge et riposter"]],
+      ],
+      revolutionary: [
+        ["La course du Davy", "Luffy te trouve assez libre pour devenir son nakama. Ton refus déclenche un Davy Back Fight dont tu retournes la règle : chaque victoire libérera un choix dans son équipage. Nami et Usopp prennent la tête de la course.", ["Déchiffrer les courants avant Nami", "Faire traverser l’embarcation malgré les récifs", "Démasquer la diversion d’Usopp"]],
+        ["Le Groggy Ring", "Le terrain du Groggy Ring devient une mêlée où Zoro et Sanji coopèrent en se disputant. Ton groupe doit rester uni au milieu de leurs charges et des règles invraisemblables.", ["Ouvrir un passage dans leur défense", "Faire jouer leurs disputes contre leur formation", "Former une chaîne autour du porteur"]],
+        ["Le duel des capitaines", "Luffy se place au centre du cercle. Il ne plaisante plus avec la liberté de ses nakamas : cette fois, le duel oppose directement vos deux volontés.", ["Croiser sa volonté dans un duel frontal", "Transformer son élan en sortie de terrain", "Résister jusqu’à trouver l’instant de riposte"]],
+      ],
+    },
+    "impel-down": {
+      pirate: [
+        ["Les portes de l’Enfer", "Capturé à l’approche de Red Line, tu entres à Impel Down avec un seul objectif : briser le premier verrou avant que ton équipage ne soit dispersé dans les niveaux.", ["Voler le plan de relève des gardes", "Rompre les chaînes pendant le transfert", "Déclencher une révolte dans le bloc"]],
+        ["Les six niveaux", "Hannyabal ferme les passages supérieurs tandis que les geôliers rabattent les évadés vers les profondeurs. Une route clandestine attribuée à Ivankov offre une chance de remonter.", ["Suivre les marques cachées entre les niveaux", "Tenir le passage contre les gardiens", "Rallier les prisonniers sans perdre le contrôle"]],
+        ["La Porte de la Justice", "Magellan couvre la dernière sortie de son poison. La Porte de la Justice commence à se refermer derrière le navire volé.", ["Dévier le poison vers les conduits", "Forcer le quai avant la fermeture", "Coordonner l’embarquement sous l’assaut"]],
+      ],
+      marine: [
+        ["Les portes de l’Enfer", "Une mutinerie coupe les communications d’Impel Down juste avant Red Line. Hannyabal te confie une unité extérieure : sécuriser le personnel et reprendre le premier verrou devient prioritaire.", ["Rétablir les communications des gardes", "Reprendre la salle des verrous", "Évacuer le personnel isolé"]],
+        ["Les six niveaux", "Plusieurs niveaux ne répondent plus et des détenus dangereux remontent dans la confusion. Magellan exige de condamner un secteur où des gardes sont encore pris au piège.", ["Contourner l’ordre pour extraire les gardes", "Établir une ligne de confinement mobile", "Identifier les meneurs de la mutinerie"]],
+        ["La Porte de la Justice", "Les évadés atteignent le quai avec un navire tandis que la Porte de la Justice s’ouvre. Il faut reprendre la sortie sans exposer les blessés au poison de Magellan.", ["Séparer les évadés du personnel captif", "Tenir le quai jusqu’à la fermeture", "Coordonner Hannyabal et Magellan à distance"]],
+      ],
+      "bounty-hunter": [
+        ["Les portes de l’Enfer", "Un mandat exceptionnel t’autorise à entrer dans Impel Down pendant une mutinerie. Trois criminels promis à un transfert profitent de la panne des verrous pour disparaître.", ["Recouper les registres de transfert", "Intercepter les fugitifs au premier verrou", "Convaincre les gardes de partager leurs pistes"]],
+        ["Les six niveaux", "Tes cibles se séparent entre les niveaux pendant que Hannyabal tente de reprendre la prison. Les poursuivre sans devenir un détenu de plus exige une route précise.", ["Prédire leur point de rassemblement", "Neutraliser leur escorte dans les escaliers", "Négocier un passage avec les gardes débordés"]],
+        ["La Porte de la Justice", "La dernière cible atteint le quai au milieu des évadés. Magellan approche et son poison menace autant le fugitif que les équipes de transfert.", ["Isoler la cible avant l’arrivée du poison", "La capturer sur la passerelle", "Organiser son transfert sous protection"]],
+      ],
+      revolutionary: [
+        ["Les portes de l’Enfer", "Ta cellule infiltre Impel Down pour extraire des prisonniers politiques promis à l’effacement. Le premier verrou se ferme avant que tous leurs noms soient localisés.", ["Détourner les registres de détention", "Briser le verrou depuis les galeries", "Faire passer les prisonniers pour un transfert"]],
+        ["Les six niveaux", "Les prisonniers remontent à travers les niveaux tandis que les gardiens convergent. Ivankov révèle un passage caché, mais plusieurs cellules restent en arrière.", ["Guider le groupe par les passages d’Ivankov", "Retourner chercher les dernières cellules", "Semer de faux ordres dans la prison"]],
+        ["La Porte de la Justice", "Magellan atteint le quai avant le dernier groupe. La Porte de la Justice doit rester ouverte assez longtemps pour évacuer tous les prisonniers.", ["Canaliser le poison loin des prisonniers", "Tenir la passerelle jusqu’au dernier groupe", "Déclencher l’ouverture depuis la salle de contrôle"]],
+      ],
+    },
+    warlord: Object.fromEntries(["pirate","marine","bounty-hunter","revolutionary"].map((faction) => [faction, [
+      ["Le décret des mers", "{warlordOpening}", ["{warlordChoice11}", "{warlordChoice12}", "{warlordChoice13}"]],
+      ["{warlordPowerTitle}", "{warlordCrisis}", ["{warlordChoice21}", "{warlordChoice22}", "{warlordChoice23}"]],
+      ["Face à {warlord}", "{warlordFinal}", ["{warlordChoice31}", "{warlordChoice32}", "{warlordChoice33}"]],
+    ]])),
     talent: {
       pirate: [
         ["Le nom dans le journal", "À Paradise, Morgans vient personnellement vérifier si tes derniers exploits annoncent une nouvelle génération de pirates. Une patrouille veut saisir ses clichés et empêcher l’impression.", ["Défendre publiquement Morgans", "Faire parvenir ses clichés par une route secrète", "Attirer la patrouille loin de son ballon"]],
@@ -5881,6 +5996,28 @@ const COMMON_EVENTS = [
         ["Les chaînes devant le monde", "Les survivants atteignent les quais, mais le Gouvernement prépare une version officielle niant leur existence. Une dernière transmission peut changer leur destin.", ["Diffuser les preuves avec les témoignages", "Briser le blocus pour évacuer les prisonniers", "Protéger l’émetteur jusqu’au dernier navire"]],
       ],
     },
+    admiral: {
+      revolutionary: [
+        ["Les racines du Taureau Vert", "Aramaki fait surgir une forêt autour d’un port libéré. Ses racines assèchent les réserves et referment chaque voie d’évacuation.", ["Incendier une trouée sans atteindre les maisons", "Faire circuler l’eau sous les racines", "Tenir les lianes pendant l’évacuation"]],
+        ["La faim imposée par Ryokugyu", "Le Mori Mori no Mi transforme les cultures en armes. Aramaki avance vers les greniers où la population a caché les blessés.", ["Couper les racines au plus près des greniers", "Attirer Aramaki vers une terre stérile", "Rallier les habitants autour des réserves"]],
+        ["Le port reprend souffle", "Aramaki couvre la rade d’un corps végétal gigantesque. La flotte révolutionnaire doit rompre son emprise avant que les navires ne soient vidés de leurs forces.", ["Frapper le cœur de la forêt mouvante", "Protéger les équipages de ses racines drainantes", "Coordonner le départ sous la canopée"]],
+      ],
+      akainu: [
+        ["Le décret de Sakazuki", "Sakazuki ordonne l’écrasement d’un réseau révolutionnaire avant son évacuation. La lave coupe déjà les rues qui mènent aux civils.", ["Ouvrir un corridor dans les coulées refroidies", "Falsifier l’itinéraire transmis au quartier général", "Faire évacuer les civils sous un pavillon visible"]],
+        ["La Justice absolue", "Le Magu Magu no Mi transforme le quai en fournaise. Akainu refuse toute négociation et vise les navires qui portent les archives du réseau.", ["Endurer la chaleur pour retenir son poing", "Détourner la lave vers les bassins vides", "Séparer les archives entre plusieurs embarcations"]],
+        ["Face au Chien Rouge", "Sakazuki atteint le dernier navire. Sauver la cellule exige de tenir devant l’Amiral en chef sans livrer les familles qu’elle protégeait.", ["Opposer toute la ligne à son dernier assaut", "Faire tomber les grues entre lui et le navire", "Maintenir l’évacuation malgré sa sommation"]],
+      ],
+      kizaru: [
+        ["Une lumière dans chaque rue", "Kizaru apparaît au cœur d’une extraction clandestine. Ses rayons coupent les relais avant que les groupes dispersés comprennent que l’Amiral est déjà parmi eux.", ["Lire ses reflets pour prévoir ses déplacements", "Éteindre la ville et déplacer les civils", "Multiplier les leurres autour des relais"]],
+        ["La vitesse de la lumière", "Le Pika Pika no Mi frappe les embarcations avant leur départ. Chaque éclair oblige les révolutionnaires à choisir qui protéger en premier.", ["Intercepter ses tirs depuis les toits", "Couvrir les coques avec les débris du quai", "Synchroniser tous les départs sur un seul signal"]],
+        ["Briser le rayon", "Kizaru se matérialise devant le navire central avec son détachement habituel. Une seconde d’hésitation suffirait à condamner toute l’opération.", ["Le forcer à combattre loin du navire", "Dévier son dernier rayon vers le large", "Faire partir la flotte pendant qu’il vise le leurre"]],
+      ],
+      fujitora: [
+        ["La ville sous gravité", "Fujitora immobilise les routes d’une ville au bord de l’insurrection. Il exécute son ordre, mais refuse que la foule soit broyée entre la Marine et les révolutionnaires.", ["Négocier un corridor pour les familles", "Révéler les ordres qui mettent les civils en danger", "Avancer sous la gravité pour dégager la place"]],
+        ["Le poids des conséquences", "Le Zushi Zushi no Mi plaque navires et combattants au sol. Des débris suspendus menacent pourtant le quartier que Fujitora cherche lui-même à préserver.", ["Stabiliser les bâtiments avant de repartir", "Guider les habitants hors de la zone d’impact", "Profiter de son attention aux civils pour déplacer le réseau"]],
+        ["Debout sous la gravité", "Fujitora bloque le dernier passage, mais laisse une chance de prouver que l’opération protège réellement la population plutôt qu’elle ne l’utilise.", ["Présenter les témoins et assumer l’opération", "Tenir debout jusqu’au départ des civils", "Désarmer les extrémistes des deux camps"]],
+      ],
+    },
     emperor: {
       pirate: [
         ["La flotte de {emperor} ferme la route", "La flotte de {emperor} contrôle {objective}. {emperorThreat} Reculer sauverait ton équipage, mais condamnerait la piste liée à ton rêve.", ["Passer entre les navires extérieurs", "Attirer la flotte loin de l’objectif", "Négocier avec un commandant rival"]],
@@ -5911,6 +6048,42 @@ const COMMON_EVENTS = [
   });
 
   const LEGENDARY_DIALOGUES = Object.freeze({
+    admiral: Object.freeze({ revolutionary: [
+      { admiralVariants: {
+        aramaki:{speaker:"Aramaki",role:"Amiral — Taureau Vert",text:"Le monde ne tient debout que parce que certains restent au-dessus des autres. Votre révolte va nourrir mes racines."},
+        akainu:{speaker:"Sakazuki",role:"Amiral en chef",text:"La Révolution n’est pas une opinion. C’est une menace que la Justice absolue doit éliminer jusqu’à sa dernière route."},
+        kizaru:{speaker:"Kizaru",role:"Amiral",text:"Oooh… une extraction si bien préparée. Ce serait dommage qu’un rayon de lumière arrive avant votre signal."},
+        fujitora:{speaker:"Fujitora",role:"Amiral",text:"J’ai reçu l’ordre d’arrêter cette insurrection. Je n’accepterai pourtant pas que des innocents paient pour nos convictions."},
+      }},
+      { admiralVariants: {
+        aramaki:{speaker:"Aramaki",role:"Amiral — Taureau Vert",text:"Vous protégez leurs greniers ? Ils verront à quel point leur survie dépend de l’ordre que vous méprisez."},
+        akainu:{speaker:"Sakazuki",role:"Amiral en chef",text:"Aucun compromis ne rachète ceux qui attaquent le Gouvernement. Vos archives brûleront avec votre réseau."},
+        kizaru:{speaker:"Kizaru",role:"Amiral",text:"Vous courez beaucoup… mais entre votre décision et mon mouvement, il reste toute la vitesse de la lumière."},
+        fujitora:{speaker:"Fujitora",role:"Amiral",text:"Sauvez ces habitants d’abord. Ensuite, nous verrons si votre cause supporte le poids de ses conséquences."},
+      }},
+      { admiralVariants: {
+        aramaki:{speaker:"Aramaki",role:"Amiral — Taureau Vert",text:"Votre flotte ne quittera pas cette rade. Mes racines ne laisseront personne hisser vos voiles."},
+        akainu:{speaker:"Sakazuki",role:"Amiral en chef",text:"Vous avez choisi de tenir devant moi. Assumez jusqu’au bout le prix de votre défi à la Justice."},
+        kizaru:{speaker:"Kizaru",role:"Amiral",text:"C’est terrifiant, cette détermination… Voyons si elle peut protéger un navire d’un dernier rayon."},
+        fujitora:{speaker:"Fujitora",role:"Amiral",text:"Si cette opération sert réellement les civils, restez debout et prouvez-le. Je jugerai vos actes, pas votre bannière."},
+      }},
+    ] }),
+    davy: Object.freeze(Object.fromEntries(["pirate","marine","bounty-hunter","revolutionary"].map((faction) => [faction, [
+      { speaker: "Luffy", role: "Capitaine des Mugiwara", text: faction === "marine" ? "Tu es intéressant pour un Marine ! Rejoins mon équipage ! Sinon, on décide ça avec un Davy Back Fight !" : "Tu es vraiment intéressant ! Rejoins mon équipage ! Non ? Alors on va décider ça avec un Davy Back Fight !" },
+      { speaker: "Sanji", role: "Cuisinier des Mugiwara", text: "Marimo, ne gâche pas cette manche. Je n’ai aucune envie de changer de navire à cause de toi." },
+      { speaker: "Luffy", role: "Capitaine des Mugiwara", text: "Maintenant, c’est toi contre moi. Je ne te laisserai prendre aucun de mes nakamas !" },
+    ]]))),
+    "impel-down": Object.freeze({
+      pirate: [{speaker:"Hannyabal",role:"Vice-directeur",text:"Personne ne s’évade d’Impel Down ! Refermez ce bloc !"},{speaker:"Ivankov",role:"Reine des travestis",text:"Une route existe, mais elle ne sauvera que ceux qui gardent la tête haute, hip !"},{speaker:"Magellan",role:"Directeur",text:"Vous n’atteindrez pas la Porte de la Justice."}],
+      marine: [{speaker:"Hannyabal",role:"Vice-directeur",text:"Les verrous ne répondent plus. Sauvez mon personnel et reprenez cette prison !"},{speaker:"Magellan",role:"Directeur",text:"Condamnez ce niveau. Une nouvelle hésitation mettra toute la mer en danger."},{speaker:"Hannyabal",role:"Vice-directeur",text:"La Porte est ouverte ! Aucun évadé ne doit franchir ce quai !"}],
+      "bounty-hunter": [{speaker:"Officier de liaison",role:"Gouvernement mondial",text:"Votre mandat couvre trois fugitifs, rien de plus. Retrouvez-les avant qu’ils quittent la prison."},{speaker:"Hannyabal",role:"Vice-directeur",text:"Vous êtes ici pour traquer, pas pour commander mes gardes. Ne devenez pas une quatrième cible."},{speaker:"Magellan",role:"Directeur",text:"Capturez votre fugitif maintenant, ou écartez-vous de mon poison."}],
+      revolutionary: [{speaker:"Ivankov",role:"Reine des travestis",text:"Ces prisonniers ont été rayés des registres. Aujourd’hui, nous allons rendre leurs noms au monde !"},{speaker:"Ivankov",role:"Reine des travestis",text:"Les passages secrets sont ouverts, mais personne ne reste derrière, compris ?"},{speaker:"Magellan",role:"Directeur",text:"Cette extraction s’arrête à la Porte de la Justice."}],
+    }),
+    warlord: Object.freeze(Object.fromEntries(["pirate","marine","bounty-hunter","revolutionary"].map((faction) => [faction, [
+      {speaker:"{warlord}",role:"Grand Corsaire",text:"{warlordDialogue1}"},
+      {speaker:"{warlord}",role:"Grand Corsaire",text:"{warlordDialogue2}"},
+      {speaker:"{warlord}",role:"Grand Corsaire",text:"{warlordDialogue3}"},
+    ]]))),
     talent: Object.freeze({
       pirate: [
         { speaker: "Morgans", role: "Président du World Economy News Paper", text: "Le monde adore les nouveaux monstres ! Donne-moi une raison d’imprimer ton nom plus gros que celui des autres rookies." },
@@ -5923,7 +6096,7 @@ const COMMON_EVENTS = [
         { speaker: "Garp", role: "Héros de la Marine", text: "Wahaha ! Les galons ne sauveront aucune recrue. Montre-moi plutôt pourquoi ils devraient te suivre." },
       ],
       revolutionary: [
-        { speaker: "Koala", role: "Armée révolutionnaire", text: "Dragon a lu tes rapports. Cette fois, ce sont des vies qui diront si leur promesse était réelle." },
+        { speaker: "Koala", role: "Armée révolutionnaire", text: "Dragon a lu tes rapports. Les vies confiées à cette opération diront si leur promesse était réelle." },
         { speaker: "Sabo", role: "Chef d’état-major", text: "Ces cellules ne se font pas confiance. Unis-les sans leur voler la raison pour laquelle elles se battent." },
         { speaker: "Dragon", role: "Chef de l’Armée révolutionnaire", text: "Un nom n’a de valeur que s’il ouvre une voie aux peuples. Fais que cette opération survive à ta propre victoire." },
       ],
@@ -6004,6 +6177,7 @@ const COMMON_EVENTS = [
         ? { emperorVariants: EMPEROR_DIALOGUES }
         : { emperorVariants: getEmperorApproachVariants(step) };
     }
+    if (arcId === "admiral") return LEGENDARY_DIALOGUES.admiral?.revolutionary?.[step - 1] || null;
     return LEGENDARY_DIALOGUES[arcId]?.[faction]?.[step - 1] || null;
   }
 
@@ -6013,7 +6187,7 @@ const COMMON_EVENTS = [
     const failureFlag = `legendary_${arcId}_${step}_failure`;
     return createEvent({
       id: `legendary-${arcId}-${faction}-${step}`,
-      title, description, paths: [faction], zones: [], minMonth: 1, maxMonth: 24,
+      title, description, paths: [arcId === "admiral" ? "revolutionary" : faction], zones: [], minMonth: 1, maxMonth: 24,
       eventType: "legendary", resolutionCategory: step === 1 ? "social" : "action",
       rarity: EVENT_RARITY.VERY_RARE, unique: true, important: true, highStakes: true,
       tags: ["legendary-arc", `legendary-${arcId}`, `legendary-step-${step}`],
@@ -6023,8 +6197,12 @@ const COMMON_EVENTS = [
         resolutionWeights: step === 1
           ? [{ intelligence: .45, charisma: .35, renown: .20 }, { charisma: .45, intelligence: .25, renown: .30 }, { intelligence: .35, charisma: .40, renown: .25 }][choiceIndex]
           : [{ health: .22, combat: .43, haki: .35 }, { health: .28, combat: .32, haki: .40 }, { health: .18, combat: .37, haki: .30, charisma: .15 }][choiceIndex],
-        outcomes: [
-          { id: "legendary-success", result: step === 3 ? "Ton action transforme la conclusion collective en exploit dont le monde conservera la trace." : "Ton choix préserve l’objectif et donne un avantage réel pour la suite de l’opération.", effects: { combat: step > 1 ? 2 : 0, intelligence: step === 1 ? 2 : 0, popularity: 1, bounty: arcId === "emperor" ? 260000 : 160000 }, flags: { [successFlag]: true }, outcomeTier: "success", weight: 3 },
+        outcomes: arcId === "davy" ? [
+          { id: "legendary-success", result: "Tu remportes la manche. Luffy serre les dents mais respecte la règle : tu peux choisir un Mugiwara encore disponible.", effects: {}, flags: { [successFlag]: true }, outcomeTier: "success", weight: 3 },
+          { id: "legendary-mixed", result: "La manche s’achève sans victoire nette. Ton groupe reste debout, mais les réparations et la fatigue vous coûtent cher.", effects: { health: -2, fortune: -350 }, flags: { [`legendary_${arcId}_${step}_mixed`]: true }, outcomeTier: "mixed", weight: 2 },
+          { id: "legendary-failure", result: "Les Mugiwara remportent clairement la manche. Ton groupe repart blessé et une partie du matériel ne survivra pas aux réparations.", effects: { health: -6, fortune: -900 }, flags: { [failureFlag]: true }, outcomeTier: "failure", fallback: true, weight: 1 },
+        ] : [
+          { id: "legendary-success", result: step === 3 ? "Ton action transforme la conclusion collective en exploit dont le monde conservera la trace." : "Ton choix préserve l’objectif et donne un avantage réel pour la suite de l’opération.", effects: { combat: step > 1 ? 2 : 0, intelligence: step === 1 ? 2 : 0, popularity: 1, bounty: ["emperor", "admiral"].includes(arcId) ? 260000 : 160000 }, flags: { [successFlag]: true }, outcomeTier: "success", weight: 3 },
           { id: "legendary-mixed", result: "L’objectif avance, mais les pertes et les compromis réduisent la portée de cette étape.", effects: { health: -1, haki: 1, bounty: 80000 }, flags: { [`legendary_${arcId}_${step}_mixed`]: true }, outcomeTier: "mixed", weight: 2 },
           { id: "legendary-failure", result: "La puissance adverse impose un revers sévère. La séquence continue, mais le prestige final s’éloigne.", effects: { health: -5, combat: -2, popularity: -1 }, flags: { [failureFlag]: true }, outcomeTier: "failure", fallback: true, weight: 1 },
         ],
@@ -6165,7 +6343,125 @@ const COMMON_EVENTS = [
     ],
   });
 
+  function createAuthoredExpansionEvent(scene) {
+    const risk = scene.eventType === EVENT_TYPES.RISK;
+    return createEvent({
+      ...scene,
+      rarity: scene.rarity || (risk ? EVENT_RARITY.UNCOMMON : EVENT_RARITY.COMMON),
+      minMonth: scene.minMonth ?? 1,
+      maxMonth: scene.maxMonth ?? 24,
+      choices: scene.choices.map(([id, text, stat, success, failure]) => ({
+        id: `${scene.id}-${id}`,
+        text,
+        resolutionWeights: stat === "health" ? { health: 0.7, combat: 0.3 } : { [stat]: 0.7, health: 0.3 },
+        outcomes: [
+          { id: `${scene.id}-${id}-success`, result: success, effects: { [stat]: 2, popularity: risk ? 2 : 1 }, outcomeTier: "success", weight: 3 },
+          { id: `${scene.id}-${id}-failure`, result: failure, effects: { health: risk ? -6 : -3, morale: risk ? -2 : -1 }, outcomeTier: "failure", fallback: true, weight: 2 },
+        ],
+      })),
+    });
+  }
+
+  const CORRECTIVE_WORLD_EXPANSION_EVENTS = Object.freeze([
+    createAuthoredExpansionEvent({ id: "common-dry-dock-strike", title: "La cale sèche paralysée", description: "Le seul chantier naval du port ferme après la disparition de sa caisse de salaires. Des charpentiers refusent de reprendre les réparations tandis qu’un navire marchand accuse leur contremaître sans preuve.", category: "maritime", tags: ["repair", "mediation"], zones: STARTING_BLUES, choices: [
+      ["trace", "Reconstituer le trajet de la caisse", "intelligence", "Les marques de roues conduisent à un entrepôt loué par le marchand lui-même ; la caisse revient aux ouvriers.", "Une fausse piste retarde l’enquête et ton navire reste immobilisé au milieu des accusations."],
+      ["mediate", "Obtenir la reprise des travaux sous garantie", "charisma", "Les deux camps acceptent un registre commun et les réparations reprennent pendant l’enquête.", "La garantie paraît favoriser le marchand ; les charpentiers quittent définitivement la cale."],
+      ["repair", "Aider les charpentiers à sécuriser les navires", "health", "Ton groupe consolide les coques menacées et gagne assez de confiance pour faire parler un témoin.", "Une traverse cède pendant les travaux précipités et blesse plusieurs volontaires."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "common-lighthouse-without-flame", title: "Le phare sans flamme", description: "Un phare s’éteint alors qu’un banc de brume avale l’entrée du port. Le gardien a disparu, la réserve d’huile est intacte et trois navires approchent sans connaître les récifs.", category: "navigation", tags: ["navigation", "mystery"], zones: STARTING_BLUES, choices: [
+      ["signals", "Guider les navires avec des signaux depuis la falaise", "intelligence", "Tes signaux séparent les trois caps et chaque navire franchit les récifs sans collision.", "Un signal mal interprété rapproche deux coques dangereusement des rochers."],
+      ["search", "Retrouver le gardien dans les galeries du phare", "combat", "Tu surprends des contrebandiers qui retenaient le gardien et rallumes la lanterne à temps.", "Les contrebandiers déclenchent un éboulement et gagnent la crique avant toi."],
+      ["rally", "Organiser les pêcheurs en chaîne de fanaux", "charisma", "Une ligne de lumières dessine un chenal provisoire jusqu’au retour du feu principal.", "La foule se disperse lorsque la première coque surgit dans la brume."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "common-two-villages-one-well", title: "Le puits de la frontière", description: "Deux villages d’une île sèche revendiquent le seul puits encore potable. Une conduite brisée prouve qu’une troisième main entretient la pénurie pour vendre des tonneaux à prix d’or.", category: "politics", tags: ["mediation", "resources"], zones: STARTING_BLUES, choices: [
+      ["inspect", "Suivre la conduite enterrée jusqu’au réservoir caché", "intelligence", "Le réservoir clandestin révèle la fraude et rend aux deux villages une réserve commune.", "La conduite piégée s’effondre avant de livrer le nom du responsable."],
+      ["guard", "Protéger le puits pendant la réparation", "combat", "Ton groupe empêche les mercenaires du spéculateur de saboter les travaux.", "La confrontation endommage la margelle et réduit encore l’eau disponible."],
+      ["council", "Réunir les deux villages autour d’un partage surveillé", "charisma", "Les habitants établissent des tours d’accès et isolent ensemble les profiteurs.", "Une vieille querelle reprend le dessus et le conseil se termine en bagarre."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "pirate-flag-at-low-tide", title: "Le pavillon à marée basse", description: "À marée basse, les ruines d’un ancien repaire pirate émergent sous le port. Un pavillon encore intact indique une salle scellée, mais la garnison et un équipage rival convergent déjà vers l’entrée.", category: "adventure", tags: ["pirate", "ruins"], paths: ["pirate"], zones: STARTING_BLUES, choices: [
+      ["map", "Lire le plan gravé sur les piliers", "intelligence", "Le plan révèle une sortie noyée et permet d’explorer les ruines sans croiser les deux groupes.", "Une galerie indiquée comme sûre se remplit avant que tu n’atteignes la salle."],
+      ["hold", "Tenir l’entrée contre l’équipage rival", "combat", "Ton équipage conserve le passage assez longtemps pour récupérer le journal du repaire.", "La garnison profite du combat pour refermer les ruines sur tout le monde."],
+      ["bluff", "Faire croire que la garnison a déjà saisi le trésor", "charisma", "Le rival attaque les soldats et t’abandonne la véritable salle scellée.", "Le capitaine rival reconnaît le mensonge et retourne les deux camps contre toi."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "pirate-captain-without-crew", title: "Le capitaine sans équipage", description: "Un capitaine pirate blessé dérive seul avec le registre d’un trafic d’armes. Son ancien équipage le poursuit pour vendre le document, tandis qu’il demande seulement qu’on libère les matelots qu’il a refusé de sacrifier.", category: "piracy", tags: ["pirate", "moral"], paths: ["pirate"], zones: ["grand-line", "red-line"], choices: [
+      ["decode", "Vérifier le registre avant de croire son récit", "intelligence", "Les dates confirment sa mutinerie contre le trafic et désignent le navire-prison.", "Des pages falsifiées te conduisent vers un dépôt déjà vidé."],
+      ["intercept", "Intercepter l’ancien équipage avant le navire-prison", "combat", "Tu brises leur formation et ouvres les cellules sans livrer le capitaine.", "Leur navire rapide te force à choisir entre la poursuite et les prisonniers."],
+      ["parley", "Retourner les matelots hésitants contre les trafiquants", "charisma", "Plusieurs pirates libèrent eux-mêmes les captifs et témoignent contre leurs chefs.", "La peur du commanditaire maintient l’équipage uni contre toi."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "pirate-port-under-false-flag", title: "Le faux pavillon", description: "Des pillards attaquent un port sous une copie de ton pavillon. Les habitants ferment les quais à ton approche et la Marine prépare un avis de recherche fondé sur les témoignages des survivants.", category: "reputation", tags: ["pirate", "investigation"], paths: ["pirate"], zones: ["grand-line", "shinsekai"], choices: [
+      ["compare", "Comparer les récits aux manœuvres des pillards", "intelligence", "Leur façon de virer révèle un navire connu et innocente ton équipage auprès des témoins.", "Les témoignages contradictoires renforcent le soupçon au lieu de l’écarter."],
+      ["chase", "Rattraper le navire avant sa prochaine attaque", "combat", "Tu captures le faux pavillon et ramènes ses responsables vivants au port.", "Les pillards brûlent leur copie et s’échappent derrière un écran de fumée."],
+      ["testify", "Affronter publiquement les accusations", "charisma", "Ton équipage convainc les survivants de décrire les véritables assaillants devant la Marine.", "La colère du port couvre tes arguments et force ton navire à repartir."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "marine-tax-ship", title: "La taxe du gouverneur", description: "Un gouverneur exige que la Marine saisisse les réserves de pêcheurs pour payer une taxe inventée. Les ordres portent un sceau officiel, mais les registres du port montrent que les vivres doivent traverser l’hiver.", category: "justice", tags: ["marine", "corruption"], paths: ["marine"], zones: STARTING_BLUES, choices: [
+      ["audit", "Comparer le décret aux registres de la base", "intelligence", "Le numéro du décret appartient à une affaire close et expose immédiatement la fraude.", "Le gouverneur fait disparaître les registres avant la fin de l’audit."],
+      ["protect", "Bloquer physiquement la saisie", "combat", "Ton unité tient les entrepôts jusqu’à l’arrivée d’un inspecteur indépendant.", "L’affrontement avec la garde locale transforme une preuve simple en crise ouverte."],
+      ["refuse", "Faire signer à l’unité un refus collectif", "charisma", "Les soldats refusent d’obéir à un ordre manifestement illégal et les pêcheurs conservent leurs vivres.", "Plusieurs soldats cèdent à la menace de sanction et la ligne se brise."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "marine-prisoner-in-the-storm", title: "Le prisonnier dans la tempête", description: "Une tempête éventre le pont d’un bâtiment-prison. Le détenu le plus dangereux connaît le seul chenal abrité, mais le libérer de ses chaînes expose l’équipage à une tentative de fuite.", category: "maritime", tags: ["marine", "storm"], paths: ["marine"], zones: ["grand-line", "red-line"], choices: [
+      ["verify", "Vérifier son chenal sur les relevés de courant", "intelligence", "Les relevés confirment son cap et permettent de gagner l’abri sans ouvrir sa cellule.", "Les cartes trop anciennes placent le navire face à une lame plus haute encore."],
+      ["escort", "Le libérer sous escorte pour prendre la barre", "combat", "Sous surveillance, le prisonnier franchit les récifs et regagne sa cellule sans incident.", "Il profite d’un roulis pour désarmer un garde et diviser le pont."],
+      ["deal", "Négocier sa coopération contre une audience régulière", "charisma", "L’accord lui offre une voie légale et sauve le bâtiment sans effacer sa peine.", "Il interprète ton offre comme un aveu de faiblesse et exige sa liberté complète."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "marine-missing-relief", title: "La relève disparue", description: "Une garnison isolée n’a reçu ni vivres ni relève depuis deux mois. Ses officiers accusent les pirates, mais des caisses de la Marine réapparaissent sur le marché noir d’une île voisine.", category: "investigation", tags: ["marine", "smuggling"], paths: ["marine"], zones: ["grand-line", "shinsekai"], choices: [
+      ["ledger", "Remonter les numéros de lots vendus au marché", "intelligence", "Chaque lot conduit au quartier-maître qui détournait les convois avant leur départ.", "Les vendeurs brûlent leurs factures et déplacent le prochain chargement."],
+      ["convoy", "Escorter une relève pour attirer les voleurs", "combat", "L’embuscade échoue contre ton dispositif et livre toute la chaîne de détournement.", "Les voleurs sabotent le gouvernail et la garnison attend encore ses vivres."],
+      ["amnesty", "Offrir une protection aux manutentionnaires qui parleront", "charisma", "Les dockers témoignent ensemble et empêchent les officiers corrompus de les isoler.", "La promesse paraît trop fragile face aux représailles de la base."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "hunter-bounty-written-twice", title: "La prime écrite deux fois", description: "Deux avis officiels portent le même portrait mais des noms, crimes et montants différents. La cible affirme qu’un courtier a fusionné deux dossiers pour faire monter les enchères entre chasseurs.", category: "hunt", tags: ["bounty-hunter", "fraud"], paths: ["bounty-hunter"], zones: STARTING_BLUES, choices: [
+      ["records", "Comparer les sceaux et les dates des deux avis", "intelligence", "Une encre réservée aux courtiers révèle le faux et protège l’innocent confondu avec la cible.", "Le faux document est détruit pendant que tu vérifies le mauvais bureau."],
+      ["seize", "Capturer le courtier avant qu’il quitte le port", "combat", "Tu saisis ses matrices et les preuves de dizaines de primes falsifiées.", "Ses gardes couvrent sa fuite et abandonnent seulement des copies inutiles."],
+      ["bait", "Annoncer publiquement une troisième offre", "charisma", "Le courtier vient défendre son monopole et se trahit devant les autres chasseurs.", "L’annonce attire des chasseurs violents qui prennent la cible pour toi."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "hunter-witness-on-the-roof", title: "Le témoin sur les toits", description: "Le seul témoin capable d’identifier une cible recherchée refuse de descendre des toits d’un quartier contrôlé par ses hommes. La Marine veut boucler la zone au risque de déclencher une prise d’otages.", category: "extraction", tags: ["bounty-hunter", "witness"], paths: ["bounty-hunter"], zones: ["grand-line", "red-line"], choices: [
+      ["route", "Tracer une sortie par les citernes et les passerelles", "intelligence", "Le témoin traverse le quartier sans apparaître dans la ligne de vue des guetteurs.", "Une passerelle condamnée oblige le groupe à redescendre devant les guetteurs."],
+      ["escort", "Ouvrir un corridor jusqu’au poste de la Marine", "combat", "Tu neutralises les poursuivants sans abandonner le témoin au milieu du quartier.", "La cible lance ses hommes sur les habitants pour ralentir ton escorte."],
+      ["crowd", "Convaincre le quartier de couvrir son passage", "charisma", "Les habitants ouvrent portes et volets au bon moment, rendant le témoin impossible à suivre.", "La peur des représailles laisse chaque porte fermée."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "hunter-contract-after-the-rescue", title: "Le contrat après le sauvetage", description: "Une cible vient de sauver un ferry pris dans un courant meurtrier. Les passagers la protègent désormais, mais les crimes inscrits sur son avis restent réels et plusieurs victimes attendent un procès.", category: "moral", tags: ["bounty-hunter", "justice"], paths: ["bounty-hunter"], zones: ["grand-line", "shinsekai"], choices: [
+      ["evidence", "Séparer les crimes prouvés des rumeurs", "intelligence", "Un dossier solide permet une arrestation limitée aux faits que personne ne peut nier.", "Les preuves noyées dans les rumeurs rendent toute décision immédiatement contestable."],
+      ["arrest", "Procéder à l’arrestation sans menacer les passagers", "combat", "La cible se rend lorsque tu garantis la sécurité du ferry et la tenue d’un procès.", "Une arrestation trop brutale transforme les sauvés en bouclier humain."],
+      ["surrender", "Obtenir sa reddition devant ceux qu’elle a sauvés", "charisma", "La cible accepte de répondre de ses crimes sans renier son acte de courage.", "Ton discours oppose victimes et passagers sans rapprocher la justice."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "revolutionary-school-under-watch", title: "L’école sous surveillance", description: "Une école clandestine apprend à lire aux ouvriers d’un royaume où les livres sont taxés. Des agents surveillent les sorties pour identifier les familles, et une livraison de manuels arrive au même moment.", category: "infiltration", tags: ["revolutionary", "education"], paths: ["revolutionary"], zones: STARTING_BLUES, choices: [
+      ["schedule", "Reconstituer les rondes avant de déplacer les élèves", "intelligence", "Un angle mort régulier permet d’évacuer les familles et les livres séparément.", "Une ronde changée au dernier instant enferme une classe dans le bâtiment."],
+      ["diversion", "Créer une diversion loin de l’école", "combat", "Les agents quittent leur poste pour une menace visible et perdent toute trace des familles.", "La diversion paraît trop liée à l’école et confirme leurs soupçons."],
+      ["neighbors", "Rallier le quartier autour des familles", "charisma", "Chaque maison accueille quelques élèves et la surveillance ne peut plus désigner une seule cellule.", "Les voisins craignent la taxe collective et refusent d’ouvrir leurs portes."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "revolutionary-printer-and-the-censor", title: "Le censeur et l’imprimeur", description: "Un censeur du Gouvernement propose de livrer les listes de livres interdits en échange de l’extraction de sa famille. Une cellule le croit sincère ; une autre voit un piège destiné à révéler toutes les presses.", category: "politics", tags: ["revolutionary", "information"], paths: ["revolutionary"], zones: ["grand-line", "red-line"], choices: [
+      ["cipher", "Tester ses listes avec de fausses adresses", "intelligence", "Les réactions du Gouvernement confirment ses informations sans exposer une seule presse réelle.", "Le test est trop évident et le censeur coupe tout contact."],
+      ["extract", "Extraire sa famille avant de recevoir les listes", "combat", "L’opération réussit et le censeur livre les archives sans levier contre lui.", "La résidence était surveillée et l’extraction révèle une route clandestine."],
+      ["trust", "Faire arbitrer l’accord par les deux cellules", "charisma", "Un engagement partagé empêche la méfiance de détruire une source authentique.", "Les accusations publiques poussent le censeur à fuir seul avec ses dossiers."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "revolutionary-harbor-of-names", title: "Le port des faux noms", description: "Des réfugiés doivent quitter un royaume sous de nouvelles identités. Le registre du port a été remplacé par une copie, et le navire d’évacuation appareille avant la prochaine inspection gouvernementale.", category: "extraction", tags: ["revolutionary", "refugees"], paths: ["revolutionary"], zones: ["grand-line", "shinsekai"], choices: [
+      ["restore", "Reconstituer les identités à partir des billets", "intelligence", "Les correspondances suffisent à produire un manifeste cohérent avant l’inspection.", "Deux identités se croisent et attirent l’attention du contrôleur."],
+      ["dock", "Tenir le quai pendant l’embarquement", "combat", "Les agents ne franchissent pas la passerelle avant le départ du dernier réfugié.", "La pression sur le quai sépare plusieurs familles du navire."],
+      ["inspectors", "Convaincre les dockers de saturer le contrôle", "charisma", "Des dizaines de cargaisons légales occupent les inspecteurs pendant l’évacuation.", "Un docker paniqué désigne involontairement le mauvais groupe."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "risk-upside-down-current", title: "Le courant renversé", description: "Au large de Grand Line, un courant vertical retourne les coques avant de les aspirer sous une arche rocheuse. Un navire de réfugiés a perdu son gouvernail au centre du phénomène.", eventType: EVENT_TYPES.RISK, category: "catastrophe", tags: ["risk", "navigation", "rescue"], zones: ["grand-line"], choices: [
+      ["pattern", "Calculer le rythme entre deux renversements", "intelligence", "Tu trouves une fenêtre assez longue pour remorquer le navire hors de l’arche.", "Le cycle change au passage et les deux coques heurtent la roche."],
+      ["tow", "Entrer dans le courant pour saisir leur remorque", "health", "Ton équipage encaisse la rotation et arrache le navire à l’aspiration.", "La remorque casse sous la torsion et blesse ceux qui la tenaient."],
+      ["command", "Synchroniser les deux équipages à la voix", "charisma", "Chaque voile pivote au même instant et transforme le renversement en sortie.", "Les ordres se perdent dans le fracas et les manœuvres se contrarient."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "risk-red-line-sealed-lift", title: "L’ascenseur scellé", description: "Sur Red Line, un ascenseur de ravitaillement s’arrête entre deux niveaux avec des civils à bord. Des agents gouvernementaux ferment les accès et annoncent une contamination sans montrer le moindre rapport médical.", eventType: EVENT_TYPES.RISK, category: "government", tags: ["risk", "red-line", "extraction"], zones: ["red-line"], choices: [
+      ["system", "Diagnostiquer le verrouillage depuis la machinerie", "intelligence", "Le blocage révèle une commande extérieure et permet de rouvrir un accès de maintenance.", "Une sécurité secondaire coupe les câbles porteurs dès ton intervention."],
+      ["shaft", "Descendre dans la cage pour stabiliser la cabine", "health", "Tu bloques la chute assez longtemps pour extraire chaque passager.", "Le frein cède sous la charge et projette ton groupe contre la paroi."],
+      ["orders", "Contraindre les agents à produire leur ordre", "charisma", "Leur silence expose l’opération clandestine et rallie les ouvriers du niveau.", "L’autorité gouvernementale disperse les témoins avant qu’ils puissent s’unir."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "risk-new-world-sleeping-island", title: "L’île qui respire", description: "Dans le Nouveau Monde, une île inhabitée se soulève sous le campement : il s’agit du dos d’une créature marine gigantesque. Son réveil ouvre des crevasses tandis que les navires glissent vers ses nageoires.", eventType: EVENT_TYPES.RISK, category: "phenomenon", tags: ["risk", "new-world", "navigation"], zones: ["shinsekai"], choices: [
+      ["breath", "Lire son souffle pour prévoir le prochain mouvement", "intelligence", "Le rythme de la créature indique une vallée stable jusqu’à la remise à flot.", "Un spasme imprévisible coupe la route choisie et engloutit le matériel."],
+      ["anchors", "Porter les ancres jusqu’à la crête", "health", "Les lignes retiennent les navires pendant que la créature replonge lentement.", "Une ancre arrache son point d’appui et entraîne plusieurs marins."],
+      ["fleet", "Coordonner tous les équipages présents", "charisma", "Les navires se dégagent dans un ordre unique sans piétiner les groupes restés à terre.", "Chaque capitaine protège d’abord sa coque et bloque les autres sorties."],
+    ]}),
+    createAuthoredExpansionEvent({ id: "risk-cipher-pol-burning-archive", title: "Les archives en flammes", description: "Des agents du Cipher Pol incendient un dépôt d’archives après avoir enfermé les témoins au sous-sol. Le feu masque leur retraite et menace de détruire les preuves autant que les personnes.", eventType: EVENT_TYPES.RISK, category: "infiltration", tags: ["risk", "government", "rescue"], paths: ["revolutionary", "bounty-hunter"], zones: ["grand-line", "red-line"], choices: [
+      ["vents", "Comprendre la ventilation avant d’ouvrir les portes", "intelligence", "Tu détournes la fumée et crées un passage vers les cellules et les registres.", "L’ouverture nourrit le foyer et rend l’escalier impraticable."],
+      ["break", "Traverser le plancher pour atteindre les témoins", "combat", "La brèche évite le cœur de l’incendie et libère les prisonniers.", "Le plancher fragilisé s’effondre sur le groupe d’extraction."],
+      ["agents", "Retourner les agents restés en couverture", "charisma", "L’un d’eux refuse d’abandonner les témoins et livre la sortie secrète.", "Leur discipline tient et chaque seconde de négociation rapproche l’effondrement."],
+    ]}),
+  ]);
+
   const ALL_EVENTS = Object.freeze([
+    ...CORRECTIVE_WORLD_EXPANSION_EVENTS,
     ...COMMON_EVENTS,
     ...RESTORED_COMMON_EVENTS,
     ...RISK_EVENTS,
@@ -6313,6 +6609,9 @@ const COMMON_EVENTS = [
     let dialogueCount = 0;
     const allowedDynamicTokens = new Set([
       "emperor", "objective", "emperorThreat", "emperorCounterattack", "emperorArrival", "zone",
+      "warlord", "warlordOpening", "warlordPowerTitle", "warlordCrisis", "warlordFinal",
+      "warlordDialogue1", "warlordDialogue2", "warlordDialogue3",
+      ...[1,2,3].flatMap((step)=>[1,2,3].map((choice)=>`warlordChoice${step}${choice}`)),
     ]);
     const technicalChoiceLabel = /^(direct|strategy|strategic|social|initiative|lecture|maîtrise|mastery)\s*[:—-]/i;
 
@@ -6383,6 +6682,71 @@ const COMMON_EVENTS = [
   }
 
   const editorialCatalog = [...ALL_EVENTS, ...BOSS_EVENTS, ...LEGENDARY_ARC_EVENTS];
+  function auditEventVariants(events = ALL_EVENTS, decisiveEvents = HAKI_DECISIVE_EVENTS) {
+    const warnings = [];
+    const families = events.filter((event) =>
+      [EVENT_TYPES.ORDINARY, EVENT_TYPES.RISK].includes(event.eventType));
+    const familyIds = new Set();
+    let totalScenes = 0;
+
+    families.forEach((event) => {
+      const reference = event.id || "evenement-sans-id";
+      if (familyIds.has(reference)) warnings.push(`famille dupliquee : ${reference}`);
+      familyIds.add(reference);
+      totalScenes += 1;
+      if (event.variants?.length) warnings.push(`variantes interdites sur une famille classique : ${reference}`);
+      if (/\b(cette fois|dans cette variante|autre version)\b/i.test(`${event.title} ${event.description}`)) {
+        warnings.push(`texte meta dans une famille classique : ${reference}`);
+      }
+    });
+
+    const hakiMatrix = new Map();
+    decisiveEvents.forEach((event) => {
+      const faction = event.paths?.[0];
+      const key = `${faction}/etape-${event.decisiveStage}`;
+      const scenes = 1 + (event.variants || []).length;
+      hakiMatrix.set(key, scenes);
+      if (scenes < 2) warnings.push(`Haki incomplet : ${key}/${scenes} scenes`);
+      (event.variants || []).forEach((variant) => {
+        if ((variant.choices || []).length !== event.choices.length) {
+          warnings.push(`choix Haki incomplets : ${event.id}/${variant.id}`);
+        }
+        const dialogue = variant.introDialogue?.default || variant.introDialogue;
+        const genericCentralFigures = /ma[iî]tre d['’]équipage|officier anonyme|marin vétéran|capitaine inconnu|vieil homme|combattant mystérieux|agent de liaison|contrema[iî]tre/i;
+        if (!dialogue?.speaker || genericCentralFigures.test(dialogue.speaker)) {
+          warnings.push(`figure centrale Haki non canonique : ${event.id}/${variant.id}`);
+        }
+        if (!variant.loreCharacters?.length || !variant.loreCharacters.includes(dialogue?.speaker?.replace(" le Roux", ""))) {
+          warnings.push(`figure Haki absente du lore : ${event.id}/${variant.id}`);
+        }
+      });
+    });
+    ["pirate", "marine", "bounty-hunter", "revolutionary"].forEach((faction) => {
+      [1, 2].forEach((stage) => {
+        if (!hakiMatrix.has(`${faction}/etape-${stage}`)) warnings.push(`case Haki absente : ${faction}/etape-${stage}`);
+      });
+    });
+    const rayleigh = decisiveEvents.some((event) => (event.variants || []).some((variant) =>
+      variant.id === "rayleigh-sabaody" &&
+      variant.loreCharacters?.includes("Silvers Rayleigh") &&
+      variant.zones?.includes("red-line")));
+    if (!rayleigh) warnings.push("scene credible de Rayleigh pres de Sabaody/Red Line absente");
+
+    return Object.freeze({
+      pass: warnings.length === 0,
+      familyCount: families.length,
+      ordinaryFamilyCount: families.filter((event) => event.eventType === EVENT_TYPES.ORDINARY).length,
+      riskFamilyCount: families.filter((event) => event.eventType === EVENT_TYPES.RISK).length,
+      totalScenes,
+      hakiSceneCount: [...hakiMatrix.values()].reduce((sum, count) => sum + count, 0),
+      hakiMatrix: Object.freeze(Object.fromEntries(hakiMatrix)),
+      rayleigh,
+      warnings: Object.freeze(warnings),
+    });
+  }
+  const eventVariantAudit = auditEventVariants();
+  if (!eventVariantAudit.pass) console.warn("[Blue Legacy] Audit des variantes :", eventVariantAudit.warnings);
+  window.BLUE_LEGACY_EVENT_VARIANT_AUDIT = eventVariantAudit;
   const editorialAuditRequested = new URLSearchParams(window.location.search).has("editorialAudit");
   if (IS_DEVELOPMENT || editorialAuditRequested) {
     validateContextualThirdChoices(editorialCatalog);
@@ -6418,6 +6782,7 @@ const COMMON_EVENTS = [
   window.BLUE_LEGACY_SPECIAL_ZONE_AUDIT = Object.freeze(SPECIAL_ZONE_EVENT_AUDIT);
   if (new URLSearchParams(window.location.search).has("audit")) {
     document.documentElement.dataset.specialZoneAudit = JSON.stringify(SPECIAL_ZONE_EVENT_AUDIT);
+    document.documentElement.dataset.eventVariantAudit = JSON.stringify(eventVariantAudit);
   }
   // Alias technique conservé pour la compatibilité avec les anciennes sauvegardes.
   window.SEA_OF_LEGENDS_BOSS_EVENTS = BOSS_EVENTS;

@@ -1,5 +1,5 @@
 /* ==========================================================
-   BLUE LEGACY — DONNÉES GÉNÉRALES 1.0.1
+   BLUE LEGACY — DONNÉES GÉNÉRALES 1.1
 
    Ce fichier contient uniquement les catalogues généraux.
    Les événements, titres et succès vivent dans leurs fichiers dédiés.
@@ -56,6 +56,7 @@ const GAME_DATA = {
     pirate: [
       {
         id: "one-piece",
+        icon: "👑",
         label: "Trouver le One Piece",
         description:
           "Rassemble les indices, traverse les mers les plus dangereuses et atteins la destination ultime.",
@@ -64,6 +65,7 @@ const GAME_DATA = {
       },
       {
         id: "sea-emperor",
+        icon: "🏴‍☠️",
         label: "Devenir un Empereur des mers",
         femaleLabel: "Devenir une Impératrice des mers",
         description:
@@ -74,6 +76,7 @@ const GAME_DATA = {
       },
       {
         id: "worlds-greatest-fortune",
+        icon: "💰",
         label: "Amasser la plus grande fortune du monde",
         description:
           "Découvre des trésors, négocie habilement et protège tes richesses.",
@@ -83,6 +86,7 @@ const GAME_DATA = {
       },
       {
         id: "forgotten-history",
+        icon: "📜",
         label: "Découvrir l’Histoire oubliée",
         description:
           "Recherche les traces du passé et révèle les secrets que le monde dissimule.",
@@ -94,6 +98,7 @@ const GAME_DATA = {
     "bounty-hunter": [
       {
         id: "greatest-bounty-hunter",
+        icon: "🎯",
         label: "Devenir le plus grand chasseur de primes",
         femaleLabel: "Devenir la plus grande chasseuse de primes",
         description:
@@ -103,6 +108,7 @@ const GAME_DATA = {
       },
       {
         id: "most-dangerous-criminals",
+        icon: "⛓️",
         label: "Capturer les criminels les plus dangereux",
         description:
           "Prépare tes traques et livre les cibles que personne d’autre n’approche.",
@@ -111,6 +117,7 @@ const GAME_DATA = {
       },
       {
         id: "hunt-an-emperor",
+        icon: "⚔️",
         label: "Traquer un Empereur",
         description:
           "Développe une force et un réseau suffisants pour affronter une puissance mondiale.",
@@ -120,6 +127,7 @@ const GAME_DATA = {
       },
       {
         id: "contract-fortune",
+        icon: "💼",
         label: "Amasser une fortune grâce aux contrats",
         description:
           "Sélectionne les missions les plus rentables et survis aux pièges des commanditaires.",
@@ -131,6 +139,7 @@ const GAME_DATA = {
     revolutionary: [
       {
         id: "break-the-chains",
+        icon: "🔓",
         label: "Briser les chaînes",
         description:
           "Mettre fin à l’esclavage, démanteler ses réseaux et libérer ceux que le monde a condamnés à vivre enchaînés.",
@@ -146,6 +155,7 @@ const GAME_DATA = {
       },
       {
         id: "reveal-void-century",
+        icon: "📖",
         label: "Révéler le Siècle oublié",
         description:
           "Découvrir la véritable histoire du monde et la rendre impossible à étouffer.",
@@ -161,6 +171,7 @@ const GAME_DATA = {
       },
       {
         id: "build-underground-network",
+        icon: "🕸️",
         label: "Bâtir le plus grand réseau clandestin",
         description:
           "Étendre l’Armée révolutionnaire dans toutes les mers grâce à un réseau de cellules, d’agents et de routes secrètes.",
@@ -175,6 +186,7 @@ const GAME_DATA = {
       },
       {
         id: "found-free-nation",
+        icon: "🕊️",
         label: "Fonder une nation libre",
         description:
           "Créer un territoire indépendant du Gouvernement mondial et protéger durablement son peuple.",
@@ -192,6 +204,7 @@ const GAME_DATA = {
     marine: [
       {
         id: "admiral",
+        icon: "⚓",
         label: "Devenir Amiral",
         femaleLabel: "Devenir Amirale",
         description:
@@ -202,6 +215,7 @@ const GAME_DATA = {
       },
       {
         id: "fleet-admiral",
+        icon: "🎖️",
         label: "Devenir Amiral en chef",
         femaleLabel: "Devenir Amirale en chef",
         description:
@@ -212,6 +226,7 @@ const GAME_DATA = {
       },
       {
         id: "reform-the-marines",
+        icon: "⚖️",
         label: "Réformer la Marine",
         description:
           "Gagne assez d’influence pour combattre les abus depuis l’intérieur.",
@@ -220,6 +235,7 @@ const GAME_DATA = {
       },
       {
         id: "greatest-marine-hero",
+        icon: "🛡️",
         label: "Devenir le plus grand héros de la Marine",
         femaleLabel: "Devenir la plus grande héroïne de la Marine",
         description:
@@ -236,7 +252,7 @@ const GAME_DATA = {
       id: "east-blue",
       label: "East Blue",
       description:
-        "Une mer relativement paisible où les légendes apprennent à rêver.",
+        "Une mer relativement paisible où les premières rencontres forgent les liens, le panache et les histoires qui lanceront ta légende.",
       hint:
         "Une mer paisible où les liens forgés au départ peuvent porter une légende très loin.",
       zoneId: "east-blue",
@@ -246,7 +262,7 @@ const GAME_DATA = {
       id: "north-blue",
       label: "North Blue",
       description:
-        "Une mer froide marquée par les conflits, les familles et la stratégie.",
+        "Une mer froide marquée par les conflits, les familles et les stratégies, où survivre exige autant de réflexion que de répondant.",
       hint:
         "Grandir ici apprend à rester debout lorsque le monde devient hostile.",
       zoneId: "north-blue",
@@ -256,7 +272,7 @@ const GAME_DATA = {
       id: "south-blue",
       label: "South Blue",
       description:
-        "Une mer vivante où l’entraide et les communautés occupent une place centrale.",
+        "Une mer vivante portée par l’entraide, les échanges et les communautés, où savoir tenir bon ouvre souvent les premières opportunités.",
       hint:
         "Dans cette mer animée, une rencontre peut rapidement devenir un équipage.",
       zoneId: "south-blue",
@@ -266,7 +282,7 @@ const GAME_DATA = {
       id: "west-blue",
       label: "West Blue",
       description:
-        "Une mer de réseaux secrets où survivre demande intuition et maîtrise.",
+        "Une mer de réseaux secrets et d’alliances fragiles, où lire les intentions et rester sur ses gardes compte souvent plus que frapper le premier.",
       hint:
         "Ici, lire les gens et saisir les bonnes occasions vaut parfois mieux qu’une arme.",
       zoneId: "west-blue",
@@ -439,20 +455,29 @@ const GAME_DATA = {
     { id: "nagi-nagi", name: "Nagi Nagi no Mi", type: "Paramecia", icon: "🔇", description: "Supprime tout son dans une zone choisie.", loreDescription: "Permet de créer un espace entièrement silencieux.", primaryStat: "intelligence", secondaryStat: "charisma", permanentEffects: { intelligence: 7, charisma: 2 }, rarity: "rare" },
     { id: "suna-suna", name: "Suna Suna no Mi", type: "Logia", icon: "🏜️", description: "Le sable impose une présence redoutée sur tout un territoire.", loreDescription: "Permet de créer, contrôler et devenir du sable.", primaryStat: "bounty", secondaryStat: "combat", permanentEffects: { bounty: 300000, combat: 3 }, rarity: "legendary" },
     { id: "zushi-zushi", name: "Zushi Zushi no Mi", type: "Paramecia", icon: "☄️", description: "La gravité confère une puissance et une autorité écrasantes.", loreDescription: "Permet de manipuler les forces gravitationnelles.", primaryStat: "bounty", secondaryStat: "haki", permanentEffects: { bounty: 320000, haki: 3 }, rarity: "legendary" },
+    { id: "bane-bane", name: "Bane Bane no Mi", type: "Paramecia", icon: "🌀", description: "Transforme les membres du corps en ressorts pour accumuler puis libérer de puissantes impulsions.", loreDescription: "Permet de transformer les membres du corps en ressorts.", primaryStat: "combat", secondaryStat: "health", permanentEffects: { combat: 5, health: 2 }, rarity: "rare" },
+    { id: "kilo-kilo", name: "Kilo Kilo no Mi", type: "Paramecia", icon: "⚖️", description: "Permet de modifier librement le poids de son corps.", loreDescription: "Permet de modifier librement le poids de son corps.", primaryStat: "health", secondaryStat: "combat", permanentEffects: { health: 4, combat: 2 }, rarity: "rare" },
+    { id: "ori-ori", name: "Ori Ori no Mi", type: "Paramecia", icon: "⛓️", description: "Crée des entraves capables d’immobiliser les personnes touchées.", loreDescription: "Permet de créer des entraves qui immobilisent les personnes touchées.", primaryStat: "haki", secondaryStat: "intelligence", permanentEffects: { haki: 5, intelligence: 2 }, rarity: "rare" },
+    { id: "toge-toge", name: "Toge Toge no Mi", type: "Paramecia", icon: "🌵", description: "Fait pousser des pointes sur le corps.", loreDescription: "Permet de faire pousser des pointes sur le corps.", primaryStat: "combat", secondaryStat: "haki", permanentEffects: { combat: 6, haki: 2 }, rarity: "rare" },
+    { id: "awa-awa", name: "Awa Awa no Mi", type: "Paramecia", icon: "🫧", description: "Produit des bulles de savon capables d’affaiblir et de nettoyer les capacités physiques d’une cible.", loreDescription: "Permet de produire des bulles de savon qui affaiblissent les capacités physiques d’une cible.", primaryStat: "haki", secondaryStat: "intelligence", permanentEffects: { haki: 4, intelligence: 3 }, rarity: "rare" },
+    { id: "gasu-gasu", name: "Gasu Gasu no Mi", type: "Logia", icon: "☁️", description: "Permet de créer, contrôler et devenir du gaz.", loreDescription: "Permet de créer, contrôler et devenir du gaz.", primaryStat: "intelligence", secondaryStat: "combat", permanentEffects: { intelligence: 6, combat: 4 }, rarity: "epic" },
+    { id: "yuki-yuki", name: "Yuki Yuki no Mi", type: "Logia", icon: "❄️", description: "Permet de créer, contrôler et devenir de la neige.", loreDescription: "Permet de créer, contrôler et devenir de la neige.", primaryStat: "combat", secondaryStat: "haki", permanentEffects: { combat: 6, haki: 3 }, rarity: "epic" },
+    { id: "inu-inu-wolf", name: "Inu Inu no Mi, modèle Loup", type: "Zoan", icon: "🐺", description: "Permet de devenir un loup ou une forme hybride.", loreDescription: "Permet de devenir un loup ou une forme hybride.", primaryStat: "combat", secondaryStat: "health", permanentEffects: { combat: 6, health: 3 }, rarity: "epic" },
+    { id: "zou-zou", name: "Zou Zou no Mi", type: "Zoan", icon: "🐘", description: "Permet de devenir un éléphant ou une forme hybride.", loreDescription: "Permet de devenir un éléphant ou une forme hybride.", primaryStat: "health", secondaryStat: "combat", permanentEffects: { health: 6, combat: 4 }, rarity: "epic" },
+    { id: "ryu-ryu-spinosaurus", name: "Ryu Ryu no Mi, modèle Spinosaurus", type: "Zoan antique", icon: "🦖", description: "Permet de devenir un Spinosaurus ou une forme hybride.", loreDescription: "Permet de devenir un Spinosaurus ou une forme hybride.", primaryStat: "combat", secondaryStat: "health", permanentEffects: { combat: 7, health: 4 }, rarity: "epic" },
+    { id: "hito-hito-daibutsu", name: "Hito Hito no Mi, modèle Daibutsu", type: "Zoan mythique", icon: "🪷", description: "Permet de prendre la forme d’un gigantesque Daibutsu doré, puissant et résistant.", loreDescription: "Permet de prendre la forme d’un gigantesque Daibutsu doré doté d’une puissance et d’une résistance extraordinaires.", primaryStat: "haki", secondaryStat: "combat", permanentEffects: { haki: 6, combat: 5, health: 2 }, rarity: "legendary" },
   ],
 
   crewRecruitments: [
     { id: "marco", name: "Marco", role: "Médecin", icon: "🔥", description: "Protège les blessés le temps de régler une dette envers leur équipage.", primaryStat: "health", rarity: "legendary", minStage: 5, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { health: 5, haki: 1 } },
-    { id: "chopper", name: "Chopper", role: "Médecin légendaire", category: "medical", icon: "🦌", description: "Séparé momentanément de l’équipage de Luffy, il conclut une alliance médicale exceptionnelle pour soigner les blessés de la route.", recruitmentText: "Chopper accompagne temporairement ton groupe dans le cadre d’une mission médicale commune.", primaryStat: "health", rarity: "legendary", minStage: 4, allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { health: 7, intelligence: 3, charisma: 2, popularity: 2 } },
     { id: "mansherry", name: "Mansherry", role: "Guérisseuse alliée", icon: "💧", description: "Accompagne temporairement une cause qui protège les innocents.", primaryStat: "health", rarity: "epic", allowedFactions: ["revolutionary", "bounty-hunter"], permanentEffects: { health: 5, charisma: 1 } },
-    { id: "kureha", name: "Kureha", role: "Médecin", icon: "🩺", description: "Accepte la route pour transmettre son savoir médical à un groupe prometteur.", primaryStat: "health", rarity: "rare", allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { health: 4, intelligence: 1 } },
+    { id: "kureha", name: "Kureha", role: "Médecin", icon: "🩺", description: "Accepte la route pour transmettre son savoir médical à un groupe prometteur.", primaryStat: "health", rarity: "epic", allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { health: 4, intelligence: 1 } },
     { id: "aladine", name: "Aladine", role: "Médecin et timonier", icon: "🐟", description: "Prête son expérience à ceux qui respectent les peuples de la mer.", primaryStat: "health", rarity: "epic", minStage: 3, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { health: 4, charisma: 1 } },
     { id: "bepo", name: "Bepo", role: "Navigateur", icon: "🐻", description: "Cherche un passage sûr après avoir été séparé de ses compagnons.", primaryStat: "intelligence", rarity: "rare", allowedFactions: ["pirate", "bounty-hunter"], permanentEffects: { intelligence: 4, health: 1 } },
-    { id: "nami", name: "Nami", role: "Navigatrice légendaire", category: "navigation", icon: "🧭", description: "Une carte et une tempête imposent une navigation commune exceptionnelle sans rompre ses liens avec l’équipage de Luffy.", recruitmentText: "Nami accepte une navigation temporaire pour mener ton groupe au-delà d’une route météorologique impossible.", primaryStat: "intelligence", rarity: "legendary", minStage: 4, allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { intelligence: 7, haki: 4, charisma: 2, fortune: 5000, popularity: 2 } },
     { id: "jean-bart", name: "Jean Bart", role: "Timonier", active: false, icon: "⚓", description: "Protège une traversée en échange d'une route loin des trafiquants.", primaryStat: "health", rarity: "rare", allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { health: 4, combat: 1 } },
     { id: "shachi", name: "Shachi", role: "Marin", active: false, icon: "🌊", description: "Met sa mobilité au service d'une opération maritime précise.", primaryStat: "intelligence", rarity: "uncommon", allowedFactions: ["pirate", "bounty-hunter"], permanentEffects: { intelligence: 3, health: 1 } },
     { id: "penguin", name: "Penguin", role: "Marin", active: false, icon: "🐧", description: "Propose ses relevés de courants contre une place pour la prochaine étape.", primaryStat: "intelligence", rarity: "uncommon", allowedFactions: ["pirate", "bounty-hunter"], permanentEffects: { intelligence: 3, charisma: 1 } },
-    { id: "hatchan", name: "Hatchan", role: "Guide des fonds marins", category: "navigation", icon: "🐙", description: "Met sa connaissance des courants sous-marins au service d’une traversée qui protège les habitants de la mer.", primaryStat: "health", rarity: "rare", allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { health: 3, haki: 2 } },
+    { id: "hatchan", name: "Hachi", role: "Combattant homme-poisson", category: "combat", icon: "🐙", description: "Prête ses six bras à une traversée qui protège les habitants de la mer.", primaryStat: "combat", rarity: "rare", minStage: 4, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { combat: 3, health: 2 } },
     { id: "cabaji", name: "Cabaji", role: "Manœuvrier agile", category: "navigation", icon: "🎪", description: "Apporte ses manœuvres rapides et sa discipline d’équipage à une alliance de circonstance.", primaryStat: "haki", rarity: "uncommon", allowedFactions: ["pirate", "bounty-hunter"], permanentEffects: { haki: 2, combat: 2, charisma: 1 } },
     { id: "vito", name: "Vito", role: "Coordinateur naval", category: "navigation", icon: "🔫", description: "Coordonne une opération navale et une infiltration pour servir un accord strictement limité.", primaryStat: "intelligence", rarity: "rare", minStage: 3, allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { intelligence: 3, combat: 2, charisma: 1 } },
     { id: "wadatsumi", name: "Wadatsumi", role: "Protecteur maritime", icon: "🐋", description: "Escorte ceux qui ont défendu les Hommes-Poissons.", primaryStat: "health", rarity: "epic", minStage: 4, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { health: 5 } },
@@ -473,8 +498,28 @@ const GAME_DATA = {
     { id: "lindbergh", name: "Lindbergh", role: "Inventeur", icon: "🛠️", description: "Déploie ses inventions pour une opération révolutionnaire exigeante.", primaryStat: "intelligence", rarity: "epic", minStage: 4, allowedFactions: ["revolutionary"], permanentEffects: { intelligence: 5, combat: 1 } },
     { id: "vegapunk", name: "Vegapunk", role: "Scientifique et stratège", category: "strategy", icon: "🧠", description: "Une extraction urgente transforme sa protection en collaboration scientifique exceptionnelle, limitée à cette carrière.", recruitmentText: "Vegapunk rejoint temporairement ta route sous protection afin de poursuivre une collaboration scientifique décisive.", primaryStat: "intelligence", rarity: "legendary", minStage: 5, allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { intelligence: 9, haki: 3, combat: 2, charisma: 2, popularity: 3 } },
     { id: "hiluluk", name: "Hiluluk", role: "Médecin idéaliste", category: "medical", icon: "🌸", description: "Médecin atypique et risqué, il soutient les blessés avec une conviction assez forte pour rendre courage à tout un groupe.", primaryStat: "health", rarity: "rare", allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { health: 3, charisma: 2 } },
-    { id: "paulie", name: "Paulie", role: "Charpentier", active: false, icon: "🪢", description: "Embarque le temps de remettre un navire et son équipage en état.", primaryStat: "health", rarity: "rare", allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { health: 3, intelligence: 2 } },
+    { id: "paulie", name: "Paulie", role: "Charpentier", icon: "🪢", description: "Embarque le temps de remettre un navire et son équipage en état.", primaryStat: "health", rarity: "rare", minStage: 3, allowedFactions: ["pirate", "bounty-hunter", "revolutionary"], permanentEffects: { health: 3, intelligence: 2 } },
+    { id: "boa-hancock", name: "Boa Hancock", role: "Capitaine pirate", icon: "🐍", description: "Une menace contre Amazon Lily et des innocents conduit Hancock à former une alliance exceptionnelle limitée à cette route.", recruitmentText: "Boa Hancock accompagne temporairement ta route afin d’écarter une menace commune visant Amazon Lily.", primaryStat: "charisma", rarity: "legendary", minStage: 4, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { charisma: 6, haki: 5, combat: 2 } },
+    { id: "vivi", name: "Vivi", role: "Diplomate", icon: "🕊️", description: "Une mission diplomatique commune lui permet de voyager sans abandonner ses responsabilités envers Alabasta.", recruitmentText: "Vivi rejoint temporairement la route pour protéger les populations menacées par une crise commune.", primaryStat: "charisma", rarity: "rare", minStage: 3, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { charisma: 4, intelligence: 1 } },
+    { id: "camie", name: "Camie", role: "Guide des profondeurs", icon: "🧜‍♀️", description: "Guide une traversée sous-marine liée à la protection de ses proches.", primaryStat: "charisma", rarity: "rare", minStage: 4, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { charisma: 3, intelligence: 2 } },
+    { id: "caribou", name: "Caribou", role: "Informateur opportuniste", icon: "🛢️", description: "Vend ses renseignements et son aide tant que l’alliance sert ses intérêts.", primaryStat: "intelligence", rarity: "rare", minStage: 4, allowedFactions: ["pirate", "bounty-hunter"], permanentEffects: { intelligence: 3, fortune: 8000 } },
+    { id: "johnny-yosaku", name: "Johnny et Yosaku", role: "Duo de chasseurs de primes", icon: "⚔️", description: "Les deux chasseurs acceptent ensemble un contrat sur la prochaine étape.", primaryStat: "combat", rarity: "rare", minStage: 1, allowedFactions: ["pirate", "bounty-hunter"], permanentEffects: { combat: 3, intelligence: 2 } },
+    { id: "wyper", name: "Wyper", role: "Guerrier de Shandora", icon: "🪽", description: "S’allie à une route qui défend son peuple et sa liberté.", primaryStat: "combat", rarity: "epic", minStage: 3, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { combat: 5, health: 2 } },
+    { id: "hack", name: "Hack", role: "Maître du karaté des Hommes-Poissons", icon: "🥋", description: "Renforce une opération révolutionnaire destinée à libérer des populations opprimées.", recruitmentText: "Hack est dépêché par les Révolutionnaires pour soutenir cette opération commune.", primaryStat: "combat", rarity: "epic", minStage: 3, allowedFactions: ["revolutionary"], permanentEffects: { combat: 4, haki: 2 } },
+    { id: "inazuma", name: "Inazuma", role: "Officier révolutionnaire", icon: "✂️", description: "Planifie une opération révolutionnaire avec calme et précision.", recruitmentText: "Inazuma coordonne temporairement sa mission avec la tienne au nom de l’Armée révolutionnaire.", primaryStat: "intelligence", rarity: "epic", minStage: 3, allowedFactions: ["revolutionary"], permanentEffects: { intelligence: 4, charisma: 2 } },
+    { id: "rebecca", name: "Rebecca", role: "Combattante de Dressrosa", icon: "🛡️", description: "Participe à une mission limitée pour protéger Dressrosa et ses habitants.", recruitmentText: "Rebecca accompagne cette mission commune sans renoncer à ses responsabilités envers Dressrosa.", primaryStat: "combat", rarity: "rare", minStage: 4, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { combat: 3, charisma: 2 } },
+    { id: "leo", name: "Leo", role: "Chef Tontatta", icon: "🪡", description: "Conduit une mission tontatta dont les objectifs rejoignent temporairement cette route.", recruitmentText: "Leo engage les Tontatta dans une mission commune limitée à cette menace.", primaryStat: "intelligence", rarity: "rare", minStage: 4, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { intelligence: 3, charisma: 2 } },
+    { id: "pedro", name: "Pedro", role: "Éclaireur Mink", icon: "🐆", description: "Éclaire la route avec sobriété lorsqu’une mission décisive l’exige.", primaryStat: "combat", rarity: "epic", minStage: 5, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { combat: 4, intelligence: 2 } },
+    { id: "carrot", name: "Carrot", role: "Éclaireuse Mink", icon: "🐇", description: "Découvre les mers tardives tout en soutenant une mission commune.", primaryStat: "combat", rarity: "epic", minStage: 5, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { combat: 4, health: 2 } },
+    { id: "duval", name: "Duval", role: "Chef des Riders", icon: "🏍️", description: "Met ses Riders au service d’une escorte maritime mouvementée.", primaryStat: "charisma", rarity: "rare", minStage: 4, allowedFactions: ["pirate", "bounty-hunter"], permanentEffects: { charisma: 3, combat: 2 } },
+    { id: "dalton", name: "Dalton", role: "Protecteur de Drum", icon: "🦬", description: "Assure une escorte temporaire qui protège Drum sans délaisser durablement le royaume.", recruitmentText: "Dalton prend part à cette mission de protection avant de retourner à ses responsabilités à Drum.", primaryStat: "health", rarity: "rare", minStage: 2, allowedFactions: ["pirate", "revolutionary"], permanentEffects: { health: 3, charisma: 2 } },
   ],
+  davyBackFightCompanions: Object.freeze([
+    { id: "davy-zoro", name: "Roronoa Zoro", role: "Sabreur", category: "combat", icon: "⚔️", description: "Le sabreur des Mugiwara rejoint la route après une victoire au Davy Back Fight.", recruitmentText: "Zoro respecte le résultat, emporte ses sabres et rejoint ton bord sans discuter davantage.", primaryStat: "combat", rarity: "legendary", minStage: 2, permanentEffects: { combat: 4, health: 2 } },
+    { id: "davy-sanji", name: "Sanji", role: "Cuisinier combattant", category: "combat", icon: "🔥", description: "Le cuisinier des Mugiwara apporte ses jambes, ses soins et son exigence au nouvel équipage.", recruitmentText: "Sanji allume une cigarette, salue son ancien équipage et prend possession de la cuisine.", primaryStat: "combat", rarity: "legendary", minStage: 2, permanentEffects: { combat: 3, health: 2, charisma: 1 } },
+    { id: "davy-nami", name: "Nami", role: "Navigatrice", category: "navigation", icon: "🧭", description: "La navigatrice des Mugiwara sait lire une mer dangereuse avant qu’elle ne se referme.", recruitmentText: "Nami fait promettre qu’on respectera ses cartes, puis monte à bord avec son sac et son bâton climatique.", primaryStat: "intelligence", rarity: "epic", minStage: 2, permanentEffects: { intelligence: 3, fortune: 1200, charisma: 1 } },
+    { id: "davy-usopp", name: "Usopp", role: "Tireur d’élite", category: "combat", icon: "🎯", description: "Le tireur des Mugiwara transforme ses inventions et ses mensonges en solutions inattendues.", recruitmentText: "Usopp annonce très fort que ce transfert faisait partie de son plan, puis embarque avec tout son matériel.", primaryStat: "intelligence", rarity: "epic", minStage: 2, permanentEffects: { intelligence: 2, combat: 2, charisma: 1 } },
+  ]),
 
   marineRecruitments: [
     { id: "garp", name: "Garp", rank: "Vice-Amiral", role: "Mentor exceptionnel", icon: "👊", description: "Supervise temporairement une unité dont la justice lui paraît digne d'intérêt.", primaryStat: "haki", rarity: "legendary", minStage: 5, permanentEffects: { haki: 5, combat: 1 } },
@@ -594,6 +639,86 @@ const GAME_DATA = {
 
 window.GAME_DATA = GAME_DATA;
 
+/* Source de vérité lore : un Fruit peut avoir plusieurs utilisateurs selon l'époque. */
+window.BLUE_LEGACY_CANONICAL_DEVIL_FRUIT_USERS = Object.freeze({
+  "tori-tori-phoenix": Object.freeze(["marco"]),
+  "nikyu-nikyu": Object.freeze(["bartholomew-kuma"]),
+  "gura-gura": Object.freeze(["edward-newgate", "marshall-d-teach"]),
+  "supa-supa": Object.freeze(["daz-bonez"]),
+  "bari-bari": Object.freeze(["bartolomeo"]),
+  "kira-kira": Object.freeze(["jozu"]),
+  "mero-mero": Object.freeze(["boa-hancock"]),
+  "horo-horo": Object.freeze(["perona"]),
+  "giro-giro": Object.freeze(["viola"]),
+  "hana-hana": Object.freeze(["nico-robin"]),
+  "magu-magu": Object.freeze(["sakazuki"]),
+  "goro-goro": Object.freeze(["enel"]),
+  "horu-horu": Object.freeze(["emporio-ivankov"]),
+  "chiyu-chiyu": Object.freeze(["mansherry"]),
+  "bomu-bomu": Object.freeze(["mr-5"]),
+  "neko-neko-leopard": Object.freeze(["rob-lucci"]),
+  "doru-doru": Object.freeze(["galdino"]),
+  "sube-sube": Object.freeze(["alvida"]),
+  "kobu-kobu": Object.freeze(["belo-betty"]),
+  "mane-mane": Object.freeze(["bon-clay"]),
+  "ope-ope": Object.freeze(["trafalgar-law"]),
+  "nagi-nagi": Object.freeze(["donquixote-rosinante"]),
+  "suna-suna": Object.freeze(["crocodile"]),
+  "zushi-zushi": Object.freeze(["issho"]),
+  "bane-bane": Object.freeze(["bellamy"]),
+  "kilo-kilo": Object.freeze(["miss-valentine"]),
+  "ori-ori": Object.freeze(["hina"]),
+  "toge-toge": Object.freeze(["zala"]),
+  "awa-awa": Object.freeze(["kalifa"]),
+  "gasu-gasu": Object.freeze(["caesar-clown"]),
+  "yuki-yuki": Object.freeze(["monet"]),
+  "inu-inu-wolf": Object.freeze(["jabra"]),
+  "zou-zou": Object.freeze(["funkfreed"]),
+  "ryu-ryu-spinosaurus": Object.freeze(["page-one"]),
+  "hito-hito-daibutsu": Object.freeze(["sengoku"]),
+});
+
+window.BLUE_LEGACY_CANONICAL_CHARACTER_ALIASES = Object.freeze({
+  "marco": Object.freeze(["Marco"]),
+  "bartholomew-kuma": Object.freeze(["Bartholomew Kuma", "Kuma"]),
+  "edward-newgate": Object.freeze(["Edward Newgate", "Barbe Blanche", "Whitebeard"]),
+  "marshall-d-teach": Object.freeze(["Marshall D. Teach", "Barbe Noire", "Blackbeard"]),
+  "daz-bonez": Object.freeze(["Daz Bonez", "Mr. 1"]),
+  "bartolomeo": Object.freeze(["Bartolomeo"]),
+  "jozu": Object.freeze(["Jozu"]),
+  "boa-hancock": Object.freeze(["Boa Hancock", "Hancock"]),
+  "perona": Object.freeze(["Perona"]),
+  "viola": Object.freeze(["Viola"]),
+  "nico-robin": Object.freeze(["Nico Robin", "Robin"]),
+  "sakazuki": Object.freeze(["Sakazuki", "Akainu"]),
+  "aramaki": Object.freeze(["Aramaki", "Ryokugyu", "Taureau Vert"]),
+  "borsalino": Object.freeze(["Borsalino", "Kizaru"]),
+  "enel": Object.freeze(["Enel"]),
+  "emporio-ivankov": Object.freeze(["Emporio Ivankov", "Ivankov"]),
+  "mansherry": Object.freeze(["Mansherry"]),
+  "mr-5": Object.freeze(["Mr. 5"]),
+  "rob-lucci": Object.freeze(["Rob Lucci", "Lucci"]),
+  "galdino": Object.freeze(["Galdino", "Mr. 3"]),
+  "alvida": Object.freeze(["Alvida"]),
+  "belo-betty": Object.freeze(["Belo Betty"]),
+  "bon-clay": Object.freeze(["Bon Clay", "Bentham", "Mr. 2"]),
+  "trafalgar-law": Object.freeze(["Trafalgar Law", "Trafalgar D. Water Law", "Law"]),
+  "donquixote-rosinante": Object.freeze(["Donquixote Rosinante", "Corazon"]),
+  "crocodile": Object.freeze(["Crocodile"]),
+  "issho": Object.freeze(["Issho", "Fujitora"]),
+  "bellamy": Object.freeze(["Bellamy"]),
+  "miss-valentine": Object.freeze(["Miss Valentine"]),
+  "hina": Object.freeze(["Hina"]),
+  "zala": Object.freeze(["Zala", "Miss Doublefinger"]),
+  "kalifa": Object.freeze(["Kalifa"]),
+  "caesar-clown": Object.freeze(["Caesar Clown", "Caesar"]),
+  "monet": Object.freeze(["Monet"]),
+  "jabra": Object.freeze(["Jabra"]),
+  "funkfreed": Object.freeze(["Funkfreed"]),
+  "page-one": Object.freeze(["Page One"]),
+  "sengoku": Object.freeze(["Sengoku"]),
+});
+
 window.BLUE_LEGACY_COMPANION_DIALOGUES = Object.freeze({
   marco: { join: "Je vais veiller sur les blessés. En échange, ne gaspillez pas la vie de ceux qui vous suivent.", finalDream: "Tu as tenu jusque-là. Maintenant, garde la tête froide et protège ce qui compte vraiment." },
   chopper: { join: "Je vais avec vous ! Et si quelqu’un se blesse, comptez sur moi !", finalDream: "Ça y est… on est arrivés jusqu’ici ensemble. Alors va jusqu’au bout !" },
@@ -623,6 +748,21 @@ window.BLUE_LEGACY_COMPANION_DIALOGUES = Object.freeze({
   lindbergh: { join: "Parfait ! Cette route sera un excellent terrain d’essai. Évitez seulement d’appuyer sur les boutons rouges.", finalDream: "Tous mes appareils donnent la même mesure : c’est maintenant que tout se décide. Formidable, non ?" },
   vegapunk: { join: "Voilà une occasion d’observer cette mer dans des conditions particulièrement intéressantes. Je vous accompagne.", finalDream: "Toutes les variables de cette aventure convergent vers cet instant. La suite dépend entièrement de toi." },
   hiluluk: { join: "Je viens ! Une aventure portée par un rêve mérite bien un médecin assez fou pour y croire.", finalDream: "Un homme ne disparaît pas tant que son rêve avance encore. Alors fais avancer le tien !" },
+  paulie: { join: "Je monte à bord, mais je commence par inspecter la coque. Une route pareille exige un navire impeccable.", finalDream: "Le navire a tenu jusqu’ici. À toi maintenant de tenir ton cap jusqu’au dernier instant." },
+  "boa-hancock": { join: "Ne confonds pas cette alliance avec une faveur. Tant que cette menace pèse sur Amazon Lily, je marcherai à tes côtés.", finalDream: "Tu as porté cette alliance avec dignité. Ne faiblis pas maintenant que ton choix engage tout le chemin parcouru." },
+  vivi: { join: "Je vous accompagne pour que cette crise n’emporte aucun autre peuple. Alabasta restera toujours ma responsabilité.", finalDream: "Nous avons vu ce que chaque décision coûte aux populations. Choisis maintenant la voie que tu pourras défendre." },
+  camie: { join: "Je connais un passage sûr sous les courants ! Restez près de moi et tout ira bien.", finalDream: "On a traversé des mers incroyables ensemble. Je te fais confiance pour choisir la dernière direction." },
+  caribou: { join: "J’ai des renseignements qui pourraient vous servir… et votre route pourrait très bien me servir aussi.", finalDream: "On est arrivés loin, hein ? Fais le bon choix : certains savent reconnaître une occasion quand elle se présente." },
+  "johnny-yosaku": { join: "Grand frère, on prend le contrat ! Johnny et Yosaku sont prêts à couvrir vos arrières !", finalDream: "On a suivi la piste jusqu’au bout. À toi de porter le dernier coup, grand frère !" },
+  wyper: { join: "Je combattrai tant que cette route protège la liberté des miens. Ne me demande rien de plus.", finalDream: "Tu n’as pas reculé devant les tempêtes. Ne baisse pas les yeux face au dernier obstacle." },
+  hack: { join: "Cette opération sert la liberté des opprimés. Je veillerai à ce que notre discipline soit à la hauteur.", finalDream: "La route a éprouvé nos convictions. Le dernier choix dira si elles étaient assez solides." },
+  inazuma: { join: "Nos objectifs convergent. J’organiserai l’approche et garderai une issue ouverte.", finalDream: "Chaque étape nous a conduits à cette décision. Reste calme et tranche avec précision." },
+  rebecca: { join: "Je viens protéger ceux que cette menace met en danger. Je ne laisserai plus les autres décider seuls de leur sort.", finalDream: "Nous avons protégé beaucoup de vies pour arriver ici. Je crois en ta décision, alors avance sans trembler." },
+  leo: { join: "Les Tontatta tiennent toujours leurs promesses ! Je vais vous aider jusqu’à la fin de cette mission.", finalDream: "Tout le monde compte sur nous ! Après toute cette route, je sais que tu feras le choix juste." },
+  pedro: { join: "La mission exige un éclaireur. Je marcherai devant et signalerai chaque danger.", finalDream: "Nous avons payé le prix de cette route. Fais en sorte que le dernier choix lui donne un sens." },
+  carrot: { join: "Je viens explorer avec vous ! Je resterai attentive, même si tout ici est nouveau et passionnant.", finalDream: "On a découvert tant de choses ensemble ! Je te fais confiance pour franchir cette dernière étape." },
+  duval: { join: "Les Riders vont vous ouvrir la route avec style ! L’escorte est entre de bonnes mains.", finalDream: "Quelle traversée magnifique ! Va conclure, les Riders garderont la sortie jusqu’à ton retour." },
+  dalton: { join: "Je vous accompagnerai le temps de sécuriser cette mission. La protection des populations reste ma priorité.", finalDream: "Tu as gagné la confiance de ceux qui ont marché avec toi. Fais maintenant un choix digne de cette confiance." },
   garp: { join: "Bwahaha ! Très bien, je viens avec vous. Mais ne comptez pas sur moi pour rester tranquille !", finalDream: "Bwahaha ! Alors c’est maintenant ? Montre-moi que tout ce chemin n’était pas pour rien !" },
   tsuru: { join: "Je superviserai cette opération. Écoutez mes conseils, et nous éviterons quelques erreurs coûteuses.", finalDream: "Toutes les pièces sont enfin en place. Ne confonds pas vitesse et précipitation au moment décisif." },
   smoker: { join: "Je me joins à l’opération, pas à vos mauvaises habitudes. Les civils passent avant le reste.", finalDream: "On a trop avancé pour laisser la fumée masquer l’objectif. Va régler ça proprement." },

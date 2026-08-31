@@ -1,26 +1,38 @@
-# Blue Legacy
+# Blue Legacy 1.1
 
 Construisez votre légende sur les mers, une décision à la fois.
 
-Version actuelle : 1.0.1
+Version actuelle : 1.1
 
 Maintenance des publications : à chaque nouvelle build publique, mettre à jour la build dans `index.html` et `version.json`, puis publier ces fichiers ensemble.
 
 ## Présentation
 
-Blue Legacy est un roguelite narratif jouable dans le navigateur, dans un univers inspiré de *One Piece*. Chaque carrière se déroule sur 24 mois et raconte une nouvelle légende façonnée par les choix du joueur et leurs conséquences.
+Blue Legacy est un roguelite narratif jouable dans le navigateur, dans un univers inspiré de *One Piece*. Chaque carrière classique se déroule sur 24 mois et raconte une nouvelle légende façonnée par les choix du joueur et leurs conséquences.
 
 Quatre factions et seize rêves permettent de poursuivre des ambitions très différentes au fil de six grandes étapes de voyage.
+
+La version 1.1 introduit le Mode Histoire, avec une première campagne complète consacrée à Gol D. Roger.
 
 ## Fonctionnalités
 
 - 4 factions et 16 rêves
 - 6 grandes étapes de voyage et des zones spéciales
+- aventures classiques et Mode Histoire
 - événements classiques, risqués, décisifs et légendaires
 - Haki, Fruits du Démon, compagnons et Volonté du D.
 - Titres, Succès et Boutique
 - Panthéon des anciennes carrières
-- classement mensuel en ligne
+- leaderboard mensuel en ligne
+
+## Nouveautés 1.1
+
+- Mode Histoire — Gol D. Roger
+- extension massive des événements légendaires
+- nouveaux Fruits du Démon et nouveaux compagnons
+- Boutique enrichie et rééquilibrée
+- nouveaux Titres et Succès
+- refonte des fiches de carrière du Panthéon
 
 ## Jouer
 

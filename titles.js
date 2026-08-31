@@ -51,6 +51,9 @@ const BLUE_LEGACY_BOSS_TITLES = Object.freeze([
 }));
 
 window.BLUE_LEGACY_TITLE_FEMALE_NAMES = Object.freeze({
+  "rival-chien-rouge": "Maîtresse du Chien Rouge",
+  "rival-joker": "Maîtresse du Joker",
+  "story-roger-golden-lion-rival": "Dompteuse du Lion d’Or",
   "boss-worlds-greatest-fortune-turning-point": "Maîtresse des cargaisons", "boss-forgotten-history-turning-point": "Lectrice des traces interdites",
   "boss-most-dangerous-criminals-turning-point": "Traqueuse de l’impossible", "boss-hunt-an-emperor-turning-point": "Chasseuse de pavillons noirs",
   "boss-break-the-chains-turning-point": "Briseuse de convois", "boss-reveal-void-century-turning-point": "Porteuse des vérités interdites",
@@ -72,7 +75,10 @@ window.BLUE_LEGACY_TITLE_FEMALE_NAMES = Object.freeze({
   "vice-commandant-de-dragon": "Vice-Commandante de Dragon", "heros-de-marineford": "Héroïne de Marineford",
   "liberateur-de-marineford": "Libératrice de Marineford", "tombeur-de-kaido": "Tombeuse de Kaido",
   "briseur-de-totto-land": "Briseuse de Totto Land", "rival-du-roux": "Rivale du Roux",
-  "rival-de-barbe-blanche": "Rivale de Barbe Blanche", "geolier-de-baggy": "Geôlière de Baggy",
+  "geolier-de-baggy": "Geôlière de Baggy",
+  "evade-impel-down": "Évadée d’Impel Down", "traqueur-impel-down": "Traqueuse d’Impel Down",
+  "liberateur-impel-down": "Libératrice d’Impel Down", "briseur-ombres": "Briseuse d’ombres",
+  "tombeur-weevil": "Tombeuse de Weevil",
   "compagnon-legende": "Compagne de légende", "combattant-grand-line": "Combattante de Grand Line",
   "survivant-cent-tempetes": "Survivante des cent tempêtes",
 });
@@ -654,7 +660,7 @@ window.SEA_OF_LEGENDS_TITLES = Object.freeze([
     ["briseur-de-totto-land", "Briseur de Totto Land", "legendary", "🍬", { intelligence: 3, combat: 3, charisma: 2 }, 3],
     ["rival-du-roux", "Rival du Roux", "mythic", "⚔️", { haki: 4, charisma: 4, health: 2 }, 3],
     ["fleau-de-barbe-noire", "Fléau de Barbe Noire", "mythic", "🌑", { intelligence: 4, combat: 3, haki: 3 }, 3],
-    ["rival-de-barbe-blanche", "Rival de Barbe Blanche", "mythic", "🌊", { health: 4, combat: 3, haki: 2 }, 3],
+    ["rival-de-barbe-blanche", "Fléau de Barbe Blanche", "mythic", "🌊", { health: 4, combat: 3, haki: 2 }, 3],
     ["geolier-de-baggy", "Geôlier de Baggy", "legendary", "⛓️", { intelligence: 4, charisma: 3, combat: 2 }, 3],
   ].map(([id, name, rarity, icon, immediate, popularity]) => ({
     id, name,
@@ -663,6 +669,48 @@ window.SEA_OF_LEGENDS_TITLES = Object.freeze([
     category: "emperor", rarity, icon, factions: [], timing: "late",
     sourceType: "legendary-emperor",
     effects: { immediate, popularity },
+  })),
+  ...[
+    ["fleau-taureau-vert", "Fléau du Taureau Vert", "legendary", "🌿", { combat: 3, intelligence: 3, haki: 2 }, 3],
+    ["rival-chien-rouge", "Maître du Chien Rouge", "mythic", "🌋", { health: 3, combat: 3, haki: 3 }, 3],
+    ["briseur-lumiere", "Briseur de lumière", "mythic", "✨", { intelligence: 3, combat: 3, haki: 3 }, 3],
+    ["debout-sous-gravite", "Debout sous la gravité", "legendary", "☄️", { health: 3, intelligence: 3, charisma: 3 }, 3],
+  ].map(([id, name, rarity, icon, immediate, popularity]) => ({
+    id, name,
+    description: "Une opération révolutionnaire a tenu face à l’une des plus grandes forces de la Marine.",
+    unlockHint: "Réussir presque parfaitement les trois étapes de l’affrontement contre l’Amiral concerné.",
+    category: "admiral", rarity, icon, factions: ["revolutionary"], timing: "late",
+    sourceType: "legendary-admiral", effects: { immediate, popularity },
+  })),
+  {
+    id:"champion-davy-back-fight", name:"Champion du Davy Back Fight",
+    description:"Trois jeux pirates ont consacré ta maîtrise des règles du Davy Back Fight.",
+    unlockHint:"Remporter au moins deux des trois épreuves du Davy Back Fight.",
+    category:"davy", rarity:"legendary", icon:"🏁", factions:[], timing:"mid",
+    sourceType:"legendary-davy", effects:{},
+  },
+  ...[
+    ["evade-impel-down","Évadé d’Impel Down","pirate","⛓️",{health:3,combat:3,haki:2}],
+    ["rempart-impel-down","Rempart d’Impel Down","marine","🛡️",{health:3,intelligence:3,charisma:2}],
+    ["traqueur-impel-down","Traqueur d’Impel Down","bounty-hunter","🎯",{intelligence:3,combat:3,haki:2}],
+    ["liberateur-impel-down","Libérateur d’Impel Down","revolutionary","✊",{intelligence:3,charisma:3,haki:2}],
+  ].map(([id,name,faction,icon,immediate])=>({id,name,
+    description:"Les six niveaux d’Impel Down n’ont pas arrêté cette mission.",
+    unlockHint:"Réussir les trois étapes de l’arc Impel Down.", category:"impel-down",
+    rarity:"legendary",icon,factions:[faction],timing:"late",sourceType:"legendary-impel-down",
+    effects:{immediate,popularity:2},
+  })),
+  ...[
+    ["briseur-ombres","Briseur d’ombres","🌑",{intelligence:3,combat:3,haki:2}],
+    ["rival-joker","Maître du Joker","🦩",{intelligence:3,charisma:3,haki:2}],
+    ["tombeur-weevil","Tombeur de Weevil","💥",{health:3,combat:3,haki:2}],
+    ["rival-imperatrice-pirate","Fléau de l’Impératrice Pirate","🐍",{health:2,intelligence:3,charisma:3}],
+    ["inebranlable-face-tyran","Inébranlable face au Tyran","🐾",{health:3,intelligence:3,haki:2}],
+  ].map(([id,name,icon,immediate])=>({id,name,
+    description:"Un Grand Corsaire a dû reconnaître que son décret ne suffisait plus à fermer la route.",
+    unlockHint:"Réussir l’arc VS Grand Corsaire contre cet adversaire.",category:"warlord",
+    rarity:"legendary",icon,factions:[],timing:"late",sourceType:"legendary-warlord",
+    effects:{immediate,popularity:2},
   })),
   {
     id: "haki-observation",
@@ -831,5 +879,19 @@ window.SEA_OF_LEGENDS_TITLES = Object.freeze([
     condition: ({ game }) => Number(game?.stats?.health) >= 80 &&
       Number(game?.achievementProgress?.dangerEventsSurvived) >= 1,
   },
+  ...[
+    ["story-roger-beyond-last-needle", "Au-delà de la dernière aiguille", "Roadstar n’était pas la fin : tu as su reconnaître la route qui restait à inventer.", "Atteindre une issue favorable lors de l’événement majeur de Roadstar.", "rare", "🧭", ({ game }) => game?.runMode === "story" && game?.storyId === "roger" && game?.flags?.storyRoadstarMajorSuccess === true],
+    ["story-roger-god-valley-shadow", "L’Ombre de God Valley", "God Valley a traversé l’histoire sans briser ton équipage.", "Réussir l’intégralité de l’arc God Valley.", "legendary", "🌑", ({ game }) => game?.runMode === "story" && game?.storyId === "roger" && game?.legendaryArcs?.talent?.status === "succeeded"],
+    ["story-roger-golden-lion-rival", "Dompteur du Lion d’Or", "La flotte de Shiki n’a pas refermé la mer sur ton pavillon.", "Réussir l’intégralité de l’arc Edd War.", "legendary", "🦁", ({ game }) => game?.runMode === "story" && game?.storyId === "roger" && game?.legendaryArcs?.marineford?.status === "succeeded"],
+    ["story-roger-sea-titan", "Titan des mers", "Le choc des plus grandes volontés a fait trembler l’océan.", "Réussir l’intégralité de l’arc Le Choc des Titans.", "legendary", "🌊", ({ game }) => game?.runMode === "story" && game?.storyId === "roger" && game?.legendaryArcs?.emperor?.status === "succeeded"],
+    ["story-roger-end-of-the-world", "Au bout du monde", "Laugh Tale existe désormais dans les souvenirs de cet équipage.", "Atteindre Laugh Tale.", "epic", "🏝️", ({ game }) => game?.runMode === "story" && game?.storyId === "roger" && game?.flags?.reachedLaughTale === true],
+    ["story-roger-conquered-the-seas", "Celui qui conquit les mers", "Le voyage de Roger s’achève sur un héritage accompli, quel que soit le score final.", "Terminer l’histoire de Roger avec l’Héritage accompli.", "mythic", "👑", ({ game }) => game?.runMode === "story" && game?.storyId === "roger" && Boolean(game?.isFinished || game?.finishedAt || game?.endingType || game?.ending) && Boolean(game?.dreamCompleted ?? game?.ending?.dreamCompleted)],
+    ["story-roger-legend-among-legends", "Légende parmi les légendes", "God Valley, Edd War et le Choc des Titans ont tous consacré la même traversée.", "Réussir les trois arcs légendaires au cours d’une même histoire de Roger.", "mythic", "✨", ({ game }) => game?.runMode === "story" && game?.storyId === "roger" && ["talent", "marineford", "emperor"].every((arcId) => game?.legendaryArcs?.[arcId]?.status === "succeeded")],
+  ].map(([id, name, description, unlockHint, rarity, icon, condition]) => Object.freeze({
+    id, name, description, unlockHint, category: "story-roger", rarity, icon,
+    factions: ["pirate"], timing: "any", storyId: "roger", runMode: "story",
+    sourceType: id.includes("god-valley") ? "story-legendary-talent" : id.includes("golden-lion") ? "story-legendary-marineford" : id.includes("sea-titan") ? "story-legendary-emperor" : "story-roger",
+    effects: {}, ...(condition ? { condition } : {}),
+  })),
   ...BLUE_LEGACY_BOSS_TITLES,
 ]);

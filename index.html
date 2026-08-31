@@ -5,8 +5,8 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <meta content="Blue Legacy, une aventure narrative sur les mers." name="description"/>
 <!-- À mettre à jour lors de chaque déploiement public afin d’invalider le cache. -->
-<meta content="2026-08-21-02" name="blue-legacy-build"/>
-<title>Blue Legacy — 1.0.2</title>
+<meta content="2026-08-31-01" name="blue-legacy-build"/>
+<title>Blue Legacy — 1.1</title>
 <script>
 /* Les ressources locales reprennent automatiquement la build du meta tag ci-dessus. */
 window.BLUE_LEGACY_CURRENT_BUILD = document.querySelector('meta[name="blue-legacy-build"]').content;
@@ -37,6 +37,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <button class="button button-primary" id="start-adventure-btn" type="button">
             🏴‍☠️ Commencer mon aventure
           </button>
+<button class="button story-mode-home-button" id="story-mode-btn" type="button">📖 Mode Histoire</button>
 <button class="button" hidden="" id="resume-adventure-btn" type="button">
             ⛵ Reprendre mon aventure
           </button>
@@ -49,6 +50,8 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <div><p class="eyebrow">Classement mensuel</p><h2 id="monthly-leaderboard-home-title">Les légendes du mois</h2></div>
 <div class="monthly-leaderboard-card__tools"><time id="monthly-leaderboard-home-month"></time><button class="leaderboard-refresh-button" data-leaderboard-refresh="home" type="button">Actualiser</button></div>
 </header>
+<div class="leaderboard-mode-tabs" role="tablist" aria-label="Catégorie du classement"><button class="leaderboard-mode-tab is-active" data-leaderboard-mode="classic" role="tab" aria-selected="true" type="button">Classique</button><button class="leaderboard-mode-tab" data-leaderboard-mode="story" role="tab" aria-selected="false" type="button">Mode Histoire</button></div>
+<div class="monthly-leaderboard-empty" id="leaderboard-story-empty-home" hidden><p>Aucune légende n’a encore été écrite en Mode Histoire.</p></div>
 <div class="monthly-leaderboard-list monthly-leaderboard-list--compact" id="monthly-leaderboard-top-five" aria-live="polite">
 <p class="monthly-leaderboard-status">Chargement des légendes…</p>
 </div>
@@ -64,12 +67,35 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 </nav>
 <p class="home-reset-status" id="reset-profile-status" aria-live="polite"></p>
 </section>
+<!-- MODE HISTOIRE : SÉLECTION -->
+<section aria-labelledby="story-selection-title" class="screen layout-wide story-screen" hidden="" id="story-selection-screen">
+<header class="screen-header"><button class="back-button" data-screen-target="home-screen" type="button">⌂ Accueil</button><div><p class="eyebrow">Mode Histoire</p><h2 id="story-selection-title">Choisissez une légende</h2><p class="screen-subtitle">Revivez les grandes époques des mers et donnez-leur une autre destinée.</p></div></header>
+<div class="story-gallery" id="story-gallery"></div>
+</section>
+<!-- MODE HISTOIRE : PRÉSENTATION -->
+<section aria-labelledby="story-detail-title" class="screen layout-narrow story-screen" hidden="" id="story-detail-screen">
+<header class="screen-header"><button class="back-button" data-screen-target="story-selection-screen" type="button">← Histoires</button><div><p class="eyebrow">Mode Histoire</p><h2 id="story-detail-title">Présentation</h2></div></header>
+<article class="story-detail-card" id="story-detail-content"></article>
+</section>
+<!-- MODE HISTOIRE : IDENTITÉ -->
+<section aria-labelledby="story-identity-title" class="screen layout-narrow story-screen" hidden="" id="story-identity-screen">
+<header class="screen-header"><button class="back-button" data-screen-target="story-detail-screen" type="button">← Présentation</button><div><p class="eyebrow">Mode Histoire · Identité</p><h2 id="story-identity-title">Quel prénom portera la légende ?</h2></div></header>
+<form class="story-identity-card" id="story-identity-form">
+<div class="story-name-preview" id="story-name-preview" aria-live="polite"></div>
+<div class="story-identity-fields"><label>Nom verrouillé<input id="story-locked-last-name" type="text" readonly aria-readonly="true"></label><label>Prénom<input id="story-first-name" type="text" maxlength="40" autocomplete="given-name" required></label></div>
+<button class="icon-button story-first-name-reroll" id="story-reroll-first-name-btn" type="button"><span aria-hidden="true">🎲</span><span>Nouveau prénom</span></button>
+<p class="story-identity-error" id="story-identity-error" aria-live="polite"></p>
+<button class="button button-primary" type="submit">Valider cette identité</button>
+</form>
+</section>
 <!-- CLASSEMENT MENSUEL -->
 <section aria-labelledby="leaderboard-title" class="screen layout-wide leaderboard-screen" hidden="" id="leaderboard-screen">
 <header class="screen-header">
 <button class="back-button" data-screen-target="home-screen" type="button">⌂ Accueil</button>
 <div><p class="eyebrow">Classement mensuel</p><h2 id="leaderboard-title">Les légendes du mois</h2><p class="screen-subtitle" id="monthly-leaderboard-full-month"></p></div>
 </header>
+<div class="leaderboard-mode-tabs leaderboard-mode-tabs--full" role="tablist" aria-label="Catégorie du classement"><button class="leaderboard-mode-tab is-active" data-leaderboard-mode="classic" role="tab" aria-selected="true" type="button">Classique</button><button class="leaderboard-mode-tab" data-leaderboard-mode="story" role="tab" aria-selected="false" type="button">Mode Histoire</button></div>
+<div class="leaderboard-story-full-empty monthly-leaderboard-empty" id="leaderboard-story-empty-full" hidden><p>Aucune légende n’a encore été écrite en Mode Histoire.</p></div>
 <div class="leaderboard-full-layout">
 <section class="leaderboard-ranking-panel" aria-labelledby="leaderboard-top-title">
 <div class="leaderboard-panel-heading"><h3 id="leaderboard-top-title">Top 50</h3><button class="leaderboard-refresh-button" data-leaderboard-refresh="full" type="button">Actualiser</button></div>
@@ -109,7 +135,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <div id="statistics-content"></div>
 </section>
 <!-- CRÉATION DU PERSONNAGE -->
-<section aria-labelledby="creation-title" class="screen layout-wide" hidden="" id="creation-screen">
+<section aria-labelledby="creation-title" class="screen layout-wide classic-creation-screen" hidden="" id="creation-screen">
 <header class="screen-header creation-screen-header">
 <nav aria-label="Navigation de la création" class="creation-header-navigation">
 <button class="back-button creation-nav-button" hidden="" id="creation-previous-btn" type="button">← Retour</button>
@@ -154,31 +180,23 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <div aria-label="Voie du personnage" class="choice-grid faction-grid" role="radiogroup">
 <button aria-checked="false" class="choice-card faction-card" data-choice-type="faction" data-choice-value="pirate" role="radio" type="button">
 <span aria-hidden="true" class="choice-emoji">🏴‍☠️</span>
-<span class="choice-title">Pirate</span>
-<span class="choice-description">Prends la mer librement, forme un équipage et défie l’ordre établi.</span>
-<span class="choice-effects" data-faction-effects="pirate">Bonus et conséquences à afficher ici.</span>
-<span class="choice-events" data-faction-events="pirate">Événements : équipage, trésors, rivalités et conquêtes.</span>
+<span class="choice-card-copy"><span class="choice-title">Pirate</span><span class="choice-description">Prends la mer librement, forme un équipage et défie l’ordre établi.</span></span>
+<span aria-hidden="true" class="choice-card-arrow">→</span>
 </button>
 <button aria-checked="false" class="choice-card faction-card" data-choice-type="faction" data-choice-value="bounty-hunter" role="radio" type="button">
 <span aria-hidden="true" class="choice-emoji">🎯</span>
-<span class="choice-title">Chasseur de primes</span>
-<span class="choice-description">Traque les criminels, choisis tes contrats et bâtis ta renommée.</span>
-<span class="choice-effects" data-faction-effects="bounty-hunter">Bonus et conséquences à afficher ici.</span>
-<span class="choice-events" data-faction-events="bounty-hunter">Événements : contrats, traques, captures et dilemmes.</span>
+<span class="choice-card-copy"><span class="choice-title">Chasseur de primes</span><span class="choice-description">Traque les criminels, choisis tes contrats et bâtis ta renommée.</span></span>
+<span aria-hidden="true" class="choice-card-arrow">→</span>
 </button>
 <button aria-checked="false" class="choice-card faction-card" data-choice-type="faction" data-choice-value="revolutionary" role="radio" type="button">
 <span aria-hidden="true" class="choice-emoji">✊</span>
-<span class="choice-title">Révolutionnaire</span>
-<span class="choice-description">Lutte contre l’oppression et rallie les peuples à ta cause.</span>
-<span class="choice-effects" data-faction-effects="revolutionary">Bonus et conséquences à afficher ici.</span>
-<span class="choice-events" data-faction-events="revolutionary">Événements : libérations, infiltration, alliances et révoltes.</span>
+<span class="choice-card-copy"><span class="choice-title">Révolutionnaire</span><span class="choice-description">Lutte contre l’oppression et rallie les peuples à ta cause.</span></span>
+<span aria-hidden="true" class="choice-card-arrow">→</span>
 </button>
 <button aria-checked="false" class="choice-card faction-card" data-choice-type="faction" data-choice-value="marine" role="radio" type="button">
 <span aria-hidden="true" class="choice-emoji">⚓</span>
-<span class="choice-title">Marine</span>
-<span class="choice-description">Fais respecter la justice et gravis les rangs de la Marine.</span>
-<span class="choice-effects" data-faction-effects="marine">Bonus et conséquences à afficher ici.</span>
-<span class="choice-events" data-faction-events="marine">Événements : missions, promotions, enquêtes et opérations.</span>
+<span class="choice-card-copy"><span class="choice-title">Marine</span><span class="choice-description">Fais respecter la justice et gravis les rangs de la Marine.</span></span>
+<span aria-hidden="true" class="choice-card-arrow">→</span>
 </button>
 </div>
 </section>
@@ -191,19 +209,19 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 </header>
 <div class="dream-group" data-faction-dreams="pirate" hidden="" id="pirate-dreams">
 <h4>Rêves de Pirate</h4>
-<div class="choice-grid dream-grid" data-dream-list="pirate"></div>
+<div aria-label="Rêves de Pirate" class="choice-grid dream-grid" data-dream-list="pirate" role="radiogroup"></div>
 </div>
 <div class="dream-group" data-faction-dreams="marine" hidden="" id="marine-dreams">
 <h4>Rêves de Marine</h4>
-<div class="choice-grid dream-grid" data-dream-list="marine"></div>
+<div aria-label="Rêves de Marine" class="choice-grid dream-grid" data-dream-list="marine" role="radiogroup"></div>
 </div>
 <div class="dream-group" data-faction-dreams="revolutionary" hidden="" id="revolutionary-dreams">
 <h4>Rêves de Révolutionnaire</h4>
-<div class="choice-grid dream-grid" data-dream-list="revolutionary"></div>
+<div aria-label="Rêves de Révolutionnaire" class="choice-grid dream-grid" data-dream-list="revolutionary" role="radiogroup"></div>
 </div>
 <div class="dream-group" data-faction-dreams="bounty-hunter" hidden="" id="bounty-hunter-dreams">
 <h4>Rêves de Chasseur de primes</h4>
-<div class="choice-grid dream-grid" data-dream-list="bounty-hunter"></div>
+<div aria-label="Rêves de Chasseur de primes" class="choice-grid dream-grid" data-dream-list="bounty-hunter" role="radiogroup"></div>
 </div>
 </section>
 <!-- SLIDE 4 : ORIGINE -->
@@ -215,24 +233,24 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 </header>
 <div aria-label="Origine du personnage" class="choice-grid origin-grid" role="radiogroup">
 <button aria-checked="false" class="choice-card origin-card" data-choice-type="origin" data-choice-value="east-blue" role="radio" type="button">
-<span class="choice-title">East Blue</span>
-<span class="choice-description">Une mer paisible où naissent parfois les plus grandes légendes.</span>
-<span class="choice-effects" data-origin-hint="east-blue"></span>
+<img alt="" class="origin-card-asset" src="assets/zones/eastblue.png">
+<span class="choice-card-copy"><span class="choice-title">East Blue</span><span class="choice-description">Une mer relativement paisible où les premières rencontres forgent les liens, le panache et les histoires qui lanceront ta légende.</span></span>
+<span aria-hidden="true" class="choice-card-arrow">→</span>
 </button>
 <button aria-checked="false" class="choice-card origin-card" data-choice-type="origin" data-choice-value="north-blue" role="radio" type="button">
-<span class="choice-title">North Blue</span>
-<span class="choice-description">Une mer froide, politique et marquée par de puissantes familles.</span>
-<span class="choice-effects" data-origin-hint="north-blue"></span>
+<img alt="" class="origin-card-asset" src="assets/zones/northblue.png">
+<span class="choice-card-copy"><span class="choice-title">North Blue</span><span class="choice-description">Une mer froide marquée par les conflits, les familles et les stratégies, où survivre exige autant de réflexion que de répondant.</span></span>
+<span aria-hidden="true" class="choice-card-arrow">→</span>
 </button>
 <button aria-checked="false" class="choice-card origin-card" data-choice-type="origin" data-choice-value="south-blue" role="radio" type="button">
-<span class="choice-title">South Blue</span>
-<span class="choice-description">Une mer vivante, sauvage et riche en cultures différentes.</span>
-<span class="choice-effects" data-origin-hint="south-blue"></span>
+<img alt="" class="origin-card-asset" src="assets/zones/southblue.png">
+<span class="choice-card-copy"><span class="choice-title">South Blue</span><span class="choice-description">Une mer vivante portée par l’entraide, les échanges et les communautés, où savoir tenir bon ouvre souvent les premières opportunités.</span></span>
+<span aria-hidden="true" class="choice-card-arrow">→</span>
 </button>
 <button aria-checked="false" class="choice-card origin-card" data-choice-type="origin" data-choice-value="west-blue" role="radio" type="button">
-<span class="choice-title">West Blue</span>
-<span class="choice-description">Une mer dangereuse dominée par les réseaux et les ambitions.</span>
-<span class="choice-effects" data-origin-hint="west-blue"></span>
+<img alt="" class="origin-card-asset" src="assets/zones/westblue.png">
+<span class="choice-card-copy"><span class="choice-title">West Blue</span><span class="choice-description">Une mer de réseaux secrets et d’alliances fragiles, où lire les intentions et rester sur ses gardes compte souvent plus que frapper le premier.</span></span>
+<span aria-hidden="true" class="choice-card-arrow">→</span>
 </button>
 </div>
 </section>
@@ -458,6 +476,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h2 id="reward-reveal-name">Récompense obtenue</h2>
 <p class="reward-reveal-rarity" id="reward-reveal-rarity">Rare</p>
 <p class="reward-reveal-description" id="reward-reveal-description"></p>
+<div class="davy-companion-options" id="davy-companion-options" hidden></div>
 <button class="button button-primary" id="continue-reward-reveal-btn" type="button">Continuer</button>
 </article>
 </section>
@@ -466,7 +485,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <header class="screen-header">
 <div>
 <h2 id="logbook-screen-title">📖 Journal de bord</h2>
-<p class="screen-subtitle">Ce qu’il s’est passé ces 4 derniers mois</p>
+<p class="screen-subtitle" id="logbook-subtitle">Ce qu’il s’est passé ces 4 derniers mois</p>
 </div>
 </header>
 <article class="logbook-entry">
@@ -568,7 +587,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h2 id="past-life-screen-title">Fiche de carrière</h2>
 </div>
 </header>
-<div id="past-life-export-area">
+<div class="career-sheet" id="past-life-export-area">
 <header class="career-export-brand" aria-hidden="true"><img src="assets/logo.png" alt=""><span>Blue Legacy · Fiche de carrière</span></header>
 <section class="past-life-hero" id="past-life-hero" aria-labelledby="past-life-title">
 <div class="past-life-hero-heading">
@@ -576,16 +595,15 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <h3 id="past-life-title">Nom du personnage</h3>
 </div>
 <div class="past-life-hero-title" id="past-life-final-title"></div>
+<div class="past-life-hero-titles"><h4>Titres obtenus</h4><div class="past-life-run-titles" id="past-life-run-titles"></div></div>
 <div class="career-popularity-card" aria-live="polite">
 <strong><span aria-hidden="true">⭐</span> <span id="past-life-popularity">Popularité : 1 / 100</span></strong>
 <p id="past-life-popularity-text">Une carrière encore à raconter.</p>
 </div>
 </section>
 <div class="past-life-main-layout">
-<div class="past-life-career-layout">
-<div class="past-life-career-primary">
-<section class="past-life-panel" aria-labelledby="past-life-summary-title">
-<h3 id="past-life-summary-title">Résumé de carrière</h3>
+<section class="past-life-panel past-life-panel--summary" aria-labelledby="past-life-summary-title">
+<h3 id="past-life-summary-title"><span aria-hidden="true">🧭</span> Fiche de carrière</h3>
 <dl class="summary-details past-life-summary-grid">
 <div class="past-life-summary-card past-life-summary-card--short"><dt><span aria-hidden="true">🧭</span> Voie</dt><dd id="past-life-faction">—</dd></div>
 <div class="past-life-summary-card past-life-summary-card--short"><dt><span aria-hidden="true">🌅</span> Origine</dt><dd id="past-life-origin">—</dd></div>
@@ -595,38 +613,30 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <div class="past-life-summary-card past-life-summary-card--ending"><dt><span aria-hidden="true">🏁</span> Destin</dt><dd id="past-life-ending">—</dd></div>
 </dl>
 </section>
-</div>
-<div class="past-life-career-secondary">
-<section class="past-life-panel past-life-export-card no-career-export" aria-labelledby="past-life-export-title">
-<span class="past-life-export-icon" aria-hidden="true">📸</span>
-<div class="past-life-export-copy">
-<h3 id="past-life-export-title">Sauvegarder ma fiche de carrière</h3>
-<p>Crée une image de cette ancienne aventure pour la conserver ou la partager.</p>
-</div>
-<button class="button button-primary past-life-export-button" id="past-life-export-button" type="button" aria-describedby="past-life-export-status">Télécharger la fiche</button>
-<p class="past-life-export-status" id="past-life-export-status" role="status" aria-live="polite"></p>
-</section>
-<section class="past-life-panel past-life-title-showcase" aria-labelledby="past-life-titles-title">
-<h3 id="past-life-titles-title">Titres obtenus</h3>
-<div class="past-life-run-titles" id="past-life-run-titles"></div>
-</section>
-<section class="past-life-panel" aria-labelledby="past-life-stats-title">
-<h3 id="past-life-stats-title">Statistiques finales</h3>
+<section class="past-life-panel past-life-panel--stats" aria-labelledby="past-life-stats-title">
+<h3 id="past-life-stats-title"><span aria-hidden="true">⚔️</span> Statistiques</h3>
 <div class="stats-grid" id="past-life-stats"></div>
 <div class="past-life-starting-variance" id="past-life-starting-variance" hidden></div>
 </section>
-</div>
-</div>
-<section class="past-life-panel past-life-assets-section" id="past-life-assets-section" aria-labelledby="past-life-assets-title" hidden="">
-<h3 id="past-life-assets-title">Pouvoirs et compagnons</h3>
+<section class="past-life-panel past-life-panel--assets past-life-assets-section" id="past-life-assets-section" aria-labelledby="past-life-assets-title">
+<h3 id="past-life-assets-title"><span aria-hidden="true">🍈</span> Pouvoirs et compagnons</h3>
 <div id="past-life-assets"></div>
 </section>
-<section class="past-life-panel past-life-logbook-section" aria-labelledby="past-life-logbook-title">
-<h3 id="past-life-logbook-title">Journal de bord historique</h3>
+<section class="past-life-panel past-life-panel--legendary legendary-exploits-panel" id="past-life-legendary-exploits" aria-labelledby="past-life-legendary-title">
+<h3 id="past-life-legendary-title"><span aria-hidden="true">◆</span> Exploits légendaires</h3>
+<div class="past-life-legendary-list" id="past-life-legendary-list"><span class="sr-only">Aucun exploit légendaire enregistré.</span></div>
+</section>
+<section class="past-life-panel past-life-panel--logbook past-life-logbook-section" aria-labelledby="past-life-logbook-title">
+<h3 id="past-life-logbook-title"><span aria-hidden="true">📖</span> Journal de bord</h3>
 <div class="logbook-history" id="past-life-logbook"></div>
 </section>
 </div>
 </div>
+<section class="past-life-export-card no-career-export" aria-labelledby="past-life-export-title">
+<div class="past-life-export-copy"><h3 id="past-life-export-title">Sauvegarder ma carrière</h3><p>Crée une image de cette ancienne aventure.</p></div>
+<button class="button button-primary past-life-export-button" id="past-life-export-button" type="button" aria-describedby="past-life-export-status"><span aria-hidden="true">📸</span> Sauvegarder ma carrière</button>
+<p class="past-life-export-status" id="past-life-export-status" role="status" aria-live="polite"></p>
+</section>
 </section>
 <!-- PARAMÈTRES -->
 <section aria-labelledby="settings-title" class="screen layout-medium" hidden="" id="settings-screen">
@@ -650,6 +660,25 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
   <a href="https://x.com/BlueLegacyFR" target="_blank" rel="noopener noreferrer">@BlueLegacyFR</a>
 </p>
 </footer>
+<!-- NOUVEAUTÉS DE LA RELEASE COURANTE -->
+<dialog aria-labelledby="release-notes-title" aria-modal="true" class="modal release-notes-modal" id="release-notes-modal">
+<form class="modal-content release-notes-content" method="dialog">
+<header class="release-notes-header">
+<p class="eyebrow">Grande mise à jour</p>
+<h2 id="release-notes-title" tabindex="-1">Blue Legacy 1.1</h2>
+<p>Une nouvelle ère commence sur les mers.</p>
+</header>
+<ul class="release-notes-list">
+<li><span aria-hidden="true">📖</span><div><strong>Ajout du Mode Histoire</strong><p>Une première campagne complète dédiée à Gol D. Roger.</p></div></li>
+<li><span aria-hidden="true">◆</span><div><strong>Événements légendaires</strong><p>Extension massive des événements légendaires.</p></div></li>
+<li><span aria-hidden="true">🍈</span><div><strong>Fruits &amp; compagnons</strong><p>Nouveaux Fruits du Démon et nouveaux compagnons.</p></div></li>
+<li><span aria-hidden="true">🛍️</span><div><strong>Boutique</strong><p>Boutique enrichie et rééquilibrée.</p></div></li>
+<li><span aria-hidden="true">🏆</span><div><strong>Titres &amp; Succès</strong><p>Nouveaux Titres et Succès.</p></div></li>
+<li><span aria-hidden="true">📜</span><div><strong>Refonte des fiches de carrière du Panthéon</strong><p>Des fiches plus modernes, plus claires et plus complètes pour retracer chaque légende.</p></div></li>
+</ul>
+<button class="button button-primary release-notes-cta" id="release-notes-cta" type="submit" value="discover">Découvrir la 1.1</button>
+</form>
+</dialog>
 <!-- IDENTITÉ AU PREMIER LANCEMENT -->
 <dialog aria-labelledby="welcome-identity-title" aria-modal="true" class="modal welcome-identity-modal" id="welcome-identity-modal">
 <form class="modal-content welcome-identity-form" id="welcome-identity-form">
@@ -674,7 +703,7 @@ De simple mousse à légende des mers, vivez une aventure unique où chaque déc
 <dialog aria-labelledby="abandon-modal-title" class="modal" id="abandon-modal">
 <form class="modal-content" method="dialog">
 <h2 id="abandon-modal-title">Abandonner l’aventure ?</h2>
-<p>Ta sauvegarde actuelle sera supprimée et cette vie rejoindra éventuellement le Panthéon.</p>
+<p id="abandon-modal-text">Ta sauvegarde actuelle sera supprimée et cette vie rejoindra éventuellement le Panthéon.</p>
 <div class="modal-actions">
 <button class="button" type="submit" value="cancel">Annuler</button>
 <button class="button button-danger" id="confirm-abandon-btn" type="submit" value="confirm">Abandonner</button>
@@ -735,7 +764,7 @@ window.addEventListener("error", function (event) {
 <script>
 [
   "data.js", "events.js", "titles.js", "achievements.js", "shop.js",
-  "assets/vendor/html2canvas.min.js", "leaderboard.js", "app.js"
+  "assets/vendor/html2canvas.min.js", "leaderboard.js", "story-data.js", "app.js"
 ].forEach(function (source) {
   document.write('<script src="' + source + '?v=' + encodeURIComponent(window.BLUE_LEGACY_CURRENT_BUILD) + '"><\/script>');
 });

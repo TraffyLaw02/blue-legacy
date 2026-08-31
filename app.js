@@ -1,5 +1,5 @@
 /* ==========================================================
-   BLUE LEGACY — APP.JS 1.0.1
+   BLUE LEGACY — APP.JS 1.1
 ========================================================== */
 
 (() => {
@@ -23,7 +23,7 @@
   ]);
 
   const CONFIG = Object.freeze({
-    version: "1.0.2",
+    version: "1.1",
     saveKey: STORAGE_KEYS.save,
     profileKey: STORAGE_KEYS.profile,
     legacySaveKeys: STORAGE_KEYS.legacySaves,
@@ -49,11 +49,15 @@
   const BUILD_UPDATE_CHECK_INTERVAL = 5 * 60 * 1000;
   const BUILD_UPDATE_FETCH_TIMEOUT = 8000;
   const BUILD_UPDATE_RELOAD_SESSION_KEY = "blueLegacyLastAutomaticBuildReload";
+  const RELEASE_NOTES_STORAGE_KEY = "blueLegacyReleaseNotesSeen";
 
   const RESOLUTION_DEBUG = false;
 
   const SCREEN = Object.freeze({
     HOME: "home",
+    STORY_SELECTION: "storySelection",
+    STORY_DETAIL: "storyDetail",
+    STORY_IDENTITY: "storyIdentity",
     CREATION: "creation",
     D_REVEAL: "dReveal",
     GAME: "game",
@@ -74,6 +78,9 @@
 
   const SCREEN_IDS = Object.freeze({
     [SCREEN.HOME]: "home-screen",
+    [SCREEN.STORY_SELECTION]: "story-selection-screen",
+    [SCREEN.STORY_DETAIL]: "story-detail-screen",
+    [SCREEN.STORY_IDENTITY]: "story-identity-screen",
     [SCREEN.CREATION]: "creation-screen",
     [SCREEN.D_REVEAL]: "d-reveal-slide",
     [SCREEN.GAME]: "game-screen",
@@ -105,6 +112,42 @@
     "west-blue",
   ]);
 
+  const STORIES = Object.freeze([
+    Object.freeze({
+      id: "roger",
+      character: "Gol D. Roger",
+      storyTitle: "L’Homme qui conquit les mers",
+      shortDescription: "Prenez la mer à l’époque des plus grandes légendes et écrivez votre propre version de l’histoire de Gol D. Roger.",
+      description: "Incarnez Gol D. Roger au début de son aventure et tentez de bâtir votre propre légende. Les grandes étapes de sa trajectoire serviront de cadre, mais vos décisions pourront mener à une histoire différente.",
+      sex: "male",
+      sexLabel: "Homme",
+      faction: "pirate",
+      factionLabel: "Pirate",
+      dream: "one-piece",
+      dreamLabel: "Atteindre le bout du monde",
+      origin: "east-blue",
+      originLabel: "East Blue",
+      lockedLastName: "Gol D.",
+      defaultFirstName: "Roger",
+      hasHistoricalD: true,
+      historicalDStatBonus: 3,
+      theme: Object.freeze({
+        primary: "#7a1e25", primaryDark: "#421016", accent: "#e4c15a",
+        accentLight: "#f6dfa0", text: "#fff4d5", secondaryText: "#f3dfbd",
+        border: "#d4aa43", surface: "#661820", sigil: "👑",
+      }),
+      ending: Object.freeze({
+        type: "heritage",
+        successLabel: "Héritage accompli",
+        failureLabel: "Héritage inachevé",
+        successDescription: "{character} laisse au monde une trace majeure, fidèle à la route qui l’a conduit jusqu’ici.",
+        failureDescription: "La route de {character} demeure légendaire, même si son dernier message ne devient pas l’héritage espéré.",
+        successAsset: Object.freeze({ path: "assets/histoire/roger/heritageaccompli.png", label: "Héritage accompli" }),
+        failureAsset: Object.freeze({ path: "assets/histoire/roger/heritageinacheve.png", label: "Héritage inachevé" }),
+      }),
+    }),
+  ]);
+
   const MAIN_ROUTE_IDS = Object.freeze([
     "reverse-mountain",
     "grand-line",
@@ -124,7 +167,17 @@
     "wandering-archipelago": "assets/zones/archipelmouvant.png",
     "tempest-isle": "assets/zones/iledelatempete.png",
     "shinsekai": "assets/zones/nouveaumonde.png",
+    "story-roger-east-blue": "assets/histoire/roger/eastblue.png",
+    "story-roger-grand-line": "assets/histoire/roger/grandline.png",
+    "story-roger-roadstar": "assets/histoire/roger/roadstar.png",
+    "story-roger-legends-era": "assets/histoire/roger/eredeslegendes.png",
+    "story-roger-last-voyage": "assets/histoire/roger/secretsdumonde.png",
+    "story-roger-laugh-tale-route": "assets/histoire/roger/unenouvelleere.png",
   });
+  const CREATION_ORIGIN_ASSET_PATHS = Object.freeze(
+    ["east-blue", "north-blue", "south-blue", "west-blue"]
+      .map((originId) => ZONE_ASSET_PATHS[originId]),
+  );
 
   function getZoneAssetPath(zone) {
     return ZONE_ASSET_PATHS[zone?.id] || "";
@@ -132,11 +185,36 @@
 
   const LEGENDARY_ARC_ASSETS = Object.freeze({
     talent: Object.freeze({ path: "assets/legendaires/prodige.png", label: "Prodige?" }),
+    davy: Object.freeze({ path: "assets/legendaires/davybackfight.png", label: "Davy Back Fight" }),
+    "impel-down": Object.freeze({ path: "assets/legendaires/impeldown.png", label: "Impel Down" }),
     marineford: Object.freeze({ path: "assets/legendaires/marineford.png", label: "Marineford" }),
+    warlord: Object.freeze({ path: "assets/legendaires/vsgrandcorsaire.png", label: "VS Grand Corsaire" }),
     emperor: Object.freeze({ path: "assets/legendaires/vsempereur.png", label: "VS Empereur" }),
+    admiral: Object.freeze({ path: "assets/legendaires/vsamiral.png", label: "VS Amiral" }),
   });
 
-  function getLegendaryArcAsset(arcId) {
+  const MAX_CLASSIC_LEGENDARY_ARCS = 3;
+  const CLASSIC_LEGENDARY_ARCS = Object.freeze({
+    davy: Object.freeze({ label: "Davy Back Fight", window: "paradise", chanceSource: "talent", chanceScale: .35, factions: ["pirate", "marine", "bounty-hunter", "revolutionary"] }),
+    talent: Object.freeze({ label: "Prodige?", window: "paradise", chanceSource: "talent", factions: ["pirate", "marine", "bounty-hunter", "revolutionary"] }),
+    "impel-down": Object.freeze({ label: "Impel Down", window: "red-line-entry", chanceSource: "marineford", chanceScale: .35, factions: ["pirate", "marine", "bounty-hunter", "revolutionary"] }),
+    marineford: Object.freeze({ label: "Marineford", window: "red-line-entry", chanceSource: "marineford", factions: ["pirate", "marine", "bounty-hunter", "revolutionary"] }),
+    warlord: Object.freeze({ label: "VS Grand Corsaire", window: "pre-special", chanceSource: "marineford", factions: ["pirate", "marine", "bounty-hunter", "revolutionary"] }),
+    emperor: Object.freeze({ label: "VS Empereur", window: "new-world-final", chanceSource: "emperor", factions: ["pirate", "marine", "bounty-hunter"] }),
+    admiral: Object.freeze({ label: "VS Amiral", window: "new-world-final", chanceSource: "emperor", factions: ["revolutionary"] }),
+  });
+  const CLASSIC_LEGENDARY_ARC_IDS = Object.freeze(Object.keys(CLASSIC_LEGENDARY_ARCS));
+
+  const STORY_LEGENDARY_ARC_ASSETS = Object.freeze({
+    roger: Object.freeze({
+      talent: Object.freeze({ path: "assets/histoire/roger/godvalley.png", label: "God Valley" }),
+      marineford: Object.freeze({ path: "assets/histoire/roger/eddwar.png", label: "Edd War" }),
+      emperor: Object.freeze({ path: "assets/histoire/roger/lechocdestitans.png", label: "Le Choc des Titans" }),
+    }),
+  });
+
+  function getLegendaryArcAsset(arcId, game = state.game) {
+    if (game?.runMode === "story") return STORY_LEGENDARY_ARC_ASSETS[game.storyId]?.[arcId] || null;
     return LEGENDARY_ARC_ASSETS[arcId] || null;
   }
 
@@ -145,10 +223,40 @@
     2: Object.freeze({ path: "assets/hakis/eveilp2.png", label: "L’Éveil — Partie 2" }),
   });
 
+  const STORY_HAKI_EVENT_ASSETS = Object.freeze({
+    roger: Object.freeze({
+      1: Object.freeze({ path: "assets/histoire/roger/eveilp1.png", label: "L’Éveil" }),
+      2: Object.freeze({ path: "assets/histoire/roger/eveilp2.png", label: "L’Éveil" }),
+    }),
+  });
+
   const DREAM_CONCLUSION_ASSETS = Object.freeze({
     success: Object.freeze({ path: "assets/reves/reveaccompli.png", label: "Rêve accompli" }),
     failure: Object.freeze({ path: "assets/reves/reveinacheve.png", label: "Rêve inachevé" }),
   });
+
+  function getStoryEndingConfig(source = state.game) {
+    const storyId = source?.storyId || source?.character?.storyId;
+    return STORIES.find((story) => story.id === storyId)?.ending || null;
+  }
+
+  function getConclusionPresentation(game = state.game, completed = false) {
+    const storyEnding = game?.runMode === "story" ? getStoryEndingConfig(game) : null;
+    const characterName = game?.character?.name || "Ta légende";
+    if (!storyEnding) return {
+      type: "dream",
+      label: completed ? DREAM_CONCLUSION_ASSETS.success.label : DREAM_CONCLUSION_ASSETS.failure.label,
+      description: null,
+      asset: completed ? DREAM_CONCLUSION_ASSETS.success : DREAM_CONCLUSION_ASSETS.failure,
+    };
+    const replaceCharacter = (value) => String(value || "").replaceAll("{character}", characterName);
+    return {
+      type: storyEnding.type || "story-ending",
+      label: completed ? storyEnding.successLabel : storyEnding.failureLabel,
+      description: replaceCharacter(completed ? storyEnding.successDescription : storyEnding.failureDescription),
+      asset: completed ? storyEnding.successAsset : storyEnding.failureAsset,
+    };
+  }
 
   const imagePreloadRegistry = new Map();
 
@@ -197,6 +305,9 @@
       ...Object.values(LEGENDARY_ARC_ASSETS).map((asset) => asset.path),
       ...Object.values(HAKI_EVENT_ASSETS).map((asset) => asset.path),
       ...Object.values(DREAM_CONCLUSION_ASSETS).map((asset) => asset.path),
+      ...Object.values(STORY_LEGENDARY_ARC_ASSETS).flatMap((assets) => Object.values(assets).map((asset) => asset.path)),
+      ...Object.values(STORY_HAKI_EVENT_ASSETS).flatMap((assets) => Object.values(assets).map((asset) => asset.path)),
+      ...STORIES.flatMap((story) => [story.ending?.successAsset?.path, story.ending?.failureAsset?.path]),
     ]);
   }
 
@@ -207,7 +318,8 @@
       : null;
   }
 
-  function getHakiEventAsset(stage) {
+  function getHakiEventAsset(stage, game = state.game) {
+    if (game?.runMode === "story") return STORY_HAKI_EVENT_ASSETS[game.storyId]?.[Number(stage)] || null;
     return HAKI_EVENT_ASSETS[Number(stage)] || null;
   }
 
@@ -265,11 +377,18 @@
     "surprise-recruit": Object.freeze({ label: "Surprise — Recrutement", icon: "🤝", themeClass: "is-recruit-surprise", difficulty: 0 }),
   });
 
+  function getVisibleEventTypeMeta(event = {}) {
+    if (event?.tags?.includes("signature-companion")) {
+      return EVENT_TYPE_META["surprise-recruit"];
+    }
+    return EVENT_TYPE_META[event?.eventType] || EVENT_TYPE_META.ordinary;
+  }
+
   const FACTION_RENOWN_META = Object.freeze({
     pirate: Object.freeze({ label: "Prime", icon: "☠️", description: "La prime placée sur ta tête par le Gouvernement mondial.", money: true }),
-    revolutionary: Object.freeze({ label: "Dangerosité", icon: "🔥", description: "Le niveau de menace que le Gouvernement mondial t’attribue.", money: true }),
+    revolutionary: Object.freeze({ label: "Partisans", icon: "✊", description: "Le nombre de personnes ralliées à ta cause à travers les mers.", money: false }),
     "bounty-hunter": Object.freeze({ label: "Renommée", icon: "🎯", description: "Ta réputation professionnelle et la valeur des contrats accomplis.", money: true }),
-    marine: Object.freeze({ label: "Autorité", icon: "⚓", description: "Ton influence opérationnelle et la confiance de la hiérarchie.", money: true }),
+    marine: Object.freeze({ label: "Soutiens", icon: "⚓", description: "Le nombre de civils et de Marines qui soutiennent ta manière de rendre la justice.", money: false }),
   });
 
   const RESOLUTION_DEFAULT_WEIGHTS = Object.freeze({
@@ -469,6 +588,11 @@
     pendingCriticalWrites: 0,
     titleFilters: { status: "all", rarity: "all", search: "" },
     achievementFilter: "all",
+    selectedStoryId: null,
+    storyFirstName: "",
+    pendingStoryStartAfterAbandon: false,
+    leaderboardMode: "classic",
+    lastEventFallbackWarningKey: null,
   };
 
   const GAME_STATS_EXPANDED_SESSION_KEY = "blueLegacyGameStatsExpanded";
@@ -489,6 +613,15 @@
     dom.gameScreen = byId("game-screen");
 
     dom.startAdventure = byId("start-adventure-btn");
+    dom.storyMode = byId("story-mode-btn");
+    dom.storyGallery = byId("story-gallery");
+    dom.storyDetailContent = byId("story-detail-content");
+    dom.storyIdentityForm = byId("story-identity-form");
+    dom.storyLockedLastName = byId("story-locked-last-name");
+    dom.storyFirstName = byId("story-first-name");
+    dom.storyNamePreview = byId("story-name-preview");
+    dom.storyRerollFirstName = byId("story-reroll-first-name-btn");
+    dom.storyIdentityError = byId("story-identity-error");
     dom.resumeAdventure = byId("resume-adventure-btn");
     dom.abandonAdventure = byId("abandon-adventure-btn");
     dom.resetProfile = byId("reset-profile-btn");
@@ -577,6 +710,7 @@
 
     dom.logbookZone = byId("logbook-zone");
     dom.logbookPeriod = byId("logbook-period");
+    dom.logbookSubtitle = byId("logbook-subtitle");
     dom.logbookNarrative = byId("logbook-narrative");
     dom.logbookHighlights = byId("logbook-highlights");
     dom.logbookStats = byId("logbook-stat-changes");
@@ -614,6 +748,7 @@
     dom.rewardRevealName = byId("reward-reveal-name");
     dom.rewardRevealRarity = byId("reward-reveal-rarity");
     dom.rewardRevealDescription = byId("reward-reveal-description");
+    dom.davyCompanionOptions = byId("davy-companion-options");
     dom.continueRewardReveal = byId("continue-reward-reveal-btn");
 
     dom.achievements = byId("achievements-list");
@@ -643,6 +778,7 @@
     dom.pastLifeStartingVariance = byId("past-life-starting-variance");
     dom.pastLifeAssetsSection = byId("past-life-assets-section");
     dom.pastLifeAssets = byId("past-life-assets");
+    dom.pastLifeLegendaryList = byId("past-life-legendary-list");
     dom.pastLifeLogbook = byId("past-life-logbook");
     dom.pastLifeExportArea = byId("past-life-export-area");
     dom.pastLifeExportButton = byId("past-life-export-button");
@@ -654,8 +790,13 @@
     dom.welcomeIdentityForm = byId("welcome-identity-form");
     dom.welcomeIdentityError = byId("welcome-identity-error");
     dom.welcomeIdentityLegacyNotice = byId("welcome-identity-legacy-notice");
+    dom.releaseNotesModal = byId("release-notes-modal");
+    dom.releaseNotesTitle = byId("release-notes-title");
+    dom.releaseNotesCta = byId("release-notes-cta");
 
     dom.abandonModal = byId("abandon-modal");
+    dom.abandonModalTitle = byId("abandon-modal-title");
+    dom.abandonModalText = byId("abandon-modal-text");
     dom.confirmAbandon = byId("confirm-abandon-btn");
     dom.newGameModal = byId("new-game-modal");
     dom.confirmNewGame = byId("confirm-new-game-btn");
@@ -860,6 +1001,7 @@
               : normalizeTitleData("rival-de-barbe-blanche", findTitleData("rival-de-barbe-blanche")),
             legendaryArcs: normalizeLegendaryArcs(entry.legendaryArcs, { ...entry, isFinished: true }),
           };
+          normalizedEntry.legendaryWindows = normalizeLegendaryWindows(entry.legendaryWindows, normalizedEntry.legendaryArcs);
           return migrateLegacyCareerFinalTitle(normalizedEntry, entry);
         })
       : [];
@@ -1019,7 +1161,8 @@
     const profile = getProfile();
     if (!dom.welcomeIdentityModal || isPlayerIdentityValid(profile)) return false;
     if (dom.welcomeIdentityLegacyNotice) {
-      dom.welcomeIdentityLegacyNotice.hidden = CONFIG.version !== "1.0.2";
+      // Cet encart concernait uniquement le lancement historique de la 1.0.2.
+      dom.welcomeIdentityLegacyNotice.hidden = true;
     }
     if (dom.welcomeIdentityError) dom.welcomeIdentityError.textContent = "";
     if (dom.welcomeIdentityForm) {
@@ -1028,6 +1171,38 @@
     }
     openDialog(dom.welcomeIdentityModal);
     window.setTimeout(() => dom.welcomeIdentityForm?.elements.lastName?.focus(), 0);
+    return true;
+  }
+
+  function hasSeenCurrentReleaseNotes() {
+    try {
+      return !shouldShowReleaseNotes(localStorage.getItem(RELEASE_NOTES_STORAGE_KEY));
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function shouldShowReleaseNotes(lastSeenVersion, currentVersion = CONFIG.version) {
+    return String(lastSeenVersion || "") !== String(currentVersion || "");
+  }
+
+  function markCurrentReleaseNotesSeen() {
+    try {
+      localStorage.setItem(RELEASE_NOTES_STORAGE_KEY, CONFIG.version);
+    } catch (error) {
+      console.warn("[Blue Legacy] Préférence des nouveautés non enregistrée.", error);
+    }
+  }
+
+  function showReleaseNotesIfNeeded() {
+    if (!dom.releaseNotesModal || hasSeenCurrentReleaseNotes() || dom.releaseNotesModal.open) return false;
+    const activeDialog = document.querySelector("dialog[open]");
+    if (activeDialog && activeDialog !== dom.releaseNotesModal) {
+      activeDialog.addEventListener("close", () => window.setTimeout(showReleaseNotesIfNeeded, 0), { once: true });
+      return false;
+    }
+    openDialog(dom.releaseNotesModal);
+    window.setTimeout(() => dom.releaseNotesTitle?.focus(), 0);
     return true;
   }
 
@@ -1125,6 +1300,10 @@
     return getShopItems().find((item) => item.id === itemId) || null;
   }
 
+  function hasActiveShopItem(game = state.game, itemId) {
+    return Boolean(game && game.runMode !== "story" && game.activeShopItems?.includes(itemId));
+  }
+
   function getAchievementBerryReward(achievement) {
     return Math.max(0, Math.floor(Number(achievement?.berryReward) || 0));
   }
@@ -1158,6 +1337,7 @@
   function buildSavePayload() {
     return {
       version: CONFIG.version,
+      runMode: state.game?.runMode || "classic",
       savedAt: new Date().toISOString(),
       screen: state.screen,
       resumeScreen: state.resumeScreen,
@@ -1748,6 +1928,9 @@
   function updateScreen(screenName) {
     const handlers = {
       [SCREEN.HOME]: updateHomeScreen,
+      [SCREEN.STORY_SELECTION]: updateStorySelectionScreen,
+      [SCREEN.STORY_DETAIL]: updateStoryDetailScreen,
+      [SCREEN.STORY_IDENTITY]: updateStoryIdentityScreen,
       [SCREEN.CREATION]: updateCreationScreen,
       [SCREEN.D_REVEAL]: updateDRevealScreen,
       [SCREEN.GAME]: updateGameScreen,
@@ -1789,7 +1972,185 @@
   }
 
   function updateLeaderboardScreen() {
-    window.BlueLegacyLeaderboard?.refreshFull();
+    if (state.leaderboardMode === "classic") window.BlueLegacyLeaderboard?.refreshFull();
+    else window.BlueLegacyLeaderboard?.refreshStoryFull();
+  }
+
+  function getSelectedStory() {
+    return STORIES.find((story) => story.id === state.selectedStoryId) || null;
+  }
+
+  const DEFAULT_STORY_THEME = Object.freeze({
+    primary: "#176b87", primaryDark: "#123f55", accent: "#bd8f3f",
+    accentLight: "#f2d27f", text: "#fff4d5", secondaryText: "#ded2be",
+    border: "#a77a32", surface: "#172733", sigil: "📖",
+  });
+
+  function getStoryTheme(story) {
+    return { ...DEFAULT_STORY_THEME, ...(story?.theme || {}) };
+  }
+
+  function applyStoryTheme(element, story) {
+    if (!element) return;
+    const theme = getStoryTheme(story);
+    Object.entries(theme).forEach(([key, value]) => {
+      if (key !== "sigil") {
+        const cssKey = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+        element.style.setProperty(`--story-${cssKey}`, value);
+      }
+    });
+    element.dataset.storyTheme = story?.id || "default";
+  }
+
+  function updateStorySelectionScreen() {
+    if (!dom.storyGallery) return;
+    dom.storyGallery.innerHTML = STORIES.map((story) => `<button class="story-card" data-story-id="${escapeAttribute(story.id)}" type="button"><span class="story-card__sigil" aria-hidden="true">📖</span><span class="story-card__copy"><strong>${escapeHtml(story.character)}</strong><span class="story-card__title">${escapeHtml(story.storyTitle)}</span><span class="story-card__description">${escapeHtml(story.shortDescription)}</span><span class="story-card__badges"><span>Pirate</span><span>East Blue</span><span>6 périodes</span></span></span><span class="story-card__action">Découvrir <span aria-hidden="true">→</span></span></button>`).join("");
+    STORIES.forEach((story) => {
+      const card = dom.storyGallery.querySelector(`[data-story-id="${story.id}"]`);
+      applyStoryTheme(card, story);
+      const sigil = card?.querySelector(".story-card__sigil");
+      if (sigil) sigil.textContent = getStoryTheme(story).sigil;
+    });
+  }
+
+  function updateStoryDetailScreen() {
+    const story = getSelectedStory();
+    if (!story || !dom.storyDetailContent) return openScreen(SCREEN.STORY_SELECTION, { save: false });
+    applyStoryTheme(dom.storyDetailContent, story);
+    const facts = [["👤","Sexe","Homme"],["⚓","Faction",story.factionLabel],["✦","Objectif",story.dreamLabel],["🌊","Origine",story.originLabel],["◈","Identité",`${story.lockedLastName} · prénom personnalisable`]];
+    dom.storyDetailContent.innerHTML = `<header class="story-detail-hero"><span class="story-detail-emblem" aria-hidden="true">🌊</span><div><p class="eyebrow">${escapeHtml(story.storyTitle)}</p><h3>${escapeHtml(story.character)}</h3><p class="story-detail-subtitle">Une destinée connue. Votre propre trajectoire.</p></div></header><p class="story-detail-description">${escapeHtml(story.description)}</p><dl class="story-facts">${facts.map(([icon,label,value]) => `<div><span class="story-fact__icon" aria-hidden="true">${icon}</span><span><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></span></div>`).join("")}</dl><footer class="story-detail-actions"><p>Le nom de famille et le D. historique restent liés à cette histoire.</p><button class="button button-primary" data-story-identity="${escapeAttribute(story.id)}" type="button">Personnaliser le prénom</button></footer>`;
+    const emblem = dom.storyDetailContent.querySelector(".story-detail-emblem");
+    if (emblem) emblem.textContent = getStoryTheme(story).sigil;
+  }
+
+  function buildStoryName(story, firstName) {
+    const cleanFirstName = String(firstName || "").trim().replace(/\s+/g, " ").split(" ").filter((part) => part !== "D.").join(" ");
+    return [story?.lockedLastName, cleanFirstName].filter(Boolean).join(" ");
+  }
+
+  function updateStoryIdentityScreen() {
+    const story = getSelectedStory();
+    if (!story) return openScreen(SCREEN.STORY_SELECTION, { save: false });
+    applyStoryTheme(dom.storyIdentityForm, story);
+    if (!state.storyFirstName) state.storyFirstName = story.defaultFirstName;
+    if (dom.storyLockedLastName) dom.storyLockedLastName.value = story.lockedLastName;
+    if (dom.storyFirstName && dom.storyFirstName.value !== state.storyFirstName) dom.storyFirstName.value = state.storyFirstName;
+    if (dom.storyNamePreview) dom.storyNamePreview.textContent = buildStoryName(story, state.storyFirstName);
+  }
+
+  function randomizeStoryFirstName() {
+    const story = getSelectedStory();
+    if (!story) return;
+    const pool = NAMES[normalizeSex(story.sex)] || NAMES.neutral;
+    state.storyFirstName = pickFreshName(pool, [state.storyFirstName]) || story.defaultFirstName;
+    if (dom.storyIdentityError) dom.storyIdentityError.textContent = "";
+    updateStoryIdentityScreen();
+  }
+
+  function startStoryRun(storyId, identity) {
+    const story = STORIES.find((entry) => entry.id === storyId);
+    if (!story) return false;
+    const character = {
+      name: buildStoryName(story, identity.firstName), firstName: identity.firstName,
+      lastName: story.lockedLastName, sex: story.sex, faction: story.faction,
+      dream: story.dream, origin: story.origin, hasD: true, hasHistoricalD: true,
+      historicalDStatBonus: story.historicalDStatBonus, runMode: "story", storyId: story.id,
+      combatStyle: null, traits: [], devilFruit: null,
+    };
+    character.name = buildNameWithD(character);
+    state.game = createDefaultGameState(character);
+    state.game.storyId = story.id;
+    state.game.storyTitle = story.storyTitle;
+    state.game.activeShopItems = [];
+    state.game.shopInitialBonusesApplied = false;
+    state.game.flags.dRollCompleted = true;
+    state.game.flags.fruitSurpriseTriggered = true;
+    initializeStorySignatureEncounters(state.game);
+    state.game.emperorRunKiller = createDisabledEmperorRunKillerState();
+    initializeStartingStatAdjustment(state.game);
+    state.game.route = generateRoute(character);
+    state.game.currentZoneIndex = 0;
+    state.game.visitedZoneIds = [state.game.route[0]?.id].filter(Boolean);
+    state.game.periodStartStats = getStatsSnapshot(state.game.stats);
+    state.result = null;
+    saveGame();
+    openScreen(SCREEN.D_REVEAL, { save: false });
+    return true;
+  }
+
+  const STORY_SIGNATURE_ENCOUNTERS = Object.freeze({
+    rayleigh: Object.freeze({ eventId: "roger-rayleigh", zoneIndex: 0 }),
+    gaban: Object.freeze({ eventId: "roger-grand-gaban", zoneIndex: 1 }),
+  });
+  const STORY_SIGNATURE_ENCOUNTER_CHANCE = 0.5;
+
+  function initializeStorySignatureEncounters(game, random = Math.random) {
+    if (game?.runMode !== "story" || game.storyId !== "roger") return {};
+    game.flags ||= {};
+    Object.entries(STORY_SIGNATURE_ENCOUNTERS).forEach(([id, config]) => {
+      const flagId = `story${id[0].toUpperCase()}${id.slice(1)}EncounterScheduled`;
+      if (typeof game.flags[flagId] === "boolean") return;
+      const alreadyEncountered = (game.seenEvents || []).includes(config.eventId) ||
+        game.currentEventId === config.eventId ||
+        game.flags[`story${id[0].toUpperCase()}${id.slice(1)}Joined`] === true ||
+        game.flags[`story${id[0].toUpperCase()}${id.slice(1)}Declined`] === true;
+      game.flags[flagId] = alreadyEncountered
+        ? true
+        : Number(game.currentZoneIndex) > config.zoneIndex
+          ? false
+          : random() < STORY_SIGNATURE_ENCOUNTER_CHANCE;
+    });
+    return {
+      rayleigh: game.flags.storyRayleighEncounterScheduled,
+      gaban: game.flags.storyGabanEncounterScheduled,
+    };
+  }
+
+  function validateStoryIdentity() {
+    const story = getSelectedStory();
+    if (!story) return false;
+    const validation = window.BlueLegacyLeaderboard?.validatePlayerIdentity({ firstName: dom.storyFirstName?.value, lastName: "Gol" });
+    if (validation && !validation.ok) {
+      if (dom.storyIdentityError) dom.storyIdentityError.textContent = validation.message;
+      return false;
+    }
+    const firstName = validation?.firstName || String(dom.storyFirstName?.value || "").trim();
+    if (!firstName) {
+      if (dom.storyIdentityError) dom.storyIdentityError.textContent = "Le prénom est obligatoire.";
+      return false;
+    }
+    state.storyFirstName = firstName;
+    updateStoryIdentityScreen();
+    if (hasSavedGame()) {
+      state.pendingStoryStartAfterAbandon = true;
+      if (dom.abandonModalTitle) dom.abandonModalTitle.textContent = "Abandonner pour commencer cette histoire ?";
+      if (dom.abandonModalText) dom.abandonModalText.textContent = "Une aventure est déjà en cours. Elle doit être abandonnée avant de commencer une aventure en Mode Histoire. Rien ne sera supprimé sans votre confirmation.";
+      openDialog(dom.abandonModal);
+      return false;
+    }
+    return startStoryRun(story.id, { firstName });
+  }
+
+  function setLeaderboardMode(mode) {
+    state.leaderboardMode = mode === "story" ? "story" : "classic";
+    document.querySelectorAll("[data-leaderboard-mode]").forEach((button) => {
+      const active = button.dataset.leaderboardMode === state.leaderboardMode;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", String(active));
+    });
+    const storyMode = state.leaderboardMode === "story";
+    document.querySelectorAll("[data-leaderboard-refresh]").forEach((element) => { element.hidden = storyMode; });
+    document.getElementById("monthly-leaderboard-top-five").hidden = storyMode;
+    document.querySelector(".leaderboard-full-layout").hidden = storyMode;
+    document.getElementById("leaderboard-story-empty-home").hidden = !storyMode;
+    document.getElementById("leaderboard-story-empty-full").hidden = !storyMode;
+    if (storyMode) {
+      window.BlueLegacyLeaderboard?.refreshStoryHome();
+      if (state.screen === SCREEN.LEADERBOARD) window.BlueLegacyLeaderboard?.refreshStoryFull();
+    } else {
+      window.BlueLegacyLeaderboard?.refreshHome({ force: false });
+      if (state.screen === SCREEN.LEADERBOARD) window.BlueLegacyLeaderboard?.refreshFull();
+    }
   }
 
   function formatBerryAmount(value) {
@@ -1864,26 +2225,54 @@
     profile.pantheonHistory = history;
   }
 
+  const PANTHEON_RECENT_CAREER_LIMIT = 15;
+  const PANTHEON_HISTORICAL_PODIUM_SIZE = 3;
+
+  function getPantheonCareerKey(entry, index = 0) {
+    const id = String(entry?.id || "").trim();
+    return id || `legacy:${index}:${entry?.finishedAt || ""}:${entry?.name || ""}`;
+  }
+
+  function getPantheonHistoricalRows(pantheon = []) {
+    return pantheon
+      .map((entry, index) => ({
+        entry,
+        index,
+        key: getPantheonCareerKey(entry, index),
+        score: Number(entry?.popularityScore ?? entry?.stats?.popularity) || 0,
+      }))
+      .sort((left, right) => right.score - left.score || left.index - right.index)
+      .slice(0, PANTHEON_HISTORICAL_PODIUM_SIZE);
+  }
+
+  function getPantheonRecentCareers(pantheon = [], historicalTop = getPantheonHistoricalTopThree(pantheon)) {
+    const podiumKeys = new Set(historicalTop.map((entry) => {
+      const index = pantheon.indexOf(entry);
+      return getPantheonCareerKey(entry, index);
+    }));
+    return pantheon.filter((entry, index) =>
+      !podiumKeys.has(getPantheonCareerKey(entry, index)))
+      .slice(0, PANTHEON_RECENT_CAREER_LIMIT);
+  }
+
   function retainPantheonCareers(profile) {
     const runs = (profile?.pantheon || []).filter(Boolean);
-    if (runs.length <= 12) return runs;
-    const recent = new Set(runs.slice(0, 12));
-    const top = [...runs]
-      .map((run, index) => ({ run, index, score: Number(run.popularityScore ?? run.stats?.popularity) || 0 }))
-      .sort((left, right) => right.score - left.score || left.index - right.index)
-      .slice(0, 3);
-    const retained = new Set([...recent, ...top.map(({ run }) => run)]);
-    runs.filter((run) => !retained.has(run)).forEach((run) => archivePantheonEntry(profile, run));
-    profile.pantheon = runs.filter((run) => retained.has(run));
+    const topRows = getPantheonHistoricalRows(runs);
+    const podiumKeys = new Set(topRows.map(({ key }) => key));
+    const recentRows = runs
+      .map((run, index) => ({ run, index, key: getPantheonCareerKey(run, index) }))
+      .filter(({ key }) => !podiumKeys.has(key))
+      .slice(0, PANTHEON_RECENT_CAREER_LIMIT);
+    const retainedKeys = new Set([...podiumKeys, ...recentRows.map(({ key }) => key)]);
+    runs.forEach((run, index) => {
+      if (!retainedKeys.has(getPantheonCareerKey(run, index))) archivePantheonEntry(profile, run);
+    });
+    profile.pantheon = runs.filter((run, index) => retainedKeys.has(getPantheonCareerKey(run, index)));
     return profile.pantheon;
   }
 
   function getPantheonHistoricalTopThree(pantheon = []) {
-    return [...pantheon]
-      .map((entry, index) => ({ entry, index, score: Number(entry?.popularityScore ?? entry?.stats?.popularity) || 0 }))
-      .sort((left, right) => right.score - left.score || left.index - right.index)
-      .slice(0, 3)
-      .map(({ entry }) => entry);
+    return getPantheonHistoricalRows(pantheon).map(({ entry }) => entry);
   }
 
   function calculateProfileStatistics(profile = getProfile()) {
@@ -2143,6 +2532,7 @@
     state.selectedPastLifeId = null;
 
     resetCreationCards();
+    scheduleImagePreloads(CREATION_ORIGIN_ASSET_PATHS, { priority: true });
     openScreen(SCREEN.CREATION, { save: false });
     showCreationSlide(0);
   }
@@ -2290,10 +2680,13 @@
   }
 
   function updateCreationScreen() {
-    updateFactionEffects();
-    updateOriginHints();
     updateDreamGroups();
     updateNameSlide();
+    const creationScreen = document.getElementById("creation-screen");
+    if (creationScreen) {
+      creationScreen.dataset.creationFaction = state.creation.faction || "none";
+      creationScreen.dataset.creationStep = CREATION_STEPS[state.creationStep] || "sex";
+    }
 
     if (CREATION_STEPS[state.creationStep] === "summary") {
       updateSummarySlide();
@@ -2361,17 +2754,19 @@
             class="choice-card dream-card"
             data-choice-type="dream"
             data-choice-value="${escapeAttribute(id)}"
+            aria-checked="false"
+            role="radio"
             type="button"
           >
-            <span class="choice-title">
-              ${escapeHtml(getDreamDisplayLabel(dream, state.creation.sex))}
-            </span>
-
-            <span class="choice-description">
-              ${escapeHtml(dream.description || dream.desc || "")}
-            </span>
-
-            ${
+            <span class="dream-card-icon" aria-hidden="true">${escapeHtml(dream.icon || "✨")}</span>
+            <span class="choice-card-copy">
+              <span class="choice-title">
+                ${escapeHtml(getDreamDisplayLabel(dream, state.creation.sex))}
+              </span>
+              <span class="choice-description">
+                ${escapeHtml(dream.description || dream.desc || "")}
+              </span>
+              ${
               getDreamUltimateDisplayName(dream, state.creation.sex)
                 ? `
                   <span class="ultimate-title">
@@ -2380,7 +2775,9 @@
                   </span>
                 `
                 : ""
-            }
+              }
+            </span>
+            <span aria-hidden="true" class="choice-card-arrow">→</span>
           </button>
         `;
       })
@@ -2983,7 +3380,7 @@
     const faction = source.character?.faction || source.faction;
     const scale = faction === "pirate" ? 50000 : 20000;
     // Toutes les factions partagent l'échelle technique ; la courbe logarithmique
-    // empêche les très grandes primes d'écraser l'Autorité ou la Dangerosité.
+    // empêche les très grandes primes d'écraser les Soutiens ou les Partisans.
     return Math.min(10, Math.log10(1 + renown / scale) * 3.1);
   }
 
@@ -3115,8 +3512,19 @@
     };
   }
 
+  function hasFrozenFinalPopularity(game) {
+    return game?.finalPopularityScore !== null && game?.finalPopularityScore !== "" &&
+      Number.isFinite(Number(game?.finalPopularityScore));
+  }
+
   function refreshPopularityScore(game = state.game) {
     if (!game?.stats) return POPULARITY_MIN;
+    if (hasFrozenFinalPopularity(game)) {
+      game.stats.popularity = clampCareerScore(game.finalPopularityScore);
+      game.popularityScore = game.stats.popularity;
+      game.popularityText = getPopularityCareerText(game);
+      return game.stats.popularity;
+    }
     const breakdown = calculateCareerPopularityBreakdown(game);
     game.stats.popularity = breakdown.score;
     game.popularityScore = game.stats.popularity;
@@ -3273,7 +3681,7 @@
       loss: getFactionRenownDisplayDelta(-100_000) === -30_000_000,
       historicalInternalValuePreserved: historical.bounty === FACTION_RENOWN_INTERNAL_MAX / 2,
       popularityWeightPreserved: popularityBeforeFormatting === popularityAfterFormatting,
-      factionLabels: factions.map((entry) => entry.label).join("|") === "Prime|Autorité|Renommée|Dangerosité",
+      factionLabels: factions.map((entry) => entry.label).join("|") === "Prime|Soutiens|Renommée|Partisans",
     };
     return {
       pass: conversions.every((entry) => entry.pass) && Object.values(checks).every(Boolean),
@@ -3302,12 +3710,15 @@
     applyStatChanges(origin?.effects || {}, stats);
     applyStatChanges(DREAM_INITIAL_EFFECTS[character.dream] || {}, stats);
     if (character.hasD) {
+      const dInitialStatBonus = character.hasHistoricalD
+        ? Math.max(0, Number(character.historicalDStatBonus) || 0)
+        : CONFIG.dInitialStatBonus;
       applyStatChanges({
-        health: CONFIG.dInitialStatBonus,
-        combat: CONFIG.dInitialStatBonus,
-        haki: CONFIG.dInitialStatBonus,
-        intelligence: CONFIG.dInitialStatBonus,
-        charisma: CONFIG.dInitialStatBonus,
+        health: dInitialStatBonus,
+        combat: dInitialStatBonus,
+        haki: dInitialStatBonus,
+        intelligence: dInitialStatBonus,
+        charisma: dInitialStatBonus,
       }, stats, { ignoreDiminishingReturns: true });
     }
     uniqueArray(equippedShopItems).forEach((itemId) => {
@@ -3363,10 +3774,12 @@
       : applyStartingStatVariance(game, rollStartingStatVariance(random));
   }
 
-  function createStartingStatVarianceHtml(variance = {}, mode = "variance") {
+  function createStartingStatVarianceHtml(variance = {}, mode = "variance", source = state.game) {
     const normalized = normalizeStartingStatVariance(variance);
     return STARTING_STAT_VARIANCE_IDS.map((id) => {
-      const value = mode === "will-of-d" ? CONFIG.dInitialStatBonus : normalized[id];
+      const value = mode === "will-of-d"
+        ? (source?.character?.hasHistoricalD ? Number(source.character.historicalDStatBonus) || 3 : CONFIG.dInitialStatBonus)
+        : normalized[id];
       const tone = value > 0 ? "positive" : value < 0 ? "negative" : "neutral";
       return `<span class="starting-variance-chip ${tone}"><span>${escapeHtml(getStatLabel(id))}</span><strong>${value > 0 ? "+" : ""}${value}</strong></span>`;
     }).join("");
@@ -3394,6 +3807,7 @@
 
   function createPastLifeStatsHtml(stats = {}, source = null) {
     return Object.keys(STATS)
+      .filter((key) => key !== "popularity")
       .map((key) => {
         const stat = getStatDefinition(key, source);
         return `
@@ -3563,6 +3977,31 @@
     };
   }
 
+  const STARTED_LEGENDARY_STATUSES = Object.freeze([
+    "in-progress", "succeeded", "failed", "completed-no-title",
+  ]);
+
+  function countStartedClassicLegendaryArcs(game = state.game) {
+    if (!game || game.runMode === "story") return 0;
+    return CLASSIC_LEGENDARY_ARC_IDS.filter((arcId) =>
+      STARTED_LEGENDARY_STATUSES.includes(game.legendaryArcs?.[arcId]?.status)).length;
+  }
+
+  function normalizeLegendaryWindows(value = {}, arcs = {}) {
+    const normalized = {};
+    ["paradise", "red-line-entry", "pre-special", "new-world-final"].forEach((windowId) => {
+      const saved = value?.[windowId] && typeof value[windowId] === "object" ? value[windowId] : {};
+      const inferredArcId = CLASSIC_LEGENDARY_ARC_IDS.find((arcId) =>
+        CLASSIC_LEGENDARY_ARCS[arcId].window === windowId &&
+        STARTED_LEGENDARY_STATUSES.includes(arcs?.[arcId]?.status));
+      normalized[windowId] = {
+        selectedArcId: saved.selectedArcId || inferredArcId || null,
+        consumed: saved.consumed === true || Boolean(inferredArcId),
+      };
+    });
+    return normalized;
+  }
+
   function normalizeLegendaryArcs(value = {}, game = {}) {
     const finished = Boolean(game.isFinished || game.ending);
     const month = Number(game.month) || 1;
@@ -3586,22 +4025,34 @@
           titleId: migrateLegacyTitleId(value.emperor.titleId),
         }
       : value?.emperor;
-    return {
+    const normalized = {
+      davy: normalizeLegendaryArcState(value?.davy, { status: finished ? "not-selected" : "unassessed" }),
       talent: normalizeLegendaryArcState(value?.talent, {
         status: finished || month >= 13 ? "not-selected" : "unassessed",
         emperorId: null,
       }),
       marineford,
+      "impel-down": normalizeLegendaryArcState(value?.["impel-down"], { status: finished ? "not-selected" : "unassessed" }),
+      warlord: normalizeLegendaryArcState(value?.warlord, { status: finished ? "not-selected" : "unassessed", warlordId: null }),
       emperor: normalizeLegendaryArcState(emperorValue, {
         status: finished || game.bossProgress?.completedTiers?.includes?.(3)
           ? "not-selected" : "unassessed",
         emperorId: null,
       }),
+      admiral: normalizeLegendaryArcState(value?.admiral, {
+        status: finished || game.bossProgress?.completedTiers?.includes?.(3)
+          ? "not-selected" : "unassessed",
+        admiralId: null,
+      }),
     };
+    if (game.runMode === "story") return {
+      talent: normalized.talent, marineford: normalized.marineford, emperor: normalized.emperor,
+    };
+    return normalized;
   }
 
   function createDefaultGameState(character) {
-    const activeShopItems = character
+    const activeShopItems = character && character.runMode !== "story"
       ? cloneData(getProfile().equippedShopItems)
       : [];
     const initialStats = character
@@ -3610,6 +4061,7 @@
 
     return {
       version: CONFIG.version,
+      runMode: character?.runMode === "story" ? "story" : "classic",
       id: createUniqueId("adventure"),
       startedAt: new Date().toISOString(),
       character,
@@ -3642,6 +4094,7 @@
       seenEvents: [],
       seenWorldNewsIds: [],
       recentEvents: [],
+      recentEventVariants: [],
       flags: {},
       rewards: [],
       permanentEffects: [],
@@ -3680,14 +4133,24 @@
       emperorRunKiller: createDisabledEmperorRunKillerState(),
       preparedFinalTitle: null,
       finalPopularityScore: null,
-      legendaryArcs: {
+      legendaryArcs: character?.runMode === "story" ? {
         talent: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
         marineford: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
         emperor: { status: "unassessed", step: 0, roll: null, chance: null, emperorId: null, titleId: null },
+      } : {
+        davy: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null, companionIds: [] },
+        talent: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
+        "impel-down": { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
+        marineford: { status: "unassessed", step: 0, roll: null, chance: null, titleId: null },
+        warlord: { status: "unassessed", step: 0, roll: null, chance: null, warlordId: null, titleId: null },
+        emperor: { status: "unassessed", step: 0, roll: null, chance: null, emperorId: null, titleId: null },
+        admiral: { status: "unassessed", step: 0, roll: null, chance: null, admiralId: null, titleId: null },
       },
+      legendaryWindows: character?.runMode === "story" ? {} : normalizeLegendaryWindows(),
       bossProgress: {
         completedTiers: [],
         selectedBossIds: {},
+        selectedBossVariantIds: {},
         activeBossId: null,
         finalOutcome: null,
       },
@@ -3725,6 +4188,10 @@
         rawCharacter.origin || game.origin || null,
       ),
       hasD: Boolean(rawCharacter.hasD ?? game.hasD),
+      hasHistoricalD: Boolean(rawCharacter.hasHistoricalD),
+      historicalDStatBonus: Number(rawCharacter.historicalDStatBonus) || null,
+      runMode: game.runMode === "story" ? "story" : "classic",
+      storyId: rawCharacter.storyId || game.storyId || null,
       combatStyle:
         rawCharacter.combatStyle ||
         game.combatStyle ||
@@ -3748,6 +4215,7 @@
     const normalized = {
       ...base,
       ...game,
+      runMode: game.runMode === "story" ? "story" : "classic",
       character,
       stats: normalizeStats(game.stats || game),
       route: Array.isArray(game.route)
@@ -3765,6 +4233,7 @@
         game.recent ||
         [],
       ),
+      recentEventVariants: uniqueArray(game.recentEventVariants || []).slice(-12),
       flags: { ...(game.flags || {}) },
       crewMembers: Array.isArray(game.crewMembers)
         ? game.crewMembers.filter(Boolean).map(normalizeCrewMember)
@@ -3855,14 +4324,17 @@
               };
             })
         : [],
-      emperorRunKiller: normalizeEmperorRunKillerState(game.emperorRunKiller),
+      emperorRunKiller: game.runMode === "story"
+        ? createDisabledEmperorRunKillerState()
+        : normalizeEmperorRunKillerState(game.emperorRunKiller),
       preparedFinalTitle: game.preparedFinalTitle && typeof game.preparedFinalTitle === "object"
         ? cloneData(game.preparedFinalTitle)
         : null,
-      finalPopularityScore: Number.isFinite(Number(game.finalPopularityScore))
+      finalPopularityScore: hasFrozenFinalPopularity(game)
         ? clampCareerScore(game.finalPopularityScore)
         : null,
       legendaryArcs: normalizeLegendaryArcs(game.legendaryArcs, game),
+      legendaryWindows: {},
       resolutionSequence: Math.max(0, Math.floor(Number(game.resolutionSequence) || 0)),
       appliedResolutionIds: uniqueArray(game.appliedResolutionIds || []).slice(-100),
       consumedResolutionIds: uniqueArray(game.consumedResolutionIds || []).slice(-100),
@@ -3873,7 +4345,7 @@
         game.version,
       ),
       popularityModifiers: 0,
-      activeShopItems: Array.isArray(game.activeShopItems)
+      activeShopItems: game.runMode === "story" ? [] : Array.isArray(game.activeShopItems)
         ? uniqueArray(game.activeShopItems.map(migrateLegacyShopItemId)).filter((id) => Boolean(findShopItem(id))).slice(0, 2)
         : [],
       shopInitialBonusesApplied: game.shopInitialBonusesApplied !== false,
@@ -3889,6 +4361,7 @@
       completionBerriesGranted: Math.max(0, Math.floor(Number(game.completionBerriesGranted) || 0)),
       temperamentSequenceVersion: Number(game.temperamentSequenceVersion) >= 1 ? 1 : 0,
     };
+    normalized.legendaryWindows = normalizeLegendaryWindows(game.legendaryWindows, normalized.legendaryArcs);
     if (hadLegacyEmperorTitle &&
         !normalized.appliedTitleEffects.includes("rival-de-barbe-blanche")) {
       normalized.appliedTitleEffects.push("rival-de-barbe-blanche");
@@ -3976,14 +4449,37 @@
       const catalogEvent = [getReverseMountainTemperamentEvent(), ...getAllEvents()].filter(Boolean).find(
         (event) => event.id === normalized.currentEvent.id,
       );
+      const savedDecisiveStage = Number(normalized.currentEvent.decisiveStage) ||
+        Number(String(normalized.currentEvent.id).match(/-stage-(\d+)$/)?.[1]) || 0;
+      const savedDecisiveBaseId = String(normalized.currentEvent.id).replace(/-stage-\d+$/, "");
+      const catalogDecisiveEvent = savedDecisiveStage
+        ? getBossEvents().find((event) => event.id === savedDecisiveBaseId)
+        : null;
       if (catalogEvent && isSpecialZoneEvent(catalogEvent)) {
-        normalized.currentEvent = localizeSpecialZoneEvent(catalogEvent, normalized);
+        const restoredEvent = normalized.currentEvent.variantId
+          ? materializeSelectedEventVariant(catalogEvent, normalized, normalized.currentEvent.variantId)
+          : cloneData(catalogEvent);
+        normalized.currentEvent = localizeSpecialZoneEvent(restoredEvent, normalized);
         normalized.currentEventId = catalogEvent.id;
       } else if (catalogEvent) {
         // Une sauvegarde ancienne reprend toujours la définition canonique
         // actuelle : aucun choix générique autrefois injecté ne peut réapparaître.
-        normalized.currentEvent = cloneData(catalogEvent);
+        normalized.currentEvent = normalized.currentEvent.variantId
+          ? materializeSelectedEventVariant(catalogEvent, normalized, normalized.currentEvent.variantId)
+          : cloneData(catalogEvent);
         normalized.currentEventId = catalogEvent.id;
+      } else if (catalogDecisiveEvent) {
+        const restoredDecisiveEvent = materializeSelectedEventVariant(
+          catalogDecisiveEvent,
+          normalized,
+          normalized.currentEvent.variantId || "base",
+        );
+        normalized.currentEvent = localizeBossEvent(
+          restoredDecisiveEvent,
+          getCurrentZone(normalized),
+          savedDecisiveStage,
+        );
+        normalized.currentEventId = normalized.currentEvent.id;
       } else if (normalized.currentEvent.tags?.includes("legendary-arc")) {
         const legendaryEvent = getLegendaryArcEvents().find((event) => event.id === normalized.currentEvent.id);
         if (legendaryEvent) {
@@ -4125,7 +4621,12 @@
       normalized.runTitles.push(normalizeTitleData(titleId, findTitleData(titleId)));
       normalized.appliedTitleEffects = uniqueArray([...normalized.appliedTitleEffects, titleId]);
     });
+    initializeStorySignatureEncounters(normalized);
     refreshPopularityScore(normalized);
+    if (hasFrozenFinalPopularity(normalized)) {
+      normalized.stats.popularity = clampCareerScore(normalized.finalPopularityScore);
+      normalized.popularityScore = normalized.stats.popularity;
+    }
 
     return normalized;
   }
@@ -4150,6 +4651,10 @@
       selectedBossIds:
         progress?.selectedBossIds && typeof progress.selectedBossIds === "object"
           ? { ...progress.selectedBossIds }
+          : {},
+      selectedBossVariantIds:
+        progress?.selectedBossVariantIds && typeof progress.selectedBossVariantIds === "object"
+          ? { ...progress.selectedBossVariantIds }
           : {},
       activeBossId: progress?.activeBossId || null,
       finalOutcome:
@@ -4648,6 +5153,13 @@
     character = state.game?.character,
     options = {},
   ) {
+    if (character?.runMode === "story" && character?.storyId) {
+      const storyZones = window.BLUE_LEGACY_STORY_DATA?.[character.storyId]?.zones || [];
+      return storyZones.map((zone, index) => ({
+        ...cloneData(zone), routeIndex: index, routeStage: index + 1,
+        routeDifficulty: index + 1, isSpecial: false,
+      }));
+    }
     const originId = normalizeOriginId(character?.origin);
     const catalog = getZoneCatalog();
     const byId = (zoneId) =>
@@ -4703,8 +5215,56 @@
     return specialIndex >= 1 && specialIndex <= 4;
   }
 
+  function getSpecialZoneCanonicalCharacterIds(zoneId, game = state.game) {
+    const faction = game?.character?.faction;
+    return uniqueArray(getAllEvents()
+      .filter((event) => event.tags?.includes("canonical-special-arc") &&
+        event.zones?.includes(zoneId) &&
+        (!event.factions?.length || event.factions.includes(faction)))
+      .flatMap((event) => event.loreCharacters || [])
+      .map(canonicalCharacterIdFromName)
+      .filter(Boolean));
+  }
+
+  function isSpecialZoneCompatible(zone, game = state.game) {
+    if (!zone || !game || game.runMode === "story") return true;
+    return getSpecialZoneCanonicalCharacterIds(zone.id, game)
+      .every((characterId) => isCanonicalCharacterAvailable(game, characterId));
+  }
+
+  function replaceFutureIncompatibleSpecialZone(game = state.game, random = Math.random) {
+    if (!game || game.runMode === "story") return false;
+    const specialIndex = Number.isInteger(game.specialZoneRouteIndex)
+      ? game.specialZoneRouteIndex
+      : game.route?.findIndex(isSpecialZone);
+    if (specialIndex <= Number(game.currentZoneIndex) || specialIndex < 1 || specialIndex > 4) return false;
+    const currentSpecial = game.route?.[specialIndex];
+    if (!currentSpecial || isSpecialZoneCompatible(currentSpecial, game)) return false;
+    const alternatives = getZoneCatalog().filter((zone) =>
+      isSpecialZone(zone) && zone.id !== currentSpecial.id && isSpecialZoneCompatible(zone, game));
+    const replacement = getWeightedRandomItem(alternatives, (zone) => zone.weight);
+    if (!replacement) {
+      console.warn("[Blue Legacy] Aucune zone spéciale compatible ne peut remplacer la zone future.");
+      return false;
+    }
+    game.route[specialIndex] = cloneData(replacement);
+    synchronizeRouteMetadata(game);
+    return true;
+  }
+
   function repairGameRoute(game) {
     if (!game?.character) return false;
+
+    if (game.runMode === "story" && game.storyId) {
+      const configured = window.BLUE_LEGACY_STORY_DATA?.[game.storyId]?.zones || [];
+      if (configured.length !== 6) return false;
+      const savedIds = game.route?.map((zone) => zone.id).join("|");
+      const configuredIds = configured.map((zone) => zone.id).join("|");
+      if (savedIds !== configuredIds) game.route = generateRoute(game.character);
+      game.currentZoneIndex = getZoneIndexForMonth(game.month);
+      game.visitedZoneIds = game.route.slice(0, game.currentZoneIndex + 1).map((zone) => zone.id);
+      return true;
+    }
 
     const originId = normalizeOriginId(game.character.origin);
     const existingSpecialIndex = game.route.findIndex(isSpecialZone);
@@ -4736,6 +5296,7 @@
     game.visitedZoneIds = game.route
       .slice(0, game.currentZoneIndex + 1)
       .map((zone) => zone.id);
+    replaceFutureIncompatibleSpecialZone(game);
 
     return validateGeneratedRoute(game.route, originId);
   }
@@ -4746,6 +5307,10 @@
     }
 
     return game.route[game.currentZoneIndex] || null;
+  }
+
+  function getStoryPeriod(game = state.game) {
+    return Math.max(1, Math.min(6, (Number(game?.currentZoneIndex) || 0) + 1));
   }
 
   function getNextZone(game = state.game) {
@@ -4870,6 +5435,10 @@
     const isDreamSuccessConclusion = pending.reason === "dream-success-conclusion";
     const isEmperorRunKiller = pending.reason === "emperor-runkiller";
     const isDreamConclusion = isDreamFailureConclusion || isDreamSuccessConclusion;
+    const conclusionPresentation = isDreamConclusion
+      ? getConclusionPresentation(game, isDreamSuccessConclusion)
+      : null;
+    const isHeritageConclusion = conclusionPresentation?.type === "heritage";
     const isDecisiveConclusion = isHakiConclusion || isDreamConclusion;
     const boss = isBossTransition ? game.currentEvent : null;
     const legendaryArcId = isLegendaryTransition
@@ -4877,7 +5446,7 @@
       : isLegendaryConclusion
         ? pending.arcId
         : null;
-    const legendaryAsset = getLegendaryArcAsset(legendaryArcId);
+    const legendaryAsset = getLegendaryArcAsset(legendaryArcId, state.game);
     const hakiConclusionStage = isHakiConclusion ? getHakiConclusionStage(pending, game) : null;
     const hakiIntroStage = isHakiIntro ? Number(pending.hakiStage) : null;
     const featureAsset = isEmperorRunKiller
@@ -4885,13 +5454,11 @@
       : isLegendaryTransition || isLegendaryConclusion
       ? legendaryAsset
       : isHakiIntro
-        ? getHakiEventAsset(hakiIntroStage)
+        ? getHakiEventAsset(hakiIntroStage, game)
       : isHakiConclusion
-        ? getHakiEventAsset(hakiConclusionStage)
-        : isDreamSuccessConclusion
-          ? DREAM_CONCLUSION_ASSETS.success
-          : isDreamFailureConclusion
-            ? DREAM_CONCLUSION_ASSETS.failure
+        ? getHakiEventAsset(hakiConclusionStage, game)
+        : isDreamConclusion
+          ? conclusionPresentation.asset
             : null;
     const finalScoring = isDreamConclusion ? prepareFinalCareerScoring(game) : null;
     applyZoneTransitionTheme(zone);
@@ -4908,6 +5475,9 @@
     dom.zoneTransitionScreen?.classList.toggle("haki-intro", isHakiIntro);
     dom.zoneTransitionScreen?.classList.toggle("dream-failure-conclusion", isDreamFailureConclusion);
     dom.zoneTransitionScreen?.classList.toggle("dream-success-conclusion", isDreamSuccessConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("heritage-conclusion", isHeritageConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("heritage-success-conclusion", isHeritageConclusion && isDreamSuccessConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("heritage-failure-conclusion", isHeritageConclusion && isDreamFailureConclusion);
     dom.zoneTransitionScreen?.classList.toggle("emperor-runkiller", isEmperorRunKiller);
     dom.zoneTransitionScreen?.classList.toggle(
       "talent-arc-transition",
@@ -4918,7 +5488,7 @@
     dom.zoneTransitionScreen?.classList.toggle("legendary-asset-conclusion", isLegendaryConclusion);
     dom.zoneTransitionScreen?.classList.toggle("haki-asset-conclusion", isHakiConclusion);
     dom.zoneTransitionScreen?.classList.toggle("haki-asset-intro", isHakiIntro);
-    dom.zoneTransitionScreen?.classList.toggle("dream-asset-conclusion", isDreamConclusion);
+    dom.zoneTransitionScreen?.classList.toggle("dream-asset-conclusion", isDreamConclusion && Boolean(featureAsset));
     if (dom.zoneTransitionAsset) {
       dom.zoneTransitionAsset.hidden = !isGeographicTransition;
       if (isGeographicTransition) {
@@ -4980,10 +5550,9 @@
     if (dom.zoneTransitionTitle) {
       dom.zoneTransitionTitle.textContent = isEmperorRunKiller ? pending.title
         : isLegendaryTransition
-        ? legendaryAsset?.label || "Événement légendaire"
-        : isHakiIntro ? featureAsset?.label || `L’Éveil — Partie ${hakiIntroStage}`
-        : isDreamSuccessConclusion ? DREAM_CONCLUSION_ASSETS.success.label
-        : isDreamFailureConclusion ? DREAM_CONCLUSION_ASSETS.failure.label
+        ? (game.runMode === "story" ? game.currentEvent?.title : legendaryAsset?.label) || "Événement légendaire"
+        : isHakiIntro ? (game.runMode === "story" ? game.currentEvent?.title : featureAsset?.label) || "Épreuve décisive"
+        : isDreamConclusion ? conclusionPresentation.label
         : isLegendaryConclusion || isDecisiveConclusion
         ? pending.title || "LA ROUTE CONTINUE"
         : isBossTransition
@@ -4994,11 +5563,11 @@
       dom.zoneTransitionDescription.textContent =
         isEmperorRunKiller ? pending.description
           : isLegendaryTransition
-          ? (game.currentEvent?.legendaryArc === "talent"
+          ? (game.runMode === "story"
+              ? game.currentEvent?.description || "Un moment légendaire commence."
+            : game.currentEvent?.legendaryArc === "talent"
               ? LEGENDARY_TALENT_INTROS[game.character?.faction] || "Le monde commence à retenir ton nom."
-            : game.currentEvent?.legendaryArc === "marineford"
-              ? "La guerre n’a jamais vraiment quitté cette forteresse."
-              : `${LEGENDARY_EMPEROR_NAMES[game.legendaryArcs?.emperor?.emperorId] || "Un Empereur"} bloque désormais ta route.`)
+            : getLegendaryArcHeaderContext(game.currentEvent?.legendaryArc, game) || "Une épreuve légendaire commence.")
           : isHakiIntro
           ? (hakiIntroStage === 2
               ? "Ta volonté atteint un nouveau seuil."
@@ -5041,6 +5610,7 @@
     const slides = Array.isArray(selected) ? selected : [selected];
     const tokens = {
       character: game?.character?.name || "toi",
+      firstName: game?.character?.firstName || game?.character?.name || "toi",
       zone: getCurrentZone(game)?.name || "cette mer",
     };
     return replaceDialogueTokens(slides, tokens)
@@ -5048,7 +5618,9 @@
       .slice(0, 3)
       .map((slide) => ({
         eyebrow: String(slide.eyebrow || "Rencontre"),
-        speaker: String(slide.speaker || "Une voix"),
+        speaker: String(game?.runMode === "story" && slide.speaker === "Roger"
+          ? (game.character?.firstName || slide.speaker)
+          : (slide.speaker || "Une voix")),
         role: String(slide.role || ""),
         text: String(slide.text || ""),
       }));
@@ -5417,11 +5989,43 @@
     "big-mom": "briseur-de-totto-land", shanks: "rival-du-roux",
     whitebeard: "rival-de-barbe-blanche", buggy: "geolier-de-baggy",
   });
+  const LEGENDARY_ADMIRALS = Object.freeze({
+    aramaki: Object.freeze({ name: "Aramaki", role: "Amiral", fruit: "Mori Mori no Mi", titleId: "fleau-taureau-vert" }),
+    akainu: Object.freeze({ name: "Akainu", canonicalName: "Sakazuki", role: "Amiral en chef", fruit: "Magu Magu no Mi", titleId: "rival-chien-rouge" }),
+    kizaru: Object.freeze({ name: "Kizaru", canonicalName: "Borsalino", role: "Amiral", fruit: "Pika Pika no Mi", titleId: "briseur-lumiere" }),
+    fujitora: Object.freeze({ name: "Fujitora", canonicalName: "Issho", role: "Amiral", fruit: "Zushi Zushi no Mi", titleId: "debout-sous-gravite" }),
+  });
+  const LEGENDARY_ADMIRAL_IDS = Object.freeze(Object.keys(LEGENDARY_ADMIRALS));
+
+  function getCompatibleLegendaryAdmiralIds(game = state.game) {
+    return LEGENDARY_ADMIRAL_IDS.filter((id) =>
+      isCanonicalCharacterAvailable(game, LEGENDARY_ADMIRALS[id].canonicalName || LEGENDARY_ADMIRALS[id].name));
+  }
+
+  function selectLegendaryAdmiral(game = state.game, random = Math.random) {
+    const available = getCompatibleLegendaryAdmiralIds(game);
+    return available.length
+      ? available[Math.min(available.length - 1, Math.floor(random() * available.length))]
+      : null;
+  }
+
+  function getFinalClassicLegendaryArcId(game = state.game) {
+    if (game?.runMode !== "classic") return null;
+    return getDataId(game?.character?.faction) === "revolutionary" ? "admiral" : "emperor";
+  }
   const LEGENDARY_TALENT_TITLES = Object.freeze({
     pirate: "supernova",
     marine: "vice-amiral",
     revolutionary: "vice-commandant-de-dragon",
     "bounty-hunter": "cauchemar-des-pirates",
+  });
+  const LEGENDARY_IMPEL_DOWN_TITLES = Object.freeze({
+    pirate:"evade-impel-down", marine:"rempart-impel-down",
+    "bounty-hunter":"traqueur-impel-down", revolutionary:"liberateur-impel-down",
+  });
+  const LEGENDARY_WARLORD_TITLES = Object.freeze({
+    moria:"briseur-ombres", doflamingo:"rival-joker", weevil:"tombeur-weevil",
+    hancock:"rival-imperatrice-pirate", kuma:"inebranlable-face-tyran",
   });
   const LEGENDARY_TALENT_INTROS = Object.freeze({
     pirate: "Le monde commence à retenir ton nom.",
@@ -5429,11 +6033,17 @@
     revolutionary: "Dragon a entendu parler de tes exploits.",
     "bounty-hunter": "Les pirates redoutent désormais ta silhouette.",
   });
+  const LEGENDARY_IMPEL_DOWN_HEADER_CONTEXTS = Object.freeze({
+    pirate: "Pris au piège dans Impel Down, ton équipage doit s’évader avant que la prison ne se referme.",
+    marine: "Une crise éclate dans Impel Down et la Marine doit empêcher les six niveaux de basculer.",
+    "bounty-hunter": "Une cible échappe à son transfert dans Impel Down et ta chasse se poursuit au cœur de la prison.",
+    revolutionary: "Des prisonniers politiques attendent sous Impel Down tandis que la sécurité se resserre.",
+  });
   const LEGENDARY_MARINEFORD_CONTEXTS = Object.freeze({
-    pirate: "Extraire un allié de la forteresse.",
-    marine: "Protéger les civils au cœur de la crise.",
-    "bounty-hunter": "Un contrat au cœur du chaos.",
-    revolutionary: "Libérer les prisonniers sous la forteresse.",
+    pirate: "La crise embrase Marineford tandis qu’un allié est retenu au cœur de la forteresse.",
+    marine: "Marineford bascule dans le chaos et la Marine doit protéger les civils pris au piège.",
+    "bounty-hunter": "Un contrat décisif entraîne ta chasse au cœur du chaos qui engloutit Marineford.",
+    revolutionary: "La bataille secoue Marineford tandis que des prisonniers attendent d’être libérés.",
   });
   const LEGENDARY_EMPEROR_HEADER_NAMES = Object.freeze({
     blackbeard: "Barbe Noire",
@@ -5443,10 +6053,40 @@
     whitebeard: "Barbe Blanche",
     buggy: "Baggy",
   });
+  const LEGENDARY_EMPEROR_HEADER_CONTEXTS = Object.freeze({
+    blackbeard: "Barbe Noire et son équipage verrouillent la route vers ton objectif.",
+    kaido: "Kaido et les Cent Bêtes ont pris position sur ta route.",
+    "big-mom": "Big Mom et son équipage te barrent la route.",
+    shanks: "Shanks et son équipage protègent la zone que ta route t’oblige à traverser.",
+    whitebeard: "Barbe Blanche et ses divisions protègent ce qui se trouve sur ta route.",
+    buggy: "Cross Guild verrouille ta route sous le pavillon de Baggy.",
+  });
+  const LEGENDARY_WARLORD_HEADER_CONTEXTS = Object.freeze({
+    moria: "Gecko Moria déploie ses ombres et ses zombies pour refermer la route devant toi.",
+    doflamingo: "Doflamingo transforme ta progression en piège et verrouille la zone avec ses hommes.",
+    weevil: "Edward Weevil détruit tout sur son passage et ta route vient de croiser la sienne.",
+    hancock: "Boa Hancock et les Kuja refusent de te laisser poursuivre ta route.",
+    kuma: "Bartholomew Kuma apparaît sur ta route avec l’ordre de mettre fin à ta progression.",
+  });
+  const LEGENDARY_ADMIRAL_HEADER_CONTEXTS = Object.freeze({
+    aramaki: "Aramaki coupe les routes d’évacuation tandis que la Marine tente de reprendre l’île.",
+    akainu: "Sakazuki intervient pour écraser une opération révolutionnaire devenue trop dangereuse.",
+    kizaru: "Kizaru intercepte le réseau révolutionnaire avant que ses relais terminent leur mission.",
+    fujitora: "Fujitora bloque l’opération sans sacrifier les civils pris entre les deux camps.",
+  });
+  const STORY_LEGENDARY_HEADER_CONTEXTS = Object.freeze({
+    roger: Object.freeze({
+      talent: "God Valley sombre dans le chaos : Roger et Garp doivent traverser les Rocks Pirates pour atteindre Xebec.",
+      marineford: "La flotte du Lion d’Or encercle l’Oro Jackson et exige que Roger se soumette.",
+      emperor: "Les équipages de Roger et Barbe Blanche se font face avant que leurs volontés ne fassent trembler la mer.",
+    }),
+  });
+  const LEGENDARY_HEADER_CONTEXT_FALLBACK =
+    "Une confrontation capable de bouleverser ton voyage se dresse sur ta route.";
 
   function getActiveLegendaryArcId(game = state.game) {
     const eventArcId = game?.currentEvent?.legendaryArc;
-    if (getLegendaryArcAsset(eventArcId) && game?.legendaryArcs?.[eventArcId]?.status === "in-progress") {
+    if (getLegendaryArcAsset(eventArcId, game) && game?.legendaryArcs?.[eventArcId]?.status === "in-progress") {
       return eventArcId;
     }
     return Object.keys(LEGENDARY_ARC_ASSETS).find(
@@ -5457,26 +6097,39 @@
   function getGameHeaderContextAsset(game = state.game) {
     const hakiStage = getHakiEventStage(game?.currentEvent);
     if (hakiStage) {
-      const asset = getHakiEventAsset(hakiStage);
+      const asset = getHakiEventAsset(hakiStage, game);
       return asset ? { ...asset, kind: "haki", hakiStage } : null;
     }
     const legendaryArcId = getActiveLegendaryArcId(game);
-    const asset = getLegendaryArcAsset(legendaryArcId);
+    const asset = getLegendaryArcAsset(legendaryArcId, game);
     return asset ? { ...asset, kind: "legendary", legendaryArcId } : null;
   }
 
   function getLegendaryArcHeaderContext(arcId, game = state.game) {
+    if (game?.runMode === "story") {
+      return STORY_LEGENDARY_HEADER_CONTEXTS[game?.storyId]?.[arcId] || LEGENDARY_HEADER_CONTEXT_FALLBACK;
+    }
     if (arcId === "talent") {
       return LEGENDARY_TALENT_INTROS[game?.character?.faction] || "Le monde commence à retenir ton nom.";
+    }
+    if (arcId === "davy") return "L’équipage de Luffy accepte un Davy Back Fight où chaque victoire peut coûter un nakama.";
+    if (arcId === "impel-down") {
+      return LEGENDARY_IMPEL_DOWN_HEADER_CONTEXTS[game?.character?.faction] || LEGENDARY_HEADER_CONTEXT_FALLBACK;
     }
     if (arcId === "marineford") {
       return LEGENDARY_MARINEFORD_CONTEXTS[game?.character?.faction] || "La forteresse traverse une nouvelle crise.";
     }
+    if (arcId === "warlord") {
+      return LEGENDARY_WARLORD_HEADER_CONTEXTS[game?.legendaryArcs?.warlord?.warlordId] || LEGENDARY_HEADER_CONTEXT_FALLBACK;
+    }
     if (arcId === "emperor") {
       const emperorId = game?.legendaryArcs?.emperor?.emperorId;
-      return LEGENDARY_EMPEROR_HEADER_NAMES[emperorId] || LEGENDARY_EMPEROR_NAMES[emperorId] || "Un Empereur";
+      return LEGENDARY_EMPEROR_HEADER_CONTEXTS[emperorId] || LEGENDARY_HEADER_CONTEXT_FALLBACK;
     }
-    return "";
+    if (arcId === "admiral") {
+      return LEGENDARY_ADMIRAL_HEADER_CONTEXTS[game?.legendaryArcs?.admiral?.admiralId] || LEGENDARY_HEADER_CONTEXT_FALLBACK;
+    }
+    return LEGENDARY_HEADER_CONTEXT_FALLBACK;
   }
   const LEGENDARY_DREAM_OBJECTIVES = Object.freeze({
     "one-piece": "une copie d’un Road Ponéglyphe", "sea-emperor": "la reconnaissance d’un territoire libre",
@@ -5491,6 +6144,9 @@
 
   let legendaryArcEventCache = null;
   function getLegendaryArcEvents() {
+    if (state.game?.runMode === "story" && state.game?.storyId) {
+      return (window.BLUE_LEGACY_STORY_DATA?.[state.game.storyId]?.legendaryEvents || []).map(normalizeEvent);
+    }
     if (!legendaryArcEventCache) {
       legendaryArcEventCache = (Array.isArray(window.BLUE_LEGACY_LEGENDARY_ARC_EVENTS)
         ? window.BLUE_LEGACY_LEGENDARY_ARC_EVENTS : []).map(normalizeEvent);
@@ -5513,31 +6169,46 @@
       titles * .08 + decisive * .08 + important * .05));
   }
 
-  function getLegendaryArcChance(arcId, game = state.game) {
+  function getBaseLegendaryArcChance(arcId, game = state.game) {
+    const classicMeta = game?.runMode === "story" ? null : CLASSIC_LEGENDARY_ARCS[arcId];
+    if (classicMeta?.chanceSource && classicMeta.chanceSource !== arcId) {
+      return getBaseLegendaryArcChance(classicMeta.chanceSource, game) * (classicMeta.chanceScale || 1);
+    }
     const quality = calculateLegendaryRunQuality(game);
     if (arcId === "talent") {
       const anchors = [[0, .04], [.24, .08], [.40, .19], [.57, .34], [.73, .49], [1, .62]];
       const upperIndex = anchors.findIndex(([threshold]) => quality <= threshold);
-      if (upperIndex <= 0) return anchors[0][1];
+      if (upperIndex <= 0) return game?.runMode === "story" ? anchors[0][1] * 1.12 : anchors[0][1];
       const [lowerQuality, lowerChance] = anchors[upperIndex - 1];
       const [upperQuality, upperChance] = anchors[upperIndex];
-      return lowerChance + (upperChance - lowerChance) *
+      const chance = lowerChance + (upperChance - lowerChance) *
         ((quality - lowerQuality) / (upperQuality - lowerQuality));
+      return game?.runMode === "story" ? Math.min(1, chance * 1.12) : chance;
     }
     if (arcId === "marineford") {
       const anchors = [[0, .02], [.24, .05], [.40, .15], [.57, .30], [.73, .45], [1, .58]];
       const upperIndex = anchors.findIndex(([threshold]) => quality <= threshold);
-      if (upperIndex <= 0) return anchors[0][1];
+      if (upperIndex <= 0) return game?.runMode === "story" ? anchors[0][1] * 1.12 : anchors[0][1];
       const [lowerQuality, lowerChance] = anchors[upperIndex - 1];
       const [upperQuality, upperChance] = anchors[upperIndex];
       const ratio = (quality - lowerQuality) / (upperQuality - lowerQuality);
-      return lowerChance + (upperChance - lowerChance) * ratio;
+      const chance = lowerChance + (upperChance - lowerChance) * ratio;
+      return game?.runMode === "story" ? Math.min(1, chance * 1.12) : chance;
     }
     const hakiTitles = (game?.runTitles || []).filter((title) =>
       ["haki-observation", "haki-armement", "haki-des-rois", "maitrise-haki-des-rois-plus"].includes(getDataId(title))).length;
     const dreamProgress = Math.min(1, Math.max(0, Number(game?.flags?.dreamProgress) || 0) / 8);
-    return Math.min(.48, Math.max(.005,
+    const chance = Math.min(.48, Math.max(.005,
       .002 + Math.pow(quality, 2) * .47 + hakiTitles * .01 + dreamProgress * .01));
+    return game?.runMode === "story" ? Math.min(1, chance * 1.12) : chance;
+  }
+
+  function getLegendaryArcChance(arcId, game = state.game) {
+    const baseChance = getBaseLegendaryArcChance(arcId, game);
+    const multiplier = hasActiveShopItem(game, "den-den-mushi")
+      ? Number(findShopItem("den-den-mushi")?.legendaryChanceMultiplier) || 1.35
+      : 1;
+    return Math.min(1, baseChance * multiplier);
   }
 
   function getLegendaryQualityBand(quality) {
@@ -5550,7 +6221,9 @@
 
   function selectLegendaryEmperor(game = state.game, random = Math.random) {
     const faction = game?.character?.faction;
-    const available = LEGENDARY_EMPERORS[faction] || LEGENDARY_EMPERORS.pirate;
+    const available = (LEGENDARY_EMPERORS[faction] || LEGENDARY_EMPERORS.pirate)
+      .filter((id) => isCanonicalCharacterAvailable(game, LEGENDARY_EMPEROR_NAMES[id] || id));
+    if (!available.length) return null;
     const dream = game?.character?.dream;
     const preferred = dream === "hunt-an-emperor" ? ["kaido", "blackbeard"]
       : ["one-piece", "forgotten-history", "reveal-void-century"].includes(dream) ? ["blackbeard", "big-mom"]
@@ -5592,9 +6265,63 @@
     }),
   });
 
+  const LEGENDARY_WARLORDS = Object.freeze({
+    moria: Object.freeze({ name:"Gecko Moria", powerTitle:"Les ombres volées", opening:"Gecko Moria bloque la route et ses créatures arrachent déjà les ombres des voyageurs isolés.", crisis:"Des zombies surgissent autour des ombres capturées. Sans lumière protégée, chaque combattant risque de servir son armée.", final:"Moria rassemble les ombres volées devant la sortie. Il faut les libérer avant qu’il n’engloutisse le terrain sous ses créatures.", dialogues:["Kishishishi ! Une ombre de plus, et tu ne reverras jamais le soleil !","Mes zombies combattront longtemps après que les tiens se seront écroulés !","Approche ! Ton ombre sera la pièce maîtresse de mon armée !"], choices:[["Protéger les ombres sous une lumière continue","Repérer le trajet des créatures porteuses","Forcer les zombies à révéler leur maître"],["Délier les ombres de leurs corps artificiels","Incendier les accès sans toucher les victimes","Retourner le réseau de zombies contre ses gardiens"],["Frapper Moria avant qu’il absorbe les ombres","Libérer les ombres pendant sa concentration","Maintenir chacun hors de portée de ses ciseaux"]] }),
+    doflamingo: Object.freeze({ name:"Donquixote Doflamingo", powerTitle:"La ville aux fils", opening:"Doflamingo verrouille la route au nom d’un accord gouvernemental, tout en manipulant les autorités locales pour dissimuler son véritable marché.", crisis:"Des fils invisibles ferment les rues et contraignent soldats comme civils à s’attaquer. Chaque mouvement nourrit la mise en scène du Joker.", final:"Doflamingo descend au centre de sa toile, certain que le terrain et ses otages lui appartiennent déjà.", dialogues:["Fufufu… le décret me donne le droit de fermer cette route. La vérité, elle, appartient à celui qui tire les fils.","Regarde-les se battre pour moi. Il suffit d’un fil pour transformer la justice en spectacle.","Tu as coupé ma toile ? Viens donc expliquer au Joker pourquoi il devrait te laisser repartir."], choices:[["Exposer le marché caché aux autorités","Couper les fils qui ferment la route","Évacuer les civils hors de son levier"],["Repérer les fils avant de déplacer les victimes","Retourner ses agents les uns contre les autres","Briser les ancrages qui contrôlent les rues"],["Atteindre Doflamingo à travers sa toile","Créer une ouverture sans blesser les contrôlés","Détruire le terrain qu’il utilise comme piège"]] }),
+    weevil: Object.freeze({ name:"Edward Weevil", powerTitle:"Le sillage de destruction", opening:"Edward Weevil barre la route après avoir ravagé plusieurs navires sur les indications de Bakkin. Son statut ne protège plus ceux qu’il menace directement.", crisis:"Weevil éventre quais et coques par sa seule puissance. Bakkin le pousse vers une cible qu’elle prétend liée à l’héritage de Barbe Blanche.", final:"Weevil charge au milieu des débris, sans technique secrète à déchiffrer : seule sa force monstrueuse et la voix de Bakkin dirigent encore la crise.", dialogues:["Je suis le vrai fils de Barbe Blanche ! Écarte-toi ou je casse aussi ton navire !","Maman dit que vous cachez ce qui m’appartient. Alors je vais tout démolir jusqu’à le trouver !","Personne n’est plus fort que moi ! Je vais le prouver maintenant !"], choices:[["Mettre les équipages menacés hors de sa trajectoire","Démontrer que Bakkin poursuit la mauvaise cible","Détourner sa charge loin des navires"],["Épuiser sa force dans un terrain sans prise","Couper Bakkin de ses ordres","Consolider le quai avant le prochain impact"],["Affronter sa puissance sans céder de terrain","Le pousser à briser sa propre voie d’attaque","Obtenir un arrêt en confrontant les mensonges de Bakkin"]] }),
+    hancock: Object.freeze({ name:"Boa Hancock", powerTitle:"Le regard de pierre", opening:"Boa Hancock et les Kuja ferment la route pour protéger un navire placé sous leur autorité. La tension menace de pétrifier ceux qui répondent par la violence.", crisis:"Les flèches kuja et le Mero Mero no Mi changent le moindre trouble émotionnel en piège de pierre. Plusieurs alliés sont déjà immobilisés.", final:"Hancock avance entre les statues, souveraine et inflexible. Il faut résoudre le conflit ou traverser sa défense sans abandonner les pétrifiés.", dialogues:["Cette route est sous ma protection. Votre empressement ne vous donne aucun droit sur ceux qui la traversent.","Votre hostilité condamne vos propres alliés. Un seul mouvement irréfléchi, et ils resteront de pierre.","Vous avez résisté à mon pouvoir. Cela ne signifie pas que je vous autorise à franchir mon territoire."], choices:[["Présenter clairement l’objectif sans menacer les Kuja","Détourner les alliés de toute réaction exploitable","Protéger le navire à l’origine du conflit"],["Couvrir les pétrifiés derrière une ligne aveugle","Négocier leur libération avec les Kuja","Traverser les tirs sans fixer Hancock"],["Imposer une trêve qui protège les deux camps","Briser son angle d’attaque sans viser les statues","Atteindre l’objectif en couvrant les alliés pétrifiés"]] }),
+    kuma: Object.freeze({ name:"Bartholomew Kuma", powerTitle:"Tout peut être repoussé", opening:"Bartholomew Kuma apparaît sur la route avec un ordre gouvernemental contradictoire. Ses coussinets repoussent navires, projectiles et combattants à des distances impossibles.", crisis:"Chaque impact de Kuma déplace le champ de bataille. Des alliés disparaissent dans le ciel tandis qu’une onde comprimée menace la flotte.", final:"Kuma lève une dernière patte devant le passage. Une seule répulsion peut disperser l’expédition entière loin de sa destination.", dialogues:["Je vous donne une dernière occasion de quitter cette route.","La distance ne vous protégera pas. Tout ce que je touche peut être repoussé.","Si votre objectif exige de franchir ce passage, montrez qu’il survivra à mon dernier impact."], choices:[["Ancrer les navires avant sa prochaine répulsion","Comprendre la direction de ses déplacements","Disperser les groupes pour limiter une frappe"],["Dévier l’onde comprimée vers le large","Retrouver les alliés projetés avant l’impact","Approcher entre deux déplacements instantanés"],["Maintenir la formation sous sa dernière poussée","Créer un angle que ses coussinets ne couvrent pas","Protéger l’objectif plutôt que poursuivre Kuma"]] }),
+  });
+  const LEGENDARY_WARLORD_IDS = Object.freeze(Object.keys(LEGENDARY_WARLORDS));
+
+  function getCompatibleLegendaryWarlordIds(game = state.game) {
+    return LEGENDARY_WARLORD_IDS.filter((id) =>
+      isCanonicalCharacterAvailable(game, LEGENDARY_WARLORDS[id]?.name || id));
+  }
+
+  function selectLegendaryWarlord(game = state.game, random = Math.random) {
+    const available = getCompatibleLegendaryWarlordIds(game);
+    if (!available.length) return null;
+    return available[Math.min(available.length - 1, Math.floor(random() * available.length))];
+  }
+
+  function getNewLegendaryOutcomeCopy(arcId, step, tier, game, warlord, choiceText = "") {
+    if (arcId === "impel-down") {
+      const faction=getDataId(game?.character?.faction)||"pirate";
+      const goals={pirate:["le premier verrou cède","le groupe remonte à travers les niveaux","le navire franchit la Porte de la Justice"],marine:["le personnel isolé est sécurisé","les niveaux sont repris sans sacrifier les gardes","les fugitifs sont arrêtés au quai"],"bounty-hunter":["la piste des fugitifs est retrouvée","les cibles sont isolées dans les niveaux","le transfert est sécurisé avant la fermeture"],revolutionary:["les cellules politiques sont ouvertes","les prisonniers remontent par les passages cachés","le dernier groupe franchit la Porte de la Justice"]}[faction];
+      if(tier==="success") return `Ton plan réussit : ${goals[step-1]}. La mission conserve une avance décisive.`;
+      if(tier==="mixed") return `${goals[step-1]}, mais des blessés et un retard dangereux imposent un prix immédiat.`;
+      return `La tentative échoue et les gardiens reprennent l’avantage. Des blessures graves ralentissent la mission, qui doit chercher une autre voie.`;
+    }
+    if(arcId==="warlord"){
+      if(tier==="success") return step===3?`Ton action brise le dernier dispositif de ${warlord.name}. Le Grand Corsaire doit céder la route.`:`Tu déjoues le dispositif de ${warlord.name} et conserves l’initiative pour la suite.`;
+      if(tier==="mixed") return `Tu avances malgré ${warlord.powerTitle.toLowerCase()}, mais plusieurs alliés sont blessés et la position reste fragile.`;
+      return `La manœuvre échoue face à ${warlord.name}. Son pouvoir te repousse et force ton groupe à poursuivre depuis une position nettement plus dangereuse.`;
+    }
+    if (arcId === "admiral") {
+      const admiralId = game?.legendaryArcs?.admiral?.admiralId;
+      const opponent = LEGENDARY_ADMIRALS[admiralId]?.name || "l’Amiral";
+      const context = {
+        aramaki: ["les racines reculent et rendent un passage au port", "les greniers échappent à l’emprise du Mori Mori no Mi", "la rade se libère de la forêt mouvante"],
+        akainu: ["le corridor résiste aux coulées de magma", "les archives échappent à la Justice absolue", "le dernier navire sort de la fournaise"],
+        kizaru: ["les relais survivent à sa première apparition", "les embarcations déjouent ses tirs de lumière", "la flotte quitte enfin son angle de tir"],
+        fujitora: ["les familles franchissent la zone écrasée", "le quartier est évacué sous les débris suspendus", "les civils passent tandis que sa gravité retient le front"],
+      }[admiralId]?.[step - 1] || "l’opération révolutionnaire conserve sa route";
+      const action = choiceText ? `« ${choiceText} »` : "La manœuvre";
+      if (tier === "success") return `${action} réussit : ${context}. ${opponent} doit reconnaître que l’opération lui a échappé sur ce front.`;
+      if (tier === "mixed") return `${action} permet que ${context}, mais ${opponent} reprend l’initiative avant l’évacuation complète. Les blessés et le matériel abandonné alourdissent le prix du choix.`;
+      return `${action} échoue : ${opponent} brise la manœuvre avant qu’elle n’atteigne son but. La cellule sauve ce qu’elle peut, mais quitte cette étape blessée et désorganisée.`;
+    }
+    return null;
+  }
+
   function localizeLegendaryArcEvent(event, game = state.game) {
     const localized = cloneData(event);
+    const detectedArcId = event.legendaryArc || CLASSIC_LEGENDARY_ARC_IDS.find((arcId) =>
+      localized.tags?.includes(`legendary-${arcId}`)) || "emperor";
     const emperorId = game?.legendaryArcs?.emperor?.emperorId;
+    const admiralId = game?.legendaryArcs?.admiral?.admiralId;
+    const admiral = LEGENDARY_ADMIRALS[admiralId] || null;
     const emperor = LEGENDARY_EMPEROR_NAMES[emperorId] || "un Empereur";
     const objective = LEGENDARY_DREAM_OBJECTIVES[game?.character?.dream] || "un objectif capable de changer ta destinée";
     const sceneText = LEGENDARY_EMPEROR_SCENE_TEXT[emperorId] || {
@@ -5602,49 +6329,112 @@
       emperorCounterattack: "Son commandant rassemble les renforts autour de l’objectif.",
       emperorArrival: "L’Empereur entre lui-même dans la bataille et brise la première ligne.",
     };
-    const visibleTokens = { emperor, objective, ...sceneText };
+    const warlordId = game?.legendaryArcs?.warlord?.warlordId;
+    const warlord = LEGENDARY_WARLORDS[warlordId] || LEGENDARY_WARLORDS.moria;
+    const factionContext = {
+      pirate:"Le Grand Corsaire veut exploiter ta route et ton équipage.",
+      marine:"Son refus d’obtempérer menace immédiatement des civils malgré son statut gouvernemental.",
+      "bounty-hunter":"Ton mandat spécial protège une cible que le Grand Corsaire tente de saisir ; il ne s’agit pas d’encaisser sa prime.",
+      revolutionary:"Son intervention compromet une opération et met une cellule locale en danger.",
+    }[game?.character?.faction] || "La route est coupée.";
+    const warlordTokens = { warlord:warlord.name, warlordPowerTitle:warlord.powerTitle,
+      warlordOpening:`${factionContext} ${warlord.opening}`, warlordCrisis:warlord.crisis, warlordFinal:warlord.final };
+    warlord.dialogues.forEach((value,index)=>{ warlordTokens[`warlordDialogue${index+1}`]=value; });
+    warlord.choices.flat().forEach((value,index)=>{ const step=Math.floor(index/3)+1; const choice=index%3+1; warlordTokens[`warlordChoice${step}${choice}`]=value; });
+    const visibleTokens = { emperor, objective, ...sceneText, ...warlordTokens };
     const replaceVisibleTokens = (text) => Object.entries(visibleTokens).reduce(
       (result, [token, value]) => result.replaceAll(`{${token}}`, value),
       String(text || ""),
     );
     localized.title = replaceVisibleTokens(localized.title);
     localized.description = replaceVisibleTokens(localized.description);
+    localized.choices = (localized.choices || []).map((choice) => ({
+      ...choice,
+      text: replaceVisibleTokens(choice.text),
+      outcomes: (choice.outcomes || []).map((outcome) => ({
+        ...outcome,
+        result: replaceVisibleTokens(outcome.result),
+      })),
+    }));
+    if (["impel-down","warlord","admiral"].includes(detectedArcId)) {
+      const step=Number(localized.tags?.find((tag)=>tag.startsWith("legendary-step-"))?.split("-").at(-1))||1;
+      localized.choices.forEach((choice)=>choice.outcomes.forEach((outcome)=>{
+        outcome.result=getNewLegendaryOutcomeCopy(detectedArcId,step,outcome.outcomeTier,game,warlord,choice.text)||outcome.result;
+      }));
+    }
     if (localized.introDialogue?.emperorVariants) {
       localized.introDialogue =
         localized.introDialogue.emperorVariants[emperorId] ||
         localized.introDialogue.emperorVariants.default ||
         null;
     }
+    if (localized.introDialogue?.admiralVariants) {
+      localized.introDialogue = localized.introDialogue.admiralVariants[admiralId] || null;
+    }
     if (localized.introDialogue) localized.introDialogue = replaceDialogueTokens(localized.introDialogue, visibleTokens);
     localized.text = localized.description;
-    localized.legendaryArc = localized.tags?.includes("legendary-talent")
-      ? "talent"
-      : localized.tags?.includes("legendary-marineford") ? "marineford" : "emperor";
+    localized.legendaryArc = detectedArcId;
     localized.legendaryStep = Number(localized.tags?.find((tag) => tag.startsWith("legendary-step-"))?.split("-").at(-1)) || 1;
     localized.emperorId = localized.legendaryArc === "emperor" ? emperorId : null;
+    localized.warlordId = localized.legendaryArc === "warlord" ? warlordId : null;
+    localized.admiralId = localized.legendaryArc === "admiral" ? admiralId : null;
+    if (localized.legendaryArc === "davy") localized.loreCharacters = ["Monkey D. Luffy","Roronoa Zoro","Sanji","Nami","Usopp"];
+    if (localized.legendaryArc === "impel-down") localized.loreCharacters = ["Magellan","Hannyabal","Emporio Ivankov"];
+    if (localized.legendaryArc === "warlord") localized.loreCharacters = [warlord.name];
+    if (localized.legendaryArc === "admiral" && admiral) localized.loreCharacters = [admiral.canonicalName || admiral.name];
     return localized;
   }
 
   function getLegendaryArcEvent(arcId, step, game = state.game) {
     const faction = game?.character?.faction;
-    const id = `legendary-${arcId}-${faction}-${step}`;
+    const eventKey = arcId === "admiral" ? game?.legendaryArcs?.admiral?.admiralId : faction;
+    const id = `legendary-${arcId}-${eventKey}-${step}`;
     const event = getLegendaryArcEvents().find((candidate) => candidate.id === id);
     return event ? localizeLegendaryArcEvent(event, game) : null;
   }
 
   function isMarinefordEligible(game = state.game) {
     if (!game || game.isFinished || game.ending) return false;
+    if (game.runMode === "story") return Number(game.month) === 13;
     return Number(game.month) === 13 && getCurrentZone(game)?.id === "red-line";
   }
 
   function isTalentArcEligible(game = state.game) {
+    if (game?.runMode === "story") return Boolean(game && !game.isFinished && !game.ending && [11, 12].includes(Number(game.month)));
     return Boolean(game && !game.isFinished && !game.ending &&
       [11, 12].includes(Number(game.month)) && getCurrentZone(game)?.id === "grand-line");
   }
 
+  function isDavyArcEligible(game = state.game) {
+    return Boolean(game?.runMode === "classic" && !game.isFinished && !game.ending &&
+      Number(game.month) === Number(game.currentZoneIndex) * CONFIG.logbookInterval + 1 && getCurrentZone(game)?.id === "grand-line" &&
+      Array.isArray(game.crewMembers) && game.crewMembers.length === 0);
+  }
+
+  function isImpelDownEligible(game = state.game) {
+    return Boolean(game?.runMode === "classic" && !game.isFinished && !game.ending &&
+      getCurrentZone(game)?.id === "grand-line" && getNextZone(game)?.id === "red-line");
+  }
+
+  function isWarlordArcEligible(game = state.game) {
+    return Boolean(game?.runMode === "classic" && !game.isFinished && !game.ending &&
+      getNextZone(game) && isSpecialZone(getNextZone(game)));
+  }
+
   function getLegendaryArcTitleId(arcId, game = state.game) {
+    if (game?.runMode === "story") {
+      return game.storyId === "roger" ? ({
+        talent: "story-roger-god-valley-shadow",
+        marineford: "story-roger-golden-lion-rival",
+        emperor: "story-roger-sea-titan",
+      })[arcId] || null : null;
+    }
     if (arcId === "talent") return LEGENDARY_TALENT_TITLES[game?.character?.faction] || null;
+    if (arcId === "davy") return "champion-davy-back-fight";
+    if (arcId === "impel-down") return LEGENDARY_IMPEL_DOWN_TITLES[game?.character?.faction] || null;
     if (arcId === "marineford") return window.BLUE_LEGACY_LEGENDARY_MARINEFORD_TITLES?.[game?.character?.faction] || null;
+    if (arcId === "warlord") return LEGENDARY_WARLORD_TITLES[game?.legendaryArcs?.warlord?.warlordId] || null;
+    if (arcId === "admiral") return LEGENDARY_ADMIRALS[game?.legendaryArcs?.admiral?.admiralId]?.titleId || null;
     const emperorId = game?.legendaryArcs?.emperor?.emperorId;
     return LEGENDARY_EMPEROR_TITLES[emperorId] || null;
   }
@@ -5652,6 +6442,35 @@
   function startLegendaryArc(arcId, game = state.game) {
     const arc = game?.legendaryArcs?.[arcId];
     if (!game || !arc) return false;
+    if (arcId === "warlord" && !arc.warlordId) {
+      arc.warlordId = selectLegendaryWarlord(game);
+      if (!arc.warlordId) {
+        arc.status = "not-selected";
+        return false;
+      }
+    }
+    if (arcId === "admiral" && !arc.admiralId) {
+      arc.admiralId = selectLegendaryAdmiral(game);
+      if (!arc.admiralId) return false;
+    }
+    if (game.runMode === "classic") {
+      const faction = getDataId(game?.character?.faction);
+      if (!CLASSIC_LEGENDARY_ARCS[arcId]?.factions?.includes(faction)) return false;
+      if (countStartedClassicLegendaryArcs(game) >= MAX_CLASSIC_LEGENDARY_ARCS) {
+        if (["unassessed", "selected"].includes(arc.status)) arc.status = "not-selected";
+        return false;
+      }
+      const windowId = CLASSIC_LEGENDARY_ARCS[arcId]?.window;
+      const windowState = game.legendaryWindows?.[windowId];
+      if (!windowId || (windowState?.consumed && windowState.selectedArcId !== arcId)) {
+        arc.status = "not-selected";
+        return false;
+      }
+      if (windowState) {
+        windowState.selectedArcId = arcId;
+        windowState.consumed = true;
+      }
+    }
     if (arcId === "emperor" && !arc.emperorId) arc.emperorId = selectLegendaryEmperor(game);
     arc.status = "in-progress";
     arc.step = Math.max(1, arc.step || 1);
@@ -5672,9 +6491,29 @@
   function evaluateLegendaryArc(arcId, game = state.game, random = Math.random) {
     const arc = game?.legendaryArcs?.[arcId];
     if (!arc || arc.status !== "unassessed") return arc?.status === "selected";
+    if (game.runMode === "classic") {
+      const faction = getDataId(game?.character?.faction);
+      if (!CLASSIC_LEGENDARY_ARCS[arcId]?.factions?.includes(faction)) return false;
+      if (arcId === "admiral" && !arc.admiralId && !getCompatibleLegendaryAdmiralIds(game).length) return false;
+      if (countStartedClassicLegendaryArcs(game) >= MAX_CLASSIC_LEGENDARY_ARCS) {
+        arc.status = "not-selected";
+        return false;
+      }
+      const windowState = game.legendaryWindows?.[CLASSIC_LEGENDARY_ARCS[arcId]?.window];
+      if (windowState?.consumed && windowState.selectedArcId !== arcId) {
+        arc.status = "not-selected";
+        return false;
+      }
+    }
+    if (arcId === "davy" && !isDavyArcEligible(game)) return false;
+    if (arcId === "impel-down" && !isImpelDownEligible(game)) return false;
+    if (arcId === "warlord" && !isWarlordArcEligible(game)) return false;
     if (arcId === "talent" && !isTalentArcEligible(game)) return false;
     if (arcId === "marineford" && !isMarinefordEligible(game)) return false;
-    if (arcId === "emperor" && !(Number(game.month) === 24 && getCurrentZone(game)?.id === "shinsekai")) return false;
+    if (arcId === "emperor" && !(game.runMode === "story"
+      ? Number(game.month) === 20
+      : Number(game.month) === 24 && getCurrentZone(game)?.id === "shinsekai")) return false;
+    if (arcId === "admiral" && !(game.runMode === "classic" && Number(game.month) === 24 && getCurrentZone(game)?.id === "shinsekai")) return false;
     const chance = getLegendaryArcChance(arcId, game);
     const roll = random();
     arc.chance = chance;
@@ -5685,22 +6524,160 @@
     if (arcId === "marineford") arc.evaluatedAfterParadise = true;
     arc.status = roll < chance ? "selected" : "not-selected";
     if (arc.status === "selected" && arcId === "emperor") arc.emperorId = selectLegendaryEmperor(game, random);
+    if (arc.status === "selected" && arcId === "admiral") arc.admiralId = selectLegendaryAdmiral(game, random);
+    if (arc.status === "selected" && arcId === "warlord") {
+      arc.warlordId = selectLegendaryWarlord(game, random);
+      if (!arc.warlordId) arc.status = "not-selected";
+    }
     return arc.status === "selected";
   }
 
   function maybeStartLegendaryArc(game = state.game) {
     if (!game || game.currentEvent || game.pendingResult || game.pendingLogbookEntry || game.pendingZoneTransition || game.pendingRewardReveals?.length || game.ending || game.isFinished) return false;
-    if (isTalentArcEligible(game) && game.legendaryArcs.talent.status === "unassessed") {
+    const arcs = game.legendaryArcs || {};
+    // Le Mode Histoire possède volontairement son propre calendrier et aucun arc Davy.
+    // Chaque branche générique ne doit donc consulter que les arcs réellement présents.
+    if (arcs.davy && isDavyArcEligible(game) && arcs.davy.status === "unassessed") evaluateLegendaryArc("davy", game);
+    if (arcs.davy?.status === "selected") return startLegendaryArc("davy", game);
+    if (arcs.talent && isTalentArcEligible(game) && !game.legendaryWindows?.paradise?.consumed && arcs.talent.status === "unassessed") {
       evaluateLegendaryArc("talent", game);
     }
-    if (game.legendaryArcs.talent.status === "selected") return startLegendaryArc("talent", game);
+    if (arcs.talent?.status === "selected") return startLegendaryArc("talent", game);
+    // Les arcs Story liés à une nouvelle période sont évalués seulement après
+    // la consommation de sa transition, lorsque startMonth reprend la route.
+    if (game.runMode === "story" && isMarinefordEligible(game) && arcs.marineford?.status === "unassessed") {
+      evaluateLegendaryArc("marineford", game);
+    }
+    if (game.runMode === "story" && arcs.marineford?.status === "selected") {
+      return startLegendaryArc("marineford", game);
+    }
+    if (game.runMode === "story" && Number(game.month) === 20 && arcs.emperor?.status === "unassessed") {
+      evaluateLegendaryArc("emperor", game);
+    }
+    if (game.runMode === "story" && arcs.emperor?.status === "selected") {
+      arcs.emperor.emperorId = "whitebeard";
+      return startLegendaryArc("emperor", game);
+    }
     return false;
   }
 
+  function runClassicLegendaryArchitectureAudit() {
+    const events=getLegendaryArcEvents();
+    const eventMatrix=Object.fromEntries(CLASSIC_LEGENDARY_ARC_IDS.map((arcId)=>{
+      const expectedKeys=arcId==="admiral"?LEGENDARY_ADMIRAL_IDS:CLASSIC_LEGENDARY_ARCS[arcId].factions;
+      return [arcId,expectedKeys.every((key)=>[1,2,3].every((step)=>
+        events.some((event)=>event.id===`legendary-${arcId}-${key}-${step}`)))];
+    }));
+    const davyEvents=events.filter((event)=>event.tags?.includes("legendary-davy"));
+    const positiveStats=new Set(["health","combat","haki","intelligence","charisma","fortune","popularity","bounty"]);
+    const davyHasDirectPositive=davyEvents.some((event)=>event.choices.some((choice)=>choice.outcomes.some((outcome)=>
+      ["success","exceptional_success"].includes(outcome.outcomeTier)&&Object.entries(outcome.effects||{}).some(([key,value])=>positiveStats.has(key)&&Number(value)>0))));
+    const capGame={runMode:"classic",legendaryArcs:Object.fromEntries(CLASSIC_LEGENDARY_ARC_IDS.map((id)=>[id,{status:["davy","impel-down","warlord"].includes(id)?"succeeded":"unassessed"}]))};
+    const combinations=[["davy","impel-down","warlord"],["davy","impel-down","emperor"],["davy","warlord","emperor"],["talent","impel-down","warlord"],["talent","marineford","emperor"],["talent","warlord","emperor"],["impel-down","warlord","emperor"]];
+    const validCombination=(ids)=>ids.length<=MAX_CLASSIC_LEGENDARY_ARCS&&new Set(ids.map((id)=>CLASSIC_LEGENDARY_ARCS[id].window)).size===ids.length;
+    const checks={
+      sevenFamilies:CLASSIC_LEGENDARY_ARC_IDS.length===7,
+      allEventSteps:Object.values(eventMatrix).every(Boolean),
+      paradiseExclusive:CLASSIC_LEGENDARY_ARCS.davy.window===CLASSIC_LEGENDARY_ARCS.talent.window,
+      redLineExclusive:CLASSIC_LEGENDARY_ARCS["impel-down"].window===CLASSIC_LEGENDARY_ARCS.marineford.window,
+      capAfterThree:countStartedClassicLegendaryArcs(capGame)===3,
+      requestedCombinations:combinations.every(validCombination),
+      forbiddenCombinations:!validCombination(["davy","talent"])&&!validCombination(["impel-down","marineford"])&&!validCombination(["davy","impel-down","warlord","emperor"]),
+      davyCatalog:(window.GAME_DATA?.davyBackFightCompanions||[]).length===4,
+      namiExcluded:!(window.GAME_DATA?.crewRecruitments||[]).some((member)=>member.id==="nami"||member.name==="Nami"),
+      davyNoDirectPositive:!davyHasDirectPositive,
+    };
+    return {pass:Object.values(checks).every(Boolean),checks,eventMatrix};
+  }
+  window.BLUE_LEGACY_CLASSIC_LEGENDARY_AUDIT=runClassicLegendaryArchitectureAudit();
+
+  function runLegendaryHeaderContextAudit() {
+    const factions = ["pirate", "marine", "bounty-hunter", "revolutionary"];
+    const makeGame = (faction, arcId, variantId = null, runMode = "classic") => ({
+      runMode,
+      storyId: runMode === "story" ? "roger" : null,
+      character: { faction },
+      legendaryArcs: Object.fromEntries(CLASSIC_LEGENDARY_ARC_IDS.map((id) => [id, {
+        status: id === arcId ? "in-progress" : "unassessed",
+        ...(id === "emperor" ? { emperorId: variantId } : {}),
+        ...(id === "warlord" ? { warlordId: variantId } : {}),
+        ...(id === "admiral" ? { admiralId: variantId } : {}),
+      }])),
+    });
+    const cases = [
+      ...factions.map((faction) => ({ arcId: "talent", faction, variant: faction })),
+      ...factions.map((faction) => ({ arcId: "davy", faction, variant: "Luffy" })),
+      ...factions.map((faction) => ({ arcId: "impel-down", faction, variant: faction })),
+      ...factions.map((faction) => ({ arcId: "marineford", faction, variant: faction })),
+      ...factions.flatMap((faction) => LEGENDARY_WARLORD_IDS.map((variant) => ({ arcId: "warlord", faction, variant }))),
+      ...Object.entries(LEGENDARY_EMPERORS)
+        .filter(([faction]) => CLASSIC_LEGENDARY_ARCS.emperor.factions.includes(faction))
+        .flatMap(([faction, variants]) =>
+          variants.map((variant) => ({ arcId: "emperor", faction, variant }))),
+      ...LEGENDARY_ADMIRAL_IDS.map((variant) => ({ arcId: "admiral", faction: "revolutionary", variant })),
+      ...Object.keys(STORY_LEGENDARY_HEADER_CONTEXTS.roger).map((arcId) => ({
+        arcId, faction: "pirate", variant: ({ talent: "God Valley", marineford: "Edd War", emperor: "Le Choc des Titans" })[arcId], runMode: "story",
+      })),
+    ];
+    const forbiddenLabels = new Set([
+      ...Object.values(LEGENDARY_ARC_ASSETS).map((asset) => asset.label),
+      ...Object.values(LEGENDARY_EMPEROR_HEADER_NAMES),
+      ...Object.values(LEGENDARY_EMPEROR_NAMES),
+      ...Object.values(LEGENDARY_WARLORDS).map((entry) => entry.name),
+      ...Object.values(LEGENDARY_ADMIRALS).flatMap((entry) => [entry.name, entry.canonicalName]).filter(Boolean),
+      "God Valley", "Edd War", "Le Choc des Titans",
+    ].map((value) => String(value).trim().toLocaleLowerCase("fr")));
+    const rows = cases.flatMap(({ arcId, faction, variant, runMode = "classic" }) => {
+      const game = makeGame(faction, arcId, variant, runMode);
+      const context = getLegendaryArcHeaderContext(arcId, game);
+      return [1, 2, 3].map((step) => {
+        const normalized = typeof context === "string" ? context.trim() : "";
+        const event = runMode === "story"
+          ? (window.BLUE_LEGACY_STORY_DATA?.roger?.legendaryEvents || []).find((candidate) =>
+              candidate.id === `legendary-${arcId}-pirate-${step}`)
+          : getLegendaryArcEvent(arcId, step, game);
+        const checks = {
+          string: typeof context === "string",
+          minimumLength: normalized.length >= 35,
+          sentence: /[.!?]$/.test(normalized),
+          notOnlyLabel: !forbiddenLabels.has(normalized.toLocaleLowerCase("fr")),
+          noPlaceholder: !/[{][^{}]+[}]/.test(normalized),
+          knownContext: normalized !== LEGENDARY_HEADER_CONTEXT_FALLBACK,
+          eventExists: Boolean(event),
+          assetExists: Boolean(getLegendaryArcAsset(arcId, game)),
+        };
+        return { arcId, faction, variant, runMode, step, context: normalized,
+          pass: Object.values(checks).every(Boolean), checks };
+      });
+    });
+    return { pass: rows.every((row) => row.pass), rows };
+  }
+  window.BLUE_LEGACY_LEGENDARY_HEADER_CONTEXT_AUDIT = runLegendaryHeaderContextAudit();
+
+  function runRogerLegendaryPresentationAudit() {
+    const game={runMode:"story",storyId:"roger",character:{faction:"pirate"},legendaryArcs:{
+      talent:{status:"failed"},marineford:{status:"failed"},emperor:{status:"failed",emperorId:"whitebeard"},
+    }};
+    const expected={talent:"God Valley",marineford:"Edd War",emperor:"Le Choc des Titans"};
+    const rows=Object.fromEntries(Object.entries(expected).map(([arcId,label])=>{
+      const events=(window.BLUE_LEGACY_STORY_DATA?.roger?.legendaryEvents||[]).filter((event)=>event.legendaryArc===arcId||event.tags?.includes(`legendary-${arcId}`));
+      const conclusion=getLegendaryConclusionCopy(arcId,game);
+      const text=[getLegendaryArcAsset(arcId,game)?.label,getLegendaryArcHeaderContext(arcId,game),conclusion?.title,conclusion?.description,...events.map((event)=>event.title)].join(" ");
+      const forbidden=arcId==="talent"?/Supernova|Prodige/i:arcId==="marineford"?/Marineford|forteresse/i:/VS Empereur/i;
+      return [arcId,{label,asset:getLegendaryArcAsset(arcId,game)?.path||null,eventCount:events.length,titleId:getLegendaryArcTitleId(arcId,game),pass:text.includes(label)&&!forbidden.test(text)}];
+    }));
+    return {pass:Object.values(rows).every((row)=>row.pass),rows};
+  }
+  window.BLUE_LEGACY_ROGER_LEGENDARY_PRESENTATION_AUDIT=runRogerLegendaryPresentationAudit();
+
   const LEGENDARY_FINAL_CHANCES = Object.freeze({
+    davy: Object.freeze({ two: 1, one: 0 }),
     talent: Object.freeze({ two: 0.84, one: 0.32 }),
+    "impel-down": Object.freeze({ two: 0.78, one: 0.24 }),
     marineford: Object.freeze({ two: 0.78, one: 0.24 }),
+    warlord: Object.freeze({ two: 0.76, one: 0.22 }),
     emperor: Object.freeze({ two: 0.70, one: 0.16 }),
+    admiral: Object.freeze({ two: 0.70, one: 0.16 }),
   });
 
   function recordLegendaryArcPerformance(event, outcome, choice, resolutionId, game = state.game) {
@@ -5805,16 +6782,54 @@
       arc.performance = rebuildLegacyArcPerformance(arcId, game);
     }
     const titleId = getLegendaryArcTitleId(arcId, game);
-    const requiredConditionsMet = Boolean(titleId);
+    const storyArc = game.runMode === "story" && game.storyId === "roger";
+    const requiredConditionsMet = storyArc || Boolean(titleId);
+    const davyWins = arc.performance.entries.filter((entry) =>
+      ["success", "exceptional_success"].includes(entry.tier)).length;
     const chance = requiredConditionsMet
-      ? calculateLegendaryFinalChance(arcId, arc.performance)
+      ? arcId === "davy" ? (davyWins >= 2 ? 1 : 0) : calculateLegendaryFinalChance(arcId, arc.performance)
       : 0;
-    const roll = arc.performance.finalRoll ?? random();
+    const roll = arcId === "davy" ? 0 : arc.performance.finalRoll ?? random();
     arc.performance.finalChance = chance;
     arc.performance.finalRoll = roll;
     arc.performance.requiredConditionsMet = requiredConditionsMet;
-    const earned = requiredConditionsMet && roll < chance;
-    if (earned && titleId) {
+    const earned = requiredConditionsMet && (arcId === "davy" ? davyWins >= 2 : roll < chance);
+    if (earned && storyArc) {
+      arc.status = "succeeded";
+      arc.result = "story-success";
+      if (titleId) {
+        unlockTitle(titleId, null, game, false);
+        arc.titleId = titleId;
+        if (!arc.titleRevealShown) {
+          const title = game.runTitles.find((item) => getDataId(item) === titleId);
+          const sourceResolutionId = `${game.id}:legendary:${arcId}:title:${titleId}`;
+          queueRewardReveal({ type: "title", data: cloneData(title) }, game, {
+            resolutionId: sourceResolutionId,
+            eventId: `story-${game.storyId}-legendary-${arcId}-3`,
+          });
+          const reveal = game.pendingRewardReveals?.find((item) =>
+            item.type === "title" && item.id === titleId &&
+            item.sourceResolutionId === sourceResolutionId);
+          if (reveal) {
+            reveal.legendaryArcId = arcId;
+            arc.titleRevealPending = true;
+          }
+        }
+      }
+      if (arcId === "emperor") {
+        const oden = window.BLUE_LEGACY_STORY_DATA?.roger?.companions
+          ?.find((member) => member.id === "roger-oden");
+        if (oden && recruitCrewMember(oden, game, false)) {
+          queueCompanionDialogue(oden, "companion-join", game);
+        }
+        game.flags.storyOdenJoined = Boolean(oden && game.crewMembers.some((member) => member.id === oden.id));
+      }
+      if (["talent", "marineford", "emperor"].every(
+        (storyArcId) => game.legendaryArcs?.[storyArcId]?.status === "succeeded",
+      )) {
+        unlockTitle("story-roger-legend-among-legends", null, game, false);
+      }
+    } else if (earned && titleId) {
       unlockTitle(titleId, null, game, false);
       arc.titleId = titleId;
       arc.status = "succeeded";
@@ -5826,7 +6841,7 @@
           game,
           {
             resolutionId: sourceResolutionId,
-            eventId: `legendary-${arcId}-${getDataId(game.character?.faction)}-3`,
+            eventId: `legendary-${arcId}-${arcId === "admiral" ? arc.admiralId : getDataId(game.character?.faction)}-3`,
           },
         );
         const reveal = game.pendingRewardReveals?.find((item) =>
@@ -5844,7 +6859,7 @@
     }
     arc.step = 3;
     arc.completedAtMonth = game.month;
-    arc.result = earned ? "title-earned" : arc.status === "failed" ? "failed" : "survived";
+    arc.result = earned ? (storyArc ? "story-success" : "title-earned") : arc.status === "failed" ? "failed" : "survived";
     debugResolution("legendary-final", {
       arcId,
       entries: cloneData(arc.performance.entries),
@@ -5859,7 +6874,33 @@
     return earned;
   }
 
+  function getStoryLegendaryConclusionCopy(arcId, game = state.game) {
+    if (game?.runMode !== "story" || game?.storyId !== "roger") return null;
+    const completed = game?.legendaryArcs?.[arcId]?.status === "completed-no-title";
+    if (arcId === "talent") return {
+      title: "GOD VALLEY DISPARAÎT",
+      description: completed
+        ? "À God Valley, Roger et Garp ont brisé l’assaut de Rocks D. Xebec sans parvenir à transformer ce combat en triomphe personnel. L’île disparaît, mais l’équipage reprend la mer ensemble."
+        : "À God Valley, la manœuvre contre Rocks D. Xebec échoue et menace d’emporter l’équipage. L’intervention de Garp ouvre finalement à Roger une retraite arrachée au chaos avant la disparition de l’île.",
+    };
+    if (arcId === "marineford") return {
+      title: "EDD WAR S’ACHÈVE DANS LA TEMPÊTE",
+      description: completed
+        ? "La tempête bouleverse Edd War et l’Oro Jackson rompt l’encerclement de Shiki. Roger échappe au Lion d’Or au prix de lourds dégâts, sans avoir réellement dominé la confrontation."
+        : "La manœuvre choisie échoue et Edd War devient incontrôlable. La tempête et l’équipage sauvent finalement l’Oro Jackson de l’encerclement de Shiki, mais le Lion d’Or conserve l’avantage du conflit.",
+    };
+    if (arcId === "emperor") return {
+      title: "LES DEUX ÉQUIPAGES SE SÉPARENT",
+      description: completed
+        ? "Le choc avec Barbe Blanche s’achève sans vainqueur incontestable. Oden choisit la route de Roger, puis les deux équipages se séparent dans un respect mêlé de blessures."
+        : "L’affrontement contre Barbe Blanche tourne clairement en défaveur de Roger. Oden et les deux équipages empêchent le choc de devenir un désastre, avant une séparation lourde de conséquences.",
+    };
+    return null;
+  }
+
   function getLegendaryConclusionCopy(arcId, game = state.game) {
+    const storyConclusion = getStoryLegendaryConclusionCopy(arcId, game);
+    if (storyConclusion) return storyConclusion;
     const faction = getDataId(game?.character?.faction) || "pirate";
     const factionEnding = {
       pirate: "Tu préserves ton équipage et ton pavillon avant de reprendre la mer.",
@@ -5881,6 +6922,13 @@
       return {
         title: "LA BATAILLE S’ACHÈVE",
         description: `Malgré tes efforts, ta mission dans la forteresse ne suffit pas à inscrire ton nom dans la légende de Marineford. ${factionEnding}`,
+      };
+    }
+    if (arcId === "admiral") {
+      const opponent = LEGENDARY_ADMIRALS[game?.legendaryArcs?.admiral?.admiralId];
+      return {
+        title: "LA RÉVOLUTION TIENT DEBOUT",
+        description: `L’opération échappe finalement à ${opponent?.name || "l’Amiral"}, mais sans imposer l’exploit qui aurait consacré cette confrontation. Les civils sauvés et les cellules préservées reprennent la route avant l’arrivée des renforts de la Marine.`,
       };
     }
     const emperor = LEGENDARY_EMPEROR_NAMES[game?.legendaryArcs?.emperor?.emperorId] || "L’Empereur";
@@ -5991,6 +7039,13 @@
   function prepareFinalCareerScoring(game = state.game) {
     if (!game?.bossProgress?.finalOutcome || Number(game.month) < CONFIG.maxMonths) return null;
     const ending = createBossFinalEnding(game);
+    if (hasFrozenFinalPopularity(game)) {
+      return {
+        ending,
+        finalTitle: game.preparedFinalTitle,
+        popularity: clampCareerScore(game.finalPopularityScore),
+      };
+    }
     refreshPopularityScore(game);
     let finalTitle = game.preparedFinalTitle;
     if (!finalTitle) {
@@ -6002,6 +7057,8 @@
     }
     refreshPopularityScore(game);
     game.finalPopularityScore = clampCareerScore(game.stats.popularity);
+    game.stats.popularity = game.finalPopularityScore;
+    game.popularityScore = game.finalPopularityScore;
     return {
       ending,
       finalTitle: game.preparedFinalTitle,
@@ -6018,11 +7075,15 @@
     if (finalOutcome.factionId && finalOutcome.factionId !== game.character?.faction) return false;
     if (game.pendingZoneTransition?.reason === "dream-failure-conclusion" &&
         game.pendingZoneTransition.resolutionId === resolutionId) return false;
+    const presentation = getConclusionPresentation(game, false);
     game.pendingZoneTransition = {
       ...createZoneTransitionData(zone, game.currentZoneIndex, "dream-failure-conclusion", game),
-      ...getFinalDreamFailureCopy(game),
+      ...(presentation.type === "dream" ? getFinalDreamFailureCopy(game) : {
+        id: "final-story-ending-failure", icon: "◇", title: presentation.label,
+        description: presentation.description,
+      }),
       resolutionId,
-      eyebrow: "DERNIÈRE ÉPREUVE",
+      eyebrow: presentation.type === "heritage" ? "CONCLUSION DE L’HISTOIRE" : "DERNIÈRE ÉPREUVE",
       buttonLabel: "Découvrir la fin de ma carrière",
     };
     return true;
@@ -6037,11 +7098,14 @@
     if (finalOutcome.factionId && finalOutcome.factionId !== game.character?.faction) return false;
     if (game.pendingZoneTransition?.reason === "dream-success-conclusion" &&
         game.pendingZoneTransition.resolutionId === resolutionId) return false;
+    const presentation = getConclusionPresentation(game, true);
     game.pendingZoneTransition = {
       ...createZoneTransitionData(zone, game.currentZoneIndex, "dream-success-conclusion", game),
-      id: "final-dream-success",
-      title: DREAM_CONCLUSION_ASSETS.success.label,
-      description: finalOutcome.result || "Ton rêve est désormais accompli.",
+      id: presentation.type === "heritage" ? "final-story-ending-success" : "final-dream-success",
+      icon: presentation.type === "heritage" ? "✦" : undefined,
+      title: presentation.label,
+      description: presentation.description || finalOutcome.result || "Ton rêve est désormais accompli.",
+      eyebrow: presentation.type === "heritage" ? "CONCLUSION DE L’HISTOIRE" : undefined,
       resolutionId,
       buttonLabel: game.pendingRewardReveals?.length
         ? "Découvrir mon Titre"
@@ -6051,6 +7115,9 @@
   }
 
   function getBossEvents() {
+    if (state.game?.runMode === "story" && state.game?.storyId) {
+      return (window.BLUE_LEGACY_STORY_DATA?.[state.game.storyId]?.decisiveEvents || []).map(normalizeEvent);
+    }
     const catalog = Array.isArray(window.BLUE_LEGACY_DECISIVE_EVENTS)
       ? window.BLUE_LEGACY_DECISIVE_EVENTS
       : window.SEA_OF_LEGENDS_BOSS_EVENTS;
@@ -6084,7 +7151,9 @@
     const eligible = catalog.filter((event) =>
       event.decisiveStage === catalogTier &&
       event.dreamIds.includes(dreamId) &&
-      (!event.factions.length || event.factions.includes(faction)));
+      (!event.factions.length || event.factions.includes(faction)) &&
+      areLoreCharactersAvailable(game, event.loreCharacters,
+        { allowCrew: event.allowCrewLoreCharacters }));
     const selected = getWeightedRandomItem(
       eligible,
       (event) => 1 / (1 + getSeenBossCount(event.id) * 0.55),
@@ -6096,7 +7165,9 @@
   }
 
   function localizeBossEvent(event, zone, stage = event?.decisiveStage || event?.bossTier || 1) {
-    const localized = cloneData(event);
+    // La normalisation produit une copie tout en conservant les fonctions de
+    // condition des issues Haki, contrairement à une copie JSON.
+    const localized = normalizeEvent(event);
     const zoneName = zone?.name || "cette mer";
     localized.id = `${localized.id}-stage-${stage}`;
     localized.title = localized.title.replace(
@@ -6149,7 +7220,10 @@
       return false;
     }
 
-    const boss = localizeBossEvent(selected, zone, tier);
+    const savedVariantId = game.bossProgress.selectedBossVariantIds?.[tier] || null;
+    const selectedVariant = materializeSelectedEventVariant(selected, game, savedVariantId);
+    game.bossProgress.selectedBossVariantIds[tier] = selectedVariant.variantId || "base";
+    const boss = localizeBossEvent(selectedVariant, zone, tier);
     if (tier === 2 && boss.tags?.includes("haki-awakening")) {
       // Verrouillé avant l'affichage et avant toute récompense de l'étape 2.
       game.flags.secondDecisiveHakiBranch =
@@ -6182,6 +7256,11 @@
   }
 
   function getAllEvents() {
+    if (state.game?.runMode === "story" && state.game?.storyId) {
+      return (window.BLUE_LEGACY_STORY_DATA?.[state.game.storyId]?.events || [])
+        .map((event) => localizeStoryEventText(event, state.game))
+        .map(normalizeEvent);
+    }
     const sources = [
       window.SEA_OF_LEGENDS_EVENTS,
       window.GAME_EVENTS,
@@ -6194,6 +7273,35 @@
     return source
       .filter(Boolean)
       .map(normalizeEvent);
+  }
+
+  function localizeStoryEventText(event, game = state.game) {
+    if (event?.storySignatureEncounter && game) {
+      const signatureId = String(event.storySignatureEncounter);
+      const flagId = `story${signatureId[0].toUpperCase()}${signatureId.slice(1)}EncounterScheduled`;
+      if (game.flags?.[flagId] !== true) return { ...event, condition: () => false, mandatory: false };
+      event = { ...event, mandatory: true, priority: 100 };
+    }
+    const rule = event?.storyCrewText;
+    if (!rule?.memberId || !game) return event;
+    const present = (game.crewMembers || []).some((member) =>
+      (member?.id || member) === rule.memberId);
+    const choiceTexts = present ? rule.presentChoices : rule.absentChoices;
+    return {
+      ...event,
+      description: present
+        ? rule.presentDescription || event.description
+        : rule.absentDescription || event.description,
+      introDialogue: present
+        ? rule.presentIntroDialogue || event.introDialogue
+        : rule.absentIntroDialogue || event.introDialogue,
+      choices: Array.isArray(choiceTexts)
+        ? (event.choices || []).map((choice, index) => ({
+            ...choice,
+            text: choiceTexts[index] || choice.text,
+          }))
+        : event.choices,
+    };
   }
 
   function getReverseMountainTemperamentEvent() {
@@ -6230,6 +7338,9 @@
     const eventType = normalizeEventType(event || {});
     return {
       id,
+      ...(event?.eventType === "decisive" && event?.variantId
+        ? { variantId: event.variantId }
+        : {}),
       title: event?.title || event?.name || "Événement",
       description:
         event?.description ||
@@ -6306,10 +7417,33 @@
       decisiveStage: Number(event?.decisiveStage || event?.bossTier) || null,
       dreamIds: uniqueArray(event?.dreamIds || []),
       loreCharacters: uniqueArray(event?.loreCharacters || []),
+      storySignatureEncounter: event?.storySignatureEncounter || null,
+      allowCrewLoreCharacters: event?.allowCrewLoreCharacters === true,
       decisiveKind: event?.decisiveKind || event?.bossType || "",
       intro: event?.intro || "",
       introDialogue: cloneData(event?.introDialogue || null),
       conclusionDialogue: cloneData(event?.conclusionDialogue || null),
+      variants: Array.isArray(event?.variants)
+        ? event.variants.filter(Boolean).map((variant, variantIndex) => ({
+            id: variant?.id || `variant-${variantIndex + 1}`,
+            title: variant?.title || "",
+            description: variant?.description || variant?.text || "",
+            introDialogue: cloneData(variant?.introDialogue || null),
+            conclusionDialogue: cloneData(variant?.conclusionDialogue || null),
+            loreCharacters: uniqueArray(variant?.loreCharacters || []),
+            allowCrewLoreCharacters: variant?.allowCrewLoreCharacters === true,
+            zones: uniqueArray(variant?.zones || []),
+            zoneTypes: uniqueArray(variant?.zoneTypes || []),
+            zoneTags: uniqueArray(variant?.zoneTags || []),
+            requiredFlags: { ...(variant?.requiredFlags || {}) },
+            forbiddenFlags: uniqueArray(variant?.forbiddenFlags || []),
+            requiresFruit: typeof variant?.requiresFruit === "boolean" ? variant.requiresFruit : null,
+            minRouteStage: Number(variant?.minRouteStage) || null,
+            maxRouteStage: Number(variant?.maxRouteStage) || null,
+            weight: Math.max(0, Number(variant?.weight) || 1),
+            choices: Array.isArray(variant?.choices) ? cloneData(variant.choices) : [],
+          }))
+        : [],
       noActionCost: Boolean(event?.noActionCost),
       rarity: event?.rarity || "common",
 
@@ -6325,6 +7459,80 @@
         ? event.choices.map(normalizeChoice)
         : [],
     };
+  }
+
+  function getEligibleEventVariants(event, game = state.game) {
+    if (!event) return [];
+    const zone = getCurrentZone(game);
+    const stage = Number(zone?.routeStage) || Number(game?.currentZoneIndex) + 1 || 1;
+    const alternatives = (event.variants || []).filter((variant) =>
+      (!variant.zones?.length || variant.zones.includes(zone?.id)) &&
+      (!variant.zoneTypes?.length || variant.zoneTypes.includes(zone?.type)) &&
+      (!variant.zoneTags?.length || variant.zoneTags.some((tag) => zone?.tags?.includes(tag))) &&
+      (!variant.minRouteStage || stage >= variant.minRouteStage) &&
+      (!variant.maxRouteStage || stage <= variant.maxRouteStage) &&
+      (variant.requiresFruit === null || Boolean(game?.character?.devilFruit) === variant.requiresFruit) &&
+      areLoreCharactersAvailable(game, variant.loreCharacters,
+        { allowCrew: variant.allowCrewLoreCharacters || event.allowCrewLoreCharacters }) &&
+      checkRequiredFlags(variant.requiredFlags || {}, game?.flags || {}) &&
+      !(variant.forbiddenFlags || []).some((flagId) => game?.flags?.[flagId]),
+    );
+    return [{ id: "base", weight: 1, base: true }, ...alternatives];
+  }
+
+  function selectEventVariant(event, game = state.game, preferredVariantId = null, random = Math.random) {
+    const variants = getEligibleEventVariants(event, game);
+    if (!variants.length) return { id: "base", weight: 1, base: true };
+    if (preferredVariantId) {
+      return variants.find((variant) => variant.id === preferredVariantId) || variants[0];
+    }
+    const recent = new Set((game?.recentEventVariants || []).slice(-6));
+    const fresh = variants.filter((variant) => !recent.has(`${event.id}:${variant.id}`));
+    const pool = fresh.length ? fresh : variants;
+    const total = pool.reduce((sum, variant) => sum + Math.max(0, Number(variant.weight) || 1), 0);
+    let roll = random() * total;
+    return pool.find((variant) => ((roll -= Math.max(0, Number(variant.weight) || 1)) <= 0)) || pool.at(-1);
+  }
+
+  function applyEventVariant(event, variant, game = state.game) {
+    const base = normalizeEvent(event);
+    const selected = variant || { id: "base", base: true };
+    const materialized = base;
+    materialized.variantId = selected.id || "base";
+    if (!selected.base) {
+      if (selected.title) materialized.title = selected.title;
+      if (selected.description) materialized.description = selected.description;
+      if (selected.introDialogue) materialized.introDialogue = cloneData(selected.introDialogue);
+      if (selected.conclusionDialogue) materialized.conclusionDialogue = cloneData(selected.conclusionDialogue);
+      if (selected.loreCharacters?.length) materialized.loreCharacters = uniqueArray(selected.loreCharacters);
+      (selected.choices || []).forEach((variantChoice, choiceIndex) => {
+        const target = variantChoice?.id
+          ? materialized.choices.find((choice) => choice.id === variantChoice.id)
+          : materialized.choices[choiceIndex];
+        if (!target) return;
+        if (variantChoice.text) target.text = variantChoice.text;
+        if (variantChoice.hint) target.hint = variantChoice.hint;
+        if (variantChoice.choiceTag) target.choiceTag = variantChoice.choiceTag;
+        (variantChoice.outcomes || []).forEach((variantOutcome, outcomeIndex) => {
+          const outcome = variantOutcome?.id
+            ? target.outcomes.find((candidate) => candidate.id === variantOutcome.id)
+            : target.outcomes[outcomeIndex];
+          if (outcome && variantOutcome.result) outcome.result = variantOutcome.result;
+        });
+      });
+    }
+    materialized.variants = [];
+    if (game) {
+      game.recentEventVariants ||= [];
+      game.recentEventVariants.push(`${materialized.id}:${materialized.variantId}`);
+      game.recentEventVariants = game.recentEventVariants.slice(-12);
+    }
+    return materialized;
+  }
+
+  function materializeSelectedEventVariant(event, game = state.game, preferredVariantId = null, random = Math.random) {
+    if (!event || event.eventType !== "decisive" || game?.runMode === "story" || !event.variants?.length) return normalizeEvent(event);
+    return applyEventVariant(event, selectEventVariant(event, game, preferredVariantId, random), game);
   }
 
   function normalizeChoice(choice, index = 0) {
@@ -6662,8 +7870,11 @@
     const stageDifficulty = event?.eventType === "decisive"
       ? Math.max(0, (Number(event.decisiveStage) || 1) - 1) * 1.25
       : Math.max(0, (Number(getCurrentZone(game)?.routeStage) || 1) - 1) * 0.75;
-    const shopBonus = event?.eventType === "ordinary" && game?.activeShopItems?.includes("eternal-pose")
+    const shopBonus = event?.eventType === "ordinary" && hasActiveShopItem(game, "eternal-pose")
       ? Number(findShopItem("eternal-pose")?.ordinaryResolutionBonus) || 5
+      : 0;
+    const hakiAwakeningBonus = getHakiEventStage(event) && hasActiveShopItem(game, "binks-sake")
+      ? Number(findShopItem("binks-sake")?.hakiAwakeningResolutionBonus) || 7
       : 0;
     const dBonus = game?.character?.hasD && ["ordinary", "risk", "decisive", "legendary"].includes(event?.eventType)
       ? CONFIG.dResolutionBonus
@@ -6673,7 +7884,7 @@
       !String(choice?.id || "").endsWith("-sovereign")
       ? 5
       : 0;
-    return Math.max(1, Math.min(100, base - typeDifficulty - stageDifficulty + shopBonus + dBonus + firstAwakeningBonus));
+    return Math.max(1, Math.min(100, base - typeDifficulty - stageDifficulty + shopBonus + hakiAwakeningBonus + dBonus + firstAwakeningBonus));
   }
 
   function getOutcomeTierProbabilities(game = state.game, event = null, choice = null) {
@@ -6777,6 +7988,11 @@
 
     const character = game.character;
     const zone = getCurrentZone(game);
+
+    if (!areLoreCharactersAvailable(game, event.loreCharacters,
+      { allowCrew: event.allowCrewLoreCharacters })) {
+      return false;
+    }
 
     if (
       event.unique &&
@@ -7055,6 +8271,13 @@
     const available = getAvailableEvents(game).filter((event) =>
       ["ordinary", "risk"].includes(event.eventType));
     const lastType = game.flags?.lastNarrativeEventType || game.periodEvents?.at(-1)?.eventType || null;
+    const signatureCompanions = available.filter((event) =>
+      event.mandatory && event.tags?.includes("signature-companion"));
+    if (game.runMode === "story" && signatureCompanions.length) {
+      const selected = selectEvent(signatureCompanions);
+      if (selected) game.flags.lastNarrativeEventType = selected.eventType;
+      return selected;
+    }
     if (!available.length) {
       const zone = getCurrentZone(game);
       const lastEventId = game.periodEvents?.at(-1)?.eventId || null;
@@ -7062,6 +8285,8 @@
         ["ordinary", "risk"].includes(event.eventType) &&
         !(lastType === "risk" && event.eventType === "risk") &&
         game.seenEvents.includes(event.id) && event.id !== lastEventId &&
+        areLoreCharactersAvailable(game, event.loreCharacters,
+          { allowCrew: event.allowCrewLoreCharacters }) &&
         (!event.factions.length || event.factions.includes(game.character?.faction)) &&
         (!event.zones.length || event.zones.includes(zone?.id)) &&
         (!event.zoneTypes.length || event.zoneTypes.includes(zone?.type)) &&
@@ -7079,6 +8304,8 @@
         const reusableOrdinary = getAllEvents().filter((event) =>
           event.eventType === "ordinary" &&
           game.seenEvents.includes(event.id) && event.id !== lastEventId &&
+          areLoreCharactersAvailable(game, event.loreCharacters,
+            { allowCrew: event.allowCrewLoreCharacters }) &&
           (!event.factions.length || event.factions.includes(game.character?.faction)) &&
           (!event.zones.length || event.zones.includes(zone?.id)) &&
           (!event.zoneTypes.length || event.zoneTypes.includes(zone?.type)) &&
@@ -7184,12 +8411,16 @@
     if (member.zones?.length && !member.zones.includes(zoneId)) return false;
     if (!checkRequiredFlags(member.requiredFlags || {}, game?.flags || {})) return false;
     if ((member.forbiddenFlags || []).some((flag) => game?.flags?.[flag])) return false;
+    if (!isCanonicalCharacterAvailable(game, member)) return false;
+    if (getLockedExternalCharacterIds(game).has(canonicalCharacterIdFromName(member))) return false;
     return true;
   }
 
   function createFruitSurpriseEvent(game = state.game) {
-    if (!game || game.character?.devilFruit || game.flags.fruitSurpriseTriggered) return null;
-    const offers = pickDistinctOffers(window.GAME_DATA?.devilFruits || []);
+    if (!game || game.runMode === "story" || game.character?.devilFruit || game.flags.fruitSurpriseTriggered) return null;
+    const compatibleFruits = (window.GAME_DATA?.devilFruits || [])
+      .filter((fruit) => isFruitCompatibleWithCurrentRun(game, fruit.id));
+    const offers = pickDistinctOffers(compatibleFruits);
     if (offers.length !== 2) return null;
     game.flags.fruitSurpriseTriggered = true;
     return normalizeEvent({
@@ -7220,9 +8451,13 @@
     if (!game) return null;
     const lastMonth = Number(game.flags.lastRecruitmentMonth) || 0;
     if (lastMonth && game.month - lastMonth < 4) return null;
-    const catalog = (game.character?.faction === "marine"
+    const storyCatalog = game.runMode === "story" && game.storyId
+      ? window.BLUE_LEGACY_STORY_DATA?.[game.storyId]?.companions || []
+      : null;
+    const catalog = (storyCatalog || (game.character?.faction === "marine"
       ? window.GAME_DATA?.marineRecruitments || []
-      : window.GAME_DATA?.crewRecruitments || [])
+      : window.GAME_DATA?.crewRecruitments || []))
+      .filter((member) => member.randomRecruitment !== false)
       .filter((member) => isRecruitmentEligible(member, game));
     const offers = pickDistinctOffers(catalog, (game.crewMembers || []).map((member) => member.id));
     if (offers.length !== 2) return null;
@@ -7256,7 +8491,8 @@
 
   function selectSurpriseEvent(game = state.game) {
     if (!game || game.currentAction > 0) return null;
-    const chestActive = game.activeShopItems?.includes("chest");
+    if (game.runMode === "story" && getAvailableEvents(game).some((event) => event.mandatory)) return null;
+    const chestActive = hasActiveShopItem(game, "chest");
     if (game.month === 1 && chestActive && !game.character?.devilFruit &&
         !game.shopEffects?.chestConsumed) {
       const fruitEvent = createFruitSurpriseEvent(game);
@@ -7273,16 +8509,17 @@
     // Les surprises restent minoritaires : une tentative seulement au début du mois.
     const routeStage = Number(getCurrentZone(game)?.routeStage) || 1;
     const fruitChance = Math.min(0.065, 0.03 + routeStage * 0.006);
-    if (!game.character?.devilFruit && !game.flags.fruitSurpriseTriggered && Math.random() < fruitChance) {
+    if (game.runMode !== "story" && !game.character?.devilFruit && !game.flags.fruitSurpriseTriggered && Math.random() < fruitChance) {
       return createFruitSurpriseEvent(game);
     }
     const lastType = game.periodEvents?.at(-1)?.eventType || null;
-    const recruitmentMultiplier = game.activeShopItems?.includes("vivre-card")
+    const recruitmentMultiplier = hasActiveShopItem(game, "vivre-card")
       ? Number(findShopItem("vivre-card")?.recruitmentWeightMultiplier) || 1.6
       : 1;
+    const storyRecruitmentMultiplier = game.runMode === "story" ? 1.65 : 1;
     const recruitmentChance = lastType === "surprise-recruit"
       ? 0
-      : Math.min(0.16, (0.055 + routeStage * 0.007) * recruitmentMultiplier);
+      : Math.min(game.runMode === "story" ? 0.24 : 0.16, (0.055 + routeStage * 0.007) * recruitmentMultiplier * storyRecruitmentMultiplier);
     if (Math.random() < recruitmentChance) return createRecruitmentSurpriseEvent(game);
     return null;
   }
@@ -7300,7 +8537,7 @@
       selectNarrativeEvent(game) ||
       createFallbackEvent();
 
-    const localized = localizeSpecialZoneEvent(selected, game);
+    const localized = localizeSpecialZoneEvent(normalizeEvent(selected), game);
 
     game.currentEvent = localized;
     game.currentEventId = localized.id;
@@ -7330,8 +8567,9 @@
       return false;
     }
 
-    if (game.flags?.deferredZoneTransitionAfterArc === "marineford" &&
-        ["succeeded", "failed", "completed-no-title", "not-selected"].includes(game.legendaryArcs?.marineford?.status)) {
+    const deferredArcId = game.flags?.deferredZoneTransitionAfterArc;
+    if (deferredArcId &&
+        ["succeeded", "failed", "completed-no-title", "not-selected"].includes(game.legendaryArcs?.[deferredArcId]?.status)) {
       delete game.flags.deferredZoneTransitionAfterArc;
       return openZoneTransition(getCurrentZone(game), game.currentZoneIndex, "zone-change");
     }
@@ -7456,6 +8694,11 @@
         }
       }
       const earnedLegendaryTitle = finalizeLegendaryArc(legendaryArcId, game);
+      if (game.pendingDialogue?.kind === "companion-join") {
+        saveGame();
+        openScreen(SCREEN.DIALOGUE, { save: false });
+        return true;
+      }
       if (earnedLegendaryTitle && game.legendaryArcs?.[legendaryArcId]?.titleRevealPending) {
         saveGame();
         openScreen(SCREEN.REWARD_REVEAL, { save: false });
@@ -7511,10 +8754,11 @@
     const finishedMonth = game.month;
     const bossTier = getBossTierForFinishedMonth(finishedMonth);
 
-    if (bossTier === 3) {
-      const emperor = game.legendaryArcs?.emperor;
-      if (emperor?.status === "unassessed") evaluateLegendaryArc("emperor", game);
-      if (["selected", "in-progress"].includes(emperor?.status) && startLegendaryArc("emperor", game)) {
+    if (bossTier === 3 && game.runMode === "classic") {
+      const finalArcId = getFinalClassicLegendaryArcId(game);
+      const finalArc = game.legendaryArcs?.[finalArcId];
+      if (finalArc?.status === "unassessed") evaluateLegendaryArc(finalArcId, game);
+      if (["selected", "in-progress"].includes(finalArc?.status) && startLegendaryArc(finalArcId, game)) {
         return true;
       }
     }
@@ -7658,6 +8902,7 @@
       game,
     );
     recordLegendaryArcPerformance(event, outcome, choice, resolutionId, game);
+    queueDavyCompanionChoice(event, outcome, resolutionId, game);
     recordHakiDecisivePerformance(event, outcome, choice, resolutionId, game);
     const outcomeNarrative = getOutcomeNarrative(outcome, choice, event);
     const statsBefore = getStatsSnapshot(game.stats);
@@ -7677,7 +8922,9 @@
         ignoreDiminishingReturns: Boolean(outcome.ignoreDiminishingReturns),
       },
     );
-    ensureOutcomeStatVariation(event, choice, outcome, intendedEffects, statsBefore, game);
+    if (event.legendaryArc !== "davy") {
+      ensureOutcomeStatVariation(event, choice, outcome, intendedEffects, statsBefore, game);
+    }
     applyChoiceFlags(outcome, game, { event });
     if (
       (outcome.resolvedOutcomeTier || outcome.outcomeTier) === "severe_failure" ||
@@ -7717,6 +8964,7 @@
           survived: Number(game.stats.health) > 0,
           outcomeTier: outcome.outcomeTier || inferOutcomeTier(outcome),
           careerReadiness: cloneData(outcome.finalDreamResolution || null),
+          conclusionType: getStoryEndingConfig(game)?.type || "dream",
         };
       }
     }
@@ -7746,6 +8994,7 @@
       id: createUniqueId("event-record"),
       resolutionId,
       eventId: event.id,
+      ...(event.eventType === "decisive" && event.variantId ? { variantId: event.variantId } : {}),
       title: event.title,
       description: event.description,
       choiceId: choice.id,
@@ -7773,6 +9022,7 @@
       legendaryArc: event.legendaryArc || null,
       legendaryStep: event.legendaryStep || null,
       emperorId: event.emperorId || null,
+      admiralId: event.admiralId || null,
       decisiveStage: event.decisiveStage || null,
       eventType: event.eventType,
       resolutionCategory: event.resolutionCategory,
@@ -7809,6 +9059,7 @@
     game.pendingResult = {
       resolutionId,
       eventId: event.id,
+      ...(event.eventType === "decisive" && event.variantId ? { variantId: event.variantId } : {}),
       eventTitle: event.title,
       choiceId: choice.id,
       choiceText: choice.text,
@@ -8143,6 +9394,8 @@
         title: null,
         success: false,
         dreamCompleted: false,
+        conclusionType: "dream",
+        conclusionLabel: null,
       };
     }
 
@@ -8155,6 +9408,8 @@
       title: ending?.title || null,
       success: Boolean(ending?.success),
       dreamCompleted: Boolean(ending?.dreamCompleted),
+      conclusionType: ending?.conclusionType || "dream",
+      conclusionLabel: ending?.conclusionLabel || null,
     };
   }
 
@@ -8379,7 +9634,8 @@
     const stableSeed = `${game?.id || game?.character?.id || "run"}-${entry.period || stage}`;
     const periodCharacters = new Set(getLogbookEvents(entry).flatMap((event) => event.loreCharacters || []));
     const candidates = WORLD_NEWS_CATALOG
-      .filter((item) => item.stages.includes(stage) && !seen.has(item.id))
+      .filter((item) => item.stages.includes(stage) && !seen.has(item.id) &&
+        areLoreCharactersAvailable(game, item.loreCharacters))
       .sort((a, b) =>
         Number((a.loreCharacters || []).some((name) => periodCharacters.has(name))) -
           Number((b.loreCharacters || []).some((name) => periodCharacters.has(name))) ||
@@ -8955,7 +10211,25 @@
       return finishAdventure(automaticEnding);
     }
 
-    if (Number(game.month) === 13 && getCurrentZone(game)?.id === "red-line") {
+    if (game.runMode === "classic" && isImpelDownEligible(game)) {
+      const impel = game.legendaryArcs?.["impel-down"];
+      if (impel?.status === "unassessed") evaluateLegendaryArc("impel-down", game);
+      if (["selected", "in-progress"].includes(impel?.status)) {
+        game.flags.deferredZoneTransitionAfterArc = "impel-down";
+        return startLegendaryArc("impel-down", game);
+      }
+    }
+
+    if (game.runMode === "classic" && isWarlordArcEligible(game)) {
+      const warlord = game.legendaryArcs?.warlord;
+      if (warlord?.status === "unassessed") evaluateLegendaryArc("warlord", game);
+      if (["selected", "in-progress"].includes(warlord?.status)) {
+        game.flags.deferredZoneTransitionAfterArc = "warlord";
+        return startLegendaryArc("warlord", game);
+      }
+    }
+
+    if (game.runMode === "classic" && isMarinefordEligible(game)) {
       const marineford = game.legendaryArcs?.marineford;
       if (marineford?.status === "unassessed") evaluateLegendaryArc("marineford", game);
       if (["selected", "in-progress"].includes(marineford?.status)) {
@@ -8996,22 +10270,31 @@
     const outcomeMatchesCharacter =
       (!finalOutcome.dreamId || finalOutcome.dreamId === selectedDreamId) &&
       (!finalOutcome.factionId || finalOutcome.factionId === selectedFactionId);
+    const conclusion = getConclusionPresentation(game, Boolean(finalOutcome.dreamCompleted && outcomeMatchesCharacter));
     if (finalOutcome.dreamCompleted && outcomeMatchesCharacter) {
       return {
         type: "dreamCompleted",
-        destiny: `${finalOutcome.bossTitle} a conclu ta route. ${finalOutcome.result} Ton choix décisif — « ${finalOutcome.choiceText} » — accomplit ${dream?.label || "le rêve poursuivi"}.`,
+        destiny: conclusion.type === "heritage"
+          ? `${finalOutcome.bossTitle} a conclu ta route. ${finalOutcome.result} ${conclusion.description}`
+          : `${finalOutcome.bossTitle} a conclu ta route. ${finalOutcome.result} Ton choix décisif — « ${finalOutcome.choiceText} » — accomplit ${dream?.label || "le rêve poursuivi"}.`,
         title: dream?.ultimate || "Légende des mers",
         success: true,
         dreamCompleted: true,
+        conclusionType: conclusion.type,
+        conclusionLabel: conclusion.label,
       };
     }
 
     return {
       type: finalOutcome.survived ? "dreamUnfulfilled" : "death",
-      destiny: `${finalOutcome.bossTitle} a marqué la fin de ta route. ${finalOutcome.result} Ton rêve reste inachevé, mais cette dernière décision appartient désormais à ta légende.`,
-      title: finalOutcome.survived ? "Rêve inachevé" : "Dernier sacrifice",
+      destiny: conclusion.type === "heritage"
+        ? `${finalOutcome.bossTitle} a marqué la fin de ta route. ${finalOutcome.result} ${conclusion.description}`
+        : `${finalOutcome.bossTitle} a marqué la fin de ta route. ${finalOutcome.result} Ton rêve reste inachevé, mais cette dernière décision appartient désormais à ta légende.`,
+      title: finalOutcome.survived ? (conclusion.type === "heritage" ? conclusion.label : "Rêve inachevé") : "Dernier sacrifice",
       success: false,
       dreamCompleted: false,
+      conclusionType: conclusion.type,
+      conclusionLabel: conclusion.label,
     };
   }
 
@@ -9059,6 +10342,7 @@
       effects: cloneData(member.permanentEffects),
       obtainedAtMonth: game.month,
     });
+    replaceFutureIncompatibleSpecialZone(game);
     if (shouldSave) saveGame();
     return true;
   }
@@ -9108,11 +10392,11 @@
     game = state.game,
     shouldSave = true,
   ) {
-    if (!game?.character || !fruitData) {
+    if (!game?.character || !fruitData || game.runMode === "story") {
       return false;
     }
 
-    if (game.character.devilFruit) {
+    if (game.character.devilFruit || !isFruitCompatibleWithCurrentRun(game, getDataId(fruitData))) {
       return false;
     }
 
@@ -9133,6 +10417,8 @@
       fruit.permanentEffects,
       game.stats,
     );
+
+    replaceFutureIncompatibleSpecialZone(game);
 
     if (shouldSave) {
       saveGame();
@@ -9257,6 +10543,7 @@
   });
 
   const TITLE_CATEGORY_META = Object.freeze({
+    "story-roger": { label: "Mode Histoire › Gol D. Roger", icon: "📖" },
     ultimate: { label: "Titres ultimes", icon: "👑" },
     destiny: { label: "Destin", icon: "🌊" },
     piracy: { label: "Piraterie", icon: "🏴‍☠️" },
@@ -9265,9 +10552,13 @@
     revolution: { label: "Révolution", icon: "✊" },
     combat: { label: "Combat", icon: "⚔️" },
     haki: { label: "Hakis", icon: "👁️" },
+    davy: { label: "Davy Back Fight", icon: "🏁" },
     prodige: { label: "Prodige", icon: "◆" },
+    "impel-down": { label: "Impel Down", icon: "⛓️" },
     marineford: { label: "Marineford", icon: "⚓" },
+    warlord: { label: "Grand Corsaire", icon: "⚔️" },
     emperor: { label: "Empereur", icon: "👑" },
+    admiral: { label: "VS Amiral", icon: "⚓" },
     crew: { label: "Équipage", icon: "👥" },
     exploration: { label: "Exploration", icon: "🧭" },
     wealth: { label: "Richesse", icon: "💰" },
@@ -9283,14 +10574,31 @@
     "revolution",
     "combat",
     "haki",
+    "davy",
     "prodige",
+    "impel-down",
     "marineford",
+    "warlord",
     "emperor",
+    "admiral",
     "crew",
     "exploration",
     "wealth",
     "adventure",
+    "story-roger",
   ]);
+
+  function orderCollectionCategoriesWithStoriesLast(order, availableCategories) {
+    const available = new Set(availableCategories);
+    const ordered = uniqueArray([
+      ...order,
+      ...available,
+    ]).filter((category) => available.has(category));
+    return [
+      ...ordered.filter((category) => !String(category).startsWith("story-")),
+      ...ordered.filter((category) => String(category).startsWith("story-")),
+    ];
+  }
 
   function normalizeTitleCategory(category) {
     const aliases = {
@@ -9442,6 +10750,7 @@
     const catalog = stringCatalog || findTitleData(lookupId) || {};
     const source = { ...catalog, ...inline };
     const name =
+      catalog.name ||
       source.name ||
       source.label ||
       titleId ||
@@ -9453,16 +10762,18 @@
         titleId ||
         slugify(name),
       name,
-      femaleName: source.femaleName || window.BLUE_LEGACY_TITLE_FEMALE_NAMES?.[source.id || lookupId] || "",
+      femaleName: catalog.femaleName || window.BLUE_LEGACY_TITLE_FEMALE_NAMES?.[catalog.id || source.id || lookupId] || source.femaleName || "",
       description:
+        catalog.description ||
         source.description ||
         source.desc ||
         "",
       category:
         normalizeTitleCategory(catalog.category || source.category),
-      rarity: resolveTitleRarity(lookupId, inline),
-      careerScoreRarity: normalizeRarity(source.careerScoreRarity || source.rarity),
+      rarity: catalog.rarity ? normalizeRarity(catalog.rarity) : resolveTitleRarity(lookupId, inline),
+      careerScoreRarity: normalizeRarity(catalog.careerScoreRarity || source.careerScoreRarity || catalog.rarity || source.rarity),
       icon:
+        catalog.icon ||
         source.icon ||
         getRarityIcon(source.rarity),
       secret: Boolean(source.secret),
@@ -9850,7 +11161,7 @@
     if (!normalizedTitle.unlockReason) {
       normalizedTitle.unlockReason = game.currentEvent?.title
         ? `Obtenu après « ${game.currentEvent.title} ».`
-        : `Obtenu au mois ${Math.min(Number(game.month) || 1, CONFIG.maxMonths)}.`;
+        : `Obtenu ${game.runMode === "story" ? "à la période" : "au mois"} ${game.runMode === "story" ? getStoryPeriod(game) : Math.min(Number(game.month) || 1, CONFIG.maxMonths)}.`;
     }
     game.runTitles.push(normalizedTitle);
     applyTitleImmediateEffect(normalizedTitle, game);
@@ -9897,6 +11208,40 @@
       }
     });
     return unlocked;
+  }
+
+  function syncProvableStoryTitlesFromPantheon(profile = getProfile()) {
+    const storyTitles = getAllTitles().filter((title) =>
+      title?.runMode === "story" && typeof title.condition === "function",
+    );
+    if (!storyTitles.length || !profile?.pantheon?.length) return [];
+    const knownIds = new Set((profile.titles || []).map(getDataId));
+    const restored = [];
+    profile.pantheon.forEach((run) => {
+      if (run?.runMode !== "story" || !run?.storyId) return;
+      storyTitles.forEach((title) => {
+        const id = getDataId(title);
+        if (!id || knownIds.has(id)) return;
+        try {
+          if (!title.condition({ game: run })) return;
+          profile.titles.push({
+            ...normalizeTitleData(id, title),
+            firstUnlockedBy: {
+              characterName: run.name || run.character?.name || "Légende historique",
+              faction: run.faction || run.character?.faction || null,
+              adventureId: run.id || null,
+              unlockedAt: run.finishedAt || new Date().toISOString(),
+            },
+          });
+          knownIds.add(id);
+          restored.push(id);
+        } catch (error) {
+          console.warn(`[Blue Legacy] Rétroactivité impossible pour le titre "${id}".`, error);
+        }
+      });
+    });
+    if (restored.length) saveProfile(profile);
+    return restored;
   }
 
   /* ========================================================
@@ -9961,11 +11306,32 @@
     "has-d", "stat-at-least", "max-stat-at-least", "finished-stat-at-most",
     "zone-with-stat-at-most", "telemetry-at-least", "has-fruit",
     "finished-with-fruit", "unique-fruits", "zone-without-fruit",
-    "d-and-dream-completed", "titles-unlocked", "specific-titles-collected", "has-title", "has-any-title",
+    "d-and-dream-completed", "titles-unlocked", "specific-titles-collected", "title-collection", "has-title", "has-any-title",
     "legendary-companion-recruited", "shop-items-owned", "finished-with-shop-items",
     "finished-popularity", "legendary-arc-encountered", "legendary-arc-title",
-    "both-legendary-arcs", "three-legendary-arcs",
+    "both-legendary-arcs", "three-legendary-arcs", "davy-perfect",
+    "story-run-completed", "story-crew-members", "story-arcs", "story-flag",
+    "story-ending", "story-final-popularity",
   ]);
+
+  function getRequiredTitlesForCollection(condition = {}, catalog = getAllTitles()) {
+    const filter = condition.filter || {};
+    const toSet = (value) => new Set(uniqueArray(
+      Array.isArray(value) ? value : value ? [value] : [],
+    ));
+    const categories = toSet(filter.categories || filter.category);
+    const rarities = toSet(filter.rarities || filter.rarity);
+    const sourceTypes = toSet(filter.sourceTypes || filter.sourceType);
+    const explicitIds = uniqueArray(condition.titleIds || []);
+    const activeCatalog = (catalog || []).filter((title) => title?.active !== false);
+    const requiredTitles = explicitIds.length
+      ? explicitIds.map((id) => activeCatalog.find((title) => getDataId(title) === id)).filter(Boolean)
+      : activeCatalog.filter((title) =>
+        (!categories.size || categories.has(normalizeTitleCategory(title.category))) &&
+        (!rarities.size || rarities.has(normalizeRarity(title.rarity))) &&
+        (!sourceTypes.size || sourceTypes.has(title.sourceType)));
+    return uniqueArray(requiredTitles.map(getDataId));
+  }
 
   function getAchievementProgress(achievement, profile = getProfile(), game = state.game) {
     const condition = achievement?.condition || {};
@@ -9979,10 +11345,62 @@
     const visited = (run, zoneId) =>
       (run?.visitedZoneIds || []).includes(zoneId);
     const matchingRuns = (predicate) => runs.filter(predicate);
+    const storyRuns = (storyId) => runs.filter((run) =>
+      (run?.runMode === "story" || run?.character?.runMode === "story") &&
+      (run?.storyId || run?.character?.storyId) === storyId,
+    );
     let current = 0;
     let target = Number(condition.target) || 1;
 
     switch (condition.type) {
+      case "story-run-completed":
+        current = storyRuns(condition.storyId).some((run) =>
+          Boolean(run?.isFinished || run?.finishedAt || run?.endingType || run?.ending),
+        ) ? 1 : 0;
+        target = 1;
+        break;
+      case "story-crew-members": {
+        const requiredMemberIds = uniqueArray(condition.memberIds || []);
+        current = storyRuns(condition.storyId).some((run) => {
+          const memberIds = new Set((run?.crewMembers || []).map(getDataId));
+          return requiredMemberIds.every((memberId) => memberIds.has(memberId));
+        }) ? 1 : 0;
+        target = 1;
+        break;
+      }
+      case "story-arcs": {
+        const requiredArcIds = uniqueArray(condition.arcIds || []);
+        current = storyRuns(condition.storyId).some((run) => requiredArcIds.every((arcId) => {
+          const status = run?.legendaryArcs?.[arcId]?.status;
+          return condition.status === "succeeded"
+            ? status === "succeeded"
+            : Boolean(status && !["unassessed", "not-selected"].includes(status));
+        })) ? 1 : 0;
+        target = 1;
+        break;
+      }
+      case "story-flag":
+        current = storyRuns(condition.storyId).some((run) => run?.flags?.[condition.flag] === true) ? 1 : 0;
+        target = 1;
+        break;
+      case "story-ending":
+        current = storyRuns(condition.storyId).some((run) => {
+          const finished = run?.isFinished || run?.finishedAt || run?.endingType || run?.ending;
+          const completed = run?.dreamCompleted ?? run?.ending?.dreamCompleted;
+          return Boolean(finished) && Boolean(completed) === Boolean(condition.completed);
+        }) ? 1 : 0;
+        target = 1;
+        break;
+      case "story-final-popularity": {
+        const expected = Number(condition.target) || 100;
+        current = storyRuns(condition.storyId).some((run) => {
+          const finished = run?.isFinished || run?.finishedAt || run?.endingType || run?.ending;
+          const score = Number(run?.popularityScore ?? run?.stats?.popularity);
+          return Boolean(finished) && (condition.exact ? score === expected : score >= expected);
+        }) ? 1 : 0;
+        target = 1;
+        break;
+      }
       case "all-of": {
         const conditions = Array.isArray(condition.conditions) ? condition.conditions : [];
         const results = conditions.map((nestedCondition) =>
@@ -10048,7 +11466,11 @@
           .map((run) => run.dream || run.character?.dream)]);
         break;
       case "has-d":
-        current = runs.some((run) => Boolean(run.hasD || run.character?.hasD)) ? 1 : 0;
+        current = runs.some((run) => Boolean(
+          (run.hasD || run.character?.hasD) &&
+          !run.hasHistoricalD && !run.character?.hasHistoricalD &&
+          run.runMode !== "story" && run.character?.runMode !== "story"
+        )) ? 1 : 0;
         break;
       case "stat-at-least":
         current = Math.max(0, ...runs.map((run) => Number(runStats(run)[condition.stat]) || 0));
@@ -10112,6 +11534,15 @@
         target = Number(condition.target) || requiredTitleIds.length || 1;
         break;
       }
+      case "title-collection": {
+        const requiredIds = getRequiredTitlesForCollection(condition);
+        const collectedIds = new Set((profile.titles || []).map(getDataId));
+        const aliases = condition.aliases && typeof condition.aliases === "object" ? condition.aliases : {};
+        current = requiredIds.filter((titleId) => collectedIds.has(titleId) ||
+          uniqueArray(aliases[titleId] || []).some((aliasId) => collectedIds.has(aliasId))).length;
+        target = requiredIds.length || 1;
+        break;
+      }
       case "has-title": {
         const titleId = condition.titleId;
         current = runs.some((run) => (run.runTitles || []).some((title) => getDataId(title) === titleId)) ||
@@ -10159,17 +11590,22 @@
         target = 1;
         break;
       case "both-legendary-arcs":
-        current = runs.some((run) => ["marineford", "emperor"].every((arcId) => {
-          const arc = run.legendaryArcs?.[arcId];
-          return arc && ["succeeded", "failed", "completed-no-title"].includes(arc.status);
-        })) ? 1 : 0;
+        current = runs.some((run) => CLASSIC_LEGENDARY_ARC_IDS.filter((arcId) =>
+          run.legendaryArcs?.[arcId]?.status === "succeeded").length >= 2) ? 1 : 0;
         target = 1;
         break;
       case "three-legendary-arcs":
-        current = runs.some((run) => ["talent", "marineford", "emperor"].every((arcId) => {
-          const arc = run.legendaryArcs?.[arcId];
-          return arc && !["unassessed", "not-selected"].includes(arc.status);
-        })) ? 1 : 0;
+        current = runs.some((run) => CLASSIC_LEGENDARY_ARC_IDS.filter((arcId) =>
+          STARTED_LEGENDARY_STATUSES.includes(run.legendaryArcs?.[arcId]?.status)).length >= 3) ? 1 : 0;
+        target = 1;
+        break;
+      case "davy-perfect":
+        current = runs.some((run) => {
+          const arc=run.legendaryArcs?.davy;
+          return (arc?.performance?.entries || []).filter((entry)=>
+            ["success","exceptional_success"].includes(entry.tier)).length === 3 &&
+            new Set(arc?.companionIds || []).size === 3;
+        }) ? 1 : 0;
         target = 1;
         break;
       default:
@@ -10402,6 +11838,47 @@
     checks["secret-hint"] = achievement?.secret === true && achievement?.unlockHint === "Condition secrète";
     checks["mythic-reward"] = getAchievementBerryReward(achievement) === 300;
     return { pass: Object.values(checks).every(Boolean), checks };
+  }
+
+  function runTitleCollectionAchievementAudit() {
+    const achievementIds = [
+      "collect-three-haki-colors", "collect-all-talent-titles",
+      "collect-all-marineford-titles", "collect-all-impel-down-titles",
+      "collect-all-warlord-titles", "collect-all-emperor-titles",
+      "collect-all-admiral-titles", "collect-all-classic-legendary-titles",
+      "collect-all-mythic-titles",
+    ];
+    const labels = ["Haki", "Prodige", "Marineford", "Impel Down", "Warlord", "Emperor", "Admiral", "Classic legendary total", "Mythic total"];
+    const counts = {};
+    const checks = {};
+    achievementIds.forEach((achievementId, index) => {
+      const achievement = findAchievementData(achievementId);
+      const requiredIds = getRequiredTitlesForCollection(achievement?.condition);
+      counts[labels[index]] = requiredIds.length;
+      const partialProfile = createDefaultProfile();
+      partialProfile.titles = requiredIds.slice(0, -1).map((id) => ({ id }));
+      const completeProfile = createDefaultProfile();
+      completeProfile.titles = requiredIds.map((id) => ({ id }));
+      const partial = getAchievementProgress(achievement, partialProfile, null);
+      const complete = getAchievementProgress(achievement, completeProfile, null);
+      checks[`${achievementId}-partial`] = requiredIds.length > 0 &&
+        partial.current === requiredIds.length - 1 && !partial.unlocked;
+      checks[`${achievementId}-complete`] = complete.current === requiredIds.length && complete.unlocked;
+    });
+    const mythic = findAchievementData("collect-all-mythic-titles");
+    const syntheticCatalog = [...getAllTitles(), {
+      id: "title-collection-audit-synthetic-mythic",
+      rarity: "mythic",
+      category: "audit",
+      sourceType: "audit",
+      active: true,
+    }];
+    checks["mythic-catalog-is-dynamic"] =
+      getRequiredTitlesForCollection(mythic.condition, syntheticCatalog).length === counts["Mythic total"] + 1;
+    checks["classic-total-is-28"] = counts["Classic legendary total"] === 28;
+    checks["expected-family-counts"] = [3, 4, 4, 4, 5, 6, 4]
+      .every((expected, index) => counts[labels[index]] === expected);
+    return { pass: Object.values(checks).every(Boolean), counts, checks };
   }
 
   function runDivelcaPersistenceAudit() {
@@ -10656,6 +12133,43 @@
     );
   }
 
+  function getAvailableDavyCompanions(game = state.game) {
+    const recruited = new Set((game?.crewMembers || []).map((member) => member.id));
+    return (window.GAME_DATA?.davyBackFightCompanions || []).filter((member) =>
+      !recruited.has(member.id) && isCanonicalCharacterAvailable(game, member));
+  }
+
+  function queueDavyCompanionChoice(event, outcome, resolutionId, game = state.game) {
+    const tier = outcome?.resolvedOutcomeTier || outcome?.outcomeTier;
+    if (event?.legendaryArc !== "davy" || !["success","exceptional_success"].includes(tier)) return false;
+    const available = getAvailableDavyCompanions(game);
+    if (!available.length) return false;
+    game.pendingRewardReveals ||= [];
+    game.pendingRewardReveals.push({
+      type:"davy-companion-choice", id:`davy-choice-${event.legendaryStep}`,
+      name:"Choisis un Mugiwara", description:"La manche est gagnée. Les règles sont les règles : choisis le membre encore disponible qui poursuivra la route avec toi.",
+      rarity:"legendary", icon:"🏁", meta:"Récompense du Davy Back Fight",
+      sourceResolutionId:resolutionId, eventId:event.id, legendaryArcId:"davy",
+    });
+    return true;
+  }
+
+  function chooseDavyCompanion(memberId, game = state.game) {
+    const reveal = game?.pendingRewardReveals?.[0];
+    const member = getAvailableDavyCompanions(game).find((candidate) => candidate.id === memberId);
+    if (reveal?.type !== "davy-companion-choice" || !member) return false;
+    if (!recruitCrewMember(member, game, false)) return false;
+    game.legendaryArcs.davy.companionIds = uniqueArray([...(game.legendaryArcs.davy.companionIds || []), member.id]).slice(0,3);
+    game.pendingRewardReveals[0] = {
+      type:"reward",id:member.id,name:member.name,description:member.recruitmentText,
+      rarity:member.rarity,icon:member.icon,meta:`Nouveau compagnon · ${getRarityLabel(member.rarity)}`,
+      sourceResolutionId:reveal.sourceResolutionId,eventId:reveal.eventId,
+    };
+    saveGame();
+    updateRewardRevealScreen();
+    return true;
+  }
+
   const REWARD_REVEAL_RARITY_CLASSES = Object.freeze(
     Object.keys(TITLE_RARITIES).map((rarity) => `reward-reveal--${rarity}`),
   );
@@ -10704,8 +12218,15 @@
       dom.rewardRevealDescription.textContent =
         reveal.description || "Cette récompense marque une nouvelle étape de ton aventure.";
     }
+    if (dom.davyCompanionOptions) {
+      const choosing = reveal.type === "davy-companion-choice";
+      dom.davyCompanionOptions.hidden = !choosing;
+      dom.davyCompanionOptions.innerHTML = choosing ? getAvailableDavyCompanions().map((member)=>
+        `<button class="button davy-companion-option" type="button" data-davy-companion-id="${escapeHtml(member.id)}"><strong>${escapeHtml(member.name)}</strong><small>${escapeHtml(getRarityLabel(member.rarity))} · ${escapeHtml(member.role)}</small></button>`).join("") : "";
+    }
     if (dom.continueRewardReveal) {
-      dom.continueRewardReveal.disabled = false;
+      dom.continueRewardReveal.hidden = reveal.type === "davy-companion-choice";
+      dom.continueRewardReveal.disabled = reveal.type === "davy-companion-choice";
     }
   }
 
@@ -10772,27 +12293,21 @@
 
     game.isFinished = true;
 
-    checkCatalogTitles(game);
-    checkAchievements(game);
-    refreshPopularityScore(game);
-    const frozenPopularity = clampCareerScore(game.stats.popularity);
-
-    const finalTitle = game.preparedFinalTitle ||
-      determineFinalTitle(
-        ending,
-        game,
-        frozenPopularity,
-      );
-
-    if (finalTitle) {
-      unlockTitle(
-        getDataId(finalTitle),
-        finalTitle,
-        game,
-        false,
-      );
+    let finalTitle = game.preparedFinalTitle;
+    if (!hasFrozenFinalPopularity(game)) {
+      checkCatalogTitles(game);
+      checkAchievements(game);
+      refreshPopularityScore(game);
+      finalTitle ||= determineFinalTitle(ending, game, game.stats.popularity);
+      if (finalTitle) {
+        unlockTitle(getDataId(finalTitle), finalTitle, game, false);
+        game.preparedFinalTitle = cloneData(finalTitle);
+      }
+      refreshPopularityScore(game);
+      game.finalPopularityScore = clampCareerScore(game.stats.popularity);
     }
-    refreshPopularityScore(game);
+    game.stats.popularity = clampCareerScore(game.finalPopularityScore);
+    game.popularityScore = game.stats.popularity;
 
     const profile = getProfile();
     grantCompletionBerries(profile, game, ending);
@@ -10845,7 +12360,8 @@
     );
 
     // La carrière locale est déjà enregistrée et affichée avant tout accès réseau.
-    const leaderboardSubmission = window.BlueLegacyLeaderboard?.submitCareer({
+    const leaderboardMethod = pantheonEntry.runMode === "story" ? "submitStoryCareer" : "submitCareer";
+    const leaderboardSubmission = window.BlueLegacyLeaderboard?.[leaderboardMethod]?.({
       playerFirstName: profile.playerIdentity?.firstName,
       playerLastName: profile.playerIdentity?.lastName,
       playerDCosmetic:
@@ -10861,6 +12377,8 @@
       dreamCompleted: pantheonEntry.dreamCompleted === true,
       score: pantheonEntry.popularityScore,
       finishedAt: pantheonEntry.finishedAt,
+      storyId: pantheonEntry.storyId,
+      storyTitle: pantheonEntry.storyTitle,
     });
     void trackCriticalOperation(Promise.resolve(leaderboardSubmission).then((result) => {
       if (["forbidden-discriminatory-name", "forbidden-profanity-name"].includes(result?.reason)) {
@@ -10880,7 +12398,7 @@
     if (!game || Number(game.month) < CONFIG.maxMonths) return 0;
     let amount = 30;
     if (ending?.dreamCompleted) amount += 10;
-    if (Number(game.stats?.popularity) >= 90) amount += 10;
+    if (Number(game.finalPopularityScore ?? game.stats?.popularity) >= 90) amount += 10;
     return amount;
   }
 
@@ -10972,8 +12490,11 @@
   ) {
     const character = game.character;
 
-    refreshPopularityScore(game);
-    const popularityScore = game.stats.popularity;
+    const hasFrozenPopularity = hasFrozenFinalPopularity(game);
+    if (!hasFrozenPopularity) refreshPopularityScore(game);
+    const popularityScore = clampCareerScore(hasFrozenPopularity
+      ? game.finalPopularityScore
+      : game.popularityScore ?? game.stats.popularity);
     const popularityText = getPopularityCareerText(game);
     return {
       id: createUniqueId("past-life"),
@@ -10985,6 +12506,11 @@
       dream: character.dream,
       origin: character.origin,
       hasD: Boolean(character.hasD),
+      hasHistoricalD: Boolean(character.hasHistoricalD),
+      historicalDStatBonus: Number(character.historicalDStatBonus) || null,
+      runMode: game.runMode === "story" ? "story" : "classic",
+      storyId: game.storyId || null,
+      storyTitle: game.storyTitle || null,
       devilFruit: cloneData(character.devilFruit),
       crewMembers: cloneData(game.crewMembers || []),
       combatStyle: character.combatStyle,
@@ -11011,6 +12537,7 @@
       ),
       bossProgress: cloneData(game.bossProgress),
       legendaryArcs: cloneData(game.legendaryArcs),
+      legendaryWindows: cloneData(game.legendaryWindows || {}),
       rewards: cloneData(game.rewards),
       route: cloneData(game.route),
       specialZoneId: game.specialZoneId || null,
@@ -11025,6 +12552,8 @@
       dreamCompleted: Boolean(
         ending.dreamCompleted,
       ),
+      conclusionType: ending.conclusionType || getStoryEndingConfig(game)?.type || "dream",
+      conclusionLabel: ending.conclusionLabel || getConclusionPresentation(game, Boolean(ending.dreamCompleted)).label,
       finishedAt: new Date().toISOString(),
     };
   }
@@ -11057,19 +12586,61 @@
       stats: { ...createDefaultStats(), popularity: index >= 15 ? 100 - index : 50 - index },
       visitedZoneIds: ["east-blue", "reverse-mountain"],
     }));
-    const expectedRecentIds = profile.pantheon.slice(0, 12).map((run) => run.id);
     const expectedHistoricalTopIds = ["retention-15", "retention-16", "retention-17"];
     retainPantheonCareers(profile);
     const retainedIds = profile.pantheon.map((run) => run.id);
-    const checks = {
-      maximum15: retainedIds.length === 15,
-      noDuplicates: new Set(retainedIds).size === retainedIds.length,
-      recent12: expectedRecentIds.every((id) => retainedIds.includes(id)),
-      historicalTop3: expectedHistoricalTopIds.every((id) => retainedIds.includes(id)),
-      archived5: profile.pantheonHistory?.archivedRuns === 5,
-      completedCounter: calculateProfileStatistics(profile).completed === 20,
+    const historicalTop = getPantheonHistoricalTopThree(profile.pantheon);
+    const recentCareers = getPantheonRecentCareers(profile.pantheon, historicalTop);
+    const recentIds = recentCareers.map((run) => run.id);
+    const podiumIds = historicalTop.map((run) => run.id);
+    const createRuns = (count, scoreForIndex, prefix) => Array.from({ length: count }, (_, index) => ({
+      id: `${prefix}-${index}`,
+      finishedAt: new Date(2026, 1, count - index).toISOString(),
+      faction: "pirate", origin: "east-blue", dream: "one-piece",
+      popularityScore: scoreForIndex(index),
+      stats: { ...createDefaultStats(), popularity: scoreForIndex(index) },
+    }));
+    const auditLayout = (runs) => {
+      const candidate = createDefaultProfile();
+      candidate.pantheon = runs;
+      retainPantheonCareers(candidate);
+      const podium = getPantheonHistoricalTopThree(candidate.pantheon);
+      const recent = getPantheonRecentCareers(candidate.pantheon, podium);
+      const podiumSet = new Set(podium.map((run) => run.id));
+      return {
+        profile: candidate, podium, recent,
+        distinct: recent.every((run) => !podiumSet.has(run.id)),
+      };
     };
-    return { pass: Object.values(checks).every(Boolean), checks, retainedIds };
+    const ten = auditLayout(createRuns(10, (index) => 80 - index, "ten"));
+    const fifteen = auditLayout(createRuns(15, (index) => 80 - index, "fifteen"));
+    const recentTop = auditLayout(createRuns(20, (index) => 100 - index, "recent-top"));
+    const oldTop = auditLayout(createRuns(23, (index) => index >= 20 ? 120 - index : 70 - index, "old-top"));
+    const oldTopInitiallyValid = oldTop.profile.pantheon.length === 18 && oldTop.recent.length === 15 && oldTop.distinct &&
+      oldTop.podium.every((run) => Number(run.id.split("-").at(-1)) >= 20);
+    oldTop.profile.pantheon.unshift({
+      ...createRuns(1, () => 150, "new-record")[0],
+      id: "new-record",
+    });
+    retainPantheonCareers(oldTop.profile);
+    const newRecordPodium = getPantheonHistoricalTopThree(oldTop.profile.pantheon);
+    const newRecordRecent = getPantheonRecentCareers(oldTop.profile.pantheon, newRecordPodium);
+    const checks = {
+      maximum18: retainedIds.length === 18,
+      noDuplicates: new Set(retainedIds).size === retainedIds.length,
+      recent15: recentIds.length === 15,
+      noVisualDuplicates: recentIds.every((id) => !podiumIds.includes(id)),
+      historicalTop3: expectedHistoricalTopIds.every((id) => retainedIds.includes(id)),
+      archived2: profile.pantheonHistory?.archivedRuns === 2,
+      completedCounter: calculateProfileStatistics(profile).completed === 20,
+      tenRunsNatural: ten.podium.length === 3 && ten.recent.length === 7 && ten.distinct,
+      fifteenRunsPreserved: fifteen.profile.pantheon.length === 15 && fifteen.distinct,
+      recentTopKeeps18: recentTop.profile.pantheon.length === 18 && recentTop.recent.length === 15 && recentTop.distinct,
+      oldTopKeeps18: oldTopInitiallyValid,
+      newRecordRebalances: newRecordPodium[0]?.id === "new-record" && newRecordRecent.length === 15 &&
+        newRecordRecent.every((run) => !newRecordPodium.some((podiumRun) => podiumRun.id === run.id)),
+    };
+    return { pass: Object.values(checks).every(Boolean), checks, retainedIds, podiumIds, recentIds };
   }
 
   function openPastLife(entryId) {
@@ -11187,6 +12758,8 @@
   }
 
   function abandonAdventure() {
+    const continueStorySetup = state.pendingStoryStartAfterAbandon;
+    state.pendingStoryStartAfterAbandon = false;
     if (state.game?.profileStartCounted && !state.game?.isFinished) {
       const profile = getProfile();
       profile.statistics.abandonedAdventures = (Number(profile.statistics.abandonedAdventures) || 0) + 1;
@@ -11204,12 +12777,14 @@
     closeDialog(dom.abandonModal);
 
     openScreen(
-      SCREEN.HOME,
+      continueStorySetup ? SCREEN.STORY_IDENTITY : SCREEN.HOME,
       {
         save: false,
       },
     );
     showWelcomeIdentityIfNeeded();
+
+    if (continueStorySetup) startStoryRun(state.selectedStoryId, { firstName: state.storyFirstName });
 
     return true;
   }
@@ -11245,7 +12820,11 @@
 
   function formatPantheonDuration(entry = {}) {
     const duration = getPantheonDuration(entry);
-    return duration === null ? "Durée inconnue" : `${duration} mois`;
+    if (duration === null) return "Durée inconnue";
+    const displayedDuration = entry.runMode === "story"
+      ? Math.max(1, Math.min(6, entry.visitedZoneIds?.length || Math.ceil(duration / CONFIG.logbookInterval)))
+      : duration;
+    return `${displayedDuration} ${entry.runMode === "story" ? (displayedDuration > 1 ? "périodes" : "période") : "mois"}`;
   }
 
   function getHistoricalDisplayValue(value, fallback) {
@@ -11302,6 +12881,22 @@
       : "Zone finale inconnue";
   }
 
+  function getPastLifeDestinySummary(entry = {}) {
+    const completed = entry.dreamCompleted === true || entry.ending?.dreamCompleted === true;
+    if (entry.runMode === "story") return completed ? "Héritage accompli" : "Héritage inachevé";
+    const source = getHistoricalDisplayValue(
+      entry.finalDestiny || entry.destiny || entry.endingType || entry.ending?.type || entry.ending?.label,
+      "",
+    );
+    const normalized = source.toLocaleLowerCase("fr");
+    if (/mort|tué|tue|combat/.test(normalized) || Number(entry.stats?.health) <= 0) return "Mort au combat";
+    if (/captur|prison/.test(normalized)) return "Capturé";
+    if (/bris|échec|echec|défait|defait/.test(normalized)) return "Destin brisé";
+    if (completed) return "Rêve accompli";
+    if (source && source.length <= 42) return source;
+    return "Rêve inachevé";
+  }
+
   function resetHistoricalJournalAccordions() {
     dom.pastLifeLogbook
       ?.querySelectorAll(".past-life-logbook-period")
@@ -11343,7 +12938,7 @@
           <summary aria-controls="past-life-period-${period}-${index}" aria-expanded="false">
             <span>
               <strong>Période ${period}</strong>
-              <span>Mois ${fromMonth} à ${toMonth}</span>
+              ${entry.runMode === "story" ? "" : `<span>Mois ${fromMonth} à ${toMonth}</span>`}
             </span>
             <span class="past-life-logbook-zone">
               ${escapeHtml(log.zoneName || "Zone inconnue")}
@@ -11490,7 +13085,7 @@
 
     if (dom.gameDate) {
       dom.gameDate.textContent =
-        `Mois ${game.month}`;
+        `${game.runMode === "story" ? `Période ${getStoryPeriod(game)}` : `Mois ${game.month}`}`;
     }
 
     if (dom.runProgress) {
@@ -11608,6 +13203,24 @@
     }
 
     if (!event) {
+      const fallbackWarningKey = [
+        game.id,
+        game.runMode,
+        game.storyId || "none",
+        getCurrentZone(game)?.id || "none",
+        game.month,
+        game.currentAction,
+      ].join(":");
+      if (state.lastEventFallbackWarningKey !== fallbackWarningKey) {
+        state.lastEventFallbackWarningKey = fallbackWarningKey;
+        console.warn("[Story/Event fallback]", {
+          runMode: game.runMode,
+          storyId: game.storyId || null,
+          zone: getCurrentZone(game)?.id || null,
+          period: game.runMode === "story" ? getStoryPeriod(game) : game.month,
+          reason: "no eligible event",
+        });
+      }
       if (dom.eventEyebrow) {
         dom.eventEyebrow.textContent = "Événement";
       }
@@ -11637,7 +13250,7 @@
     }
 
     if (dom.eventEyebrow) {
-      const typeMeta = EVENT_TYPE_META[event.eventType] || EVENT_TYPE_META.ordinary;
+      const typeMeta = getVisibleEventTypeMeta(event);
       dom.eventEyebrow.textContent = `${typeMeta.icon} ${typeMeta.label}`;
     }
 
@@ -11678,7 +13291,7 @@
   function updateEventTheme(event) {
     document.body.classList.remove(...EVENT_THEME_CLASSES);
 
-    const typeMeta = EVENT_TYPE_META[event?.eventType] || EVENT_TYPE_META.ordinary;
+    const typeMeta = getVisibleEventTypeMeta(event);
     document.body.classList.add(typeMeta.themeClass);
     document.body.classList.toggle("is-legendary-arc", Boolean(event?.legendaryArc));
   }
@@ -11858,7 +13471,12 @@
 
     if (dom.logbookPeriod) {
       dom.logbookPeriod.textContent =
-        `Période ${period} • Mois ${fromMonth} à ${toMonth}`;
+        game.runMode === "story" ? `Période ${getStoryPeriod(game)}` : `Période ${period} • Mois ${fromMonth} à ${toMonth}`;
+    }
+    if (dom.logbookSubtitle) {
+      dom.logbookSubtitle.textContent = game.runMode === "story"
+        ? `Les événements de la période ${getStoryPeriod(game)}, dans leur ordre chronologique`
+        : "Ce qu’il s’est passé ces 4 derniers mois";
     }
 
     if (dom.logbookZone) {
@@ -12041,7 +13659,11 @@
       return;
     }
 
-    dom.achievements.innerHTML = categoryOrder.map((categoryId) => {
+    const renderedCategoryOrder = orderCollectionCategoriesWithStoriesLast(
+      categoryOrder,
+      visibleAchievementRows.map(({ achievement }) => achievement.category),
+    );
+    dom.achievements.innerHTML = renderedCategoryOrder.map((categoryId) => {
       const categoryAchievements = visibleAchievementRows
         .filter(({ achievement }) => achievement.category === categoryId)
         .sort((left, right) => {
@@ -12195,14 +13817,19 @@
       grouped.get(title.category).push(titleData);
     });
 
-    dom.titles.innerHTML = TITLE_CATEGORY_ORDER
-      .filter((category) => grouped.has(category))
+    dom.titles.innerHTML = orderCollectionCategoriesWithStoriesLast(
+      TITLE_CATEGORY_ORDER,
+      grouped.keys(),
+    )
       .map((category) => {
         const categoryTitles = grouped.get(category).sort(compareTitles);
         const categoryUnlocked = categoryTitles.filter(
           (title) => unlockedById.has(getDataId(title)),
         ).length;
-        const meta = TITLE_CATEGORY_META[category];
+        const meta = TITLE_CATEGORY_META[category] || {
+          label: String(category).startsWith("story-") ? "Mode Histoire" : category,
+          icon: String(category).startsWith("story-") ? "📖" : "🏷️",
+        };
         return `
           <section class="title-category-section" data-title-category="${escapeAttribute(category)}">
             <header class="title-category-header">
@@ -12231,7 +13858,8 @@
   }
 
   const LEGENDARY_ARC_TITLE_SOURCE_ORDER = Object.freeze([
-    "legendary-talent", "legendary-marineford", "legendary-emperor",
+    "legendary-davy", "legendary-talent", "legendary-impel-down",
+    "legendary-marineford", "legendary-warlord", "legendary-emperor", "legendary-admiral",
   ]);
 
   function getLegendaryArcTitleNames(runTitles = [], sex = null) {
@@ -12254,13 +13882,17 @@
     const dream = findDreamData(entry.dream, entry.faction);
     const dreamLabel = getDreamDisplayLabel(dream, entry.sex) || entry.dream || "Rêve non enregistré";
     const dreamCompleted = entry.dreamCompleted === true || entry.ending?.dreamCompleted === true;
+    const storyEnding = entry.runMode === "story" ? getStoryEndingConfig(entry) : null;
+    const conclusionLabel = entry.conclusionLabel || (storyEnding
+      ? (dreamCompleted ? storyEnding.successLabel : storyEnding.failureLabel)
+      : (dreamCompleted ? "Rêve accompli" : "Rêve non accompli"));
     const factionLabel = getFactionLabel(entry.faction) || "Faction non enregistrée";
     const popularityTier = popularityScore >= 95 ? "mythic" : popularityScore >= 85 ? "exceptional" : popularityScore >= 70 ? "renowned" : "recorded";
     const podiumLabel = podiumRank ? ["Or", "Argent", "Bronze"][podiumRank - 1] : "";
     return `<button class="collection-card past-life-card rarity-${escapeAttribute(rarity)}${podiumRank ? " pantheon-podium-card" : ""}" data-past-life-id="${escapeAttribute(entry.id)}" data-rarity="${escapeAttribute(rarity)}" data-popularity-tier="${popularityTier}" ${podiumRank ? `data-podium-rank="${podiumRank}"` : ""} aria-label="Voir la fiche de ${escapeAttribute(characterName)}${podiumRank ? `, rang ${podiumRank} du podium historique` : ""}" type="button">
       ${podiumRank ? `<span class="pantheon-podium-medal" aria-label="${podiumLabel}, place ${podiumRank}"><b>#${podiumRank}</b><small>${podiumLabel}</small></span>` : `<span class="pantheon-register-index" aria-hidden="true">${String(total - index).padStart(2, "0")}</span>`}
-      <span class="pantheon-card-identity"><span class="pantheon-character-heading"><span class="pantheon-faction-icon" aria-hidden="true">${getFactionIcon(entry.faction)}</span><span class="pantheon-character-copy"><span class="pantheon-character-name" role="heading" aria-level="3">${escapeHtml(characterName)}</span><span class="pantheon-character-faction">${escapeHtml(factionLabel)}</span></span></span><span class="pantheon-card-title">${createTitleCardHtml(finalTitle, { mode: "badge", sex: entry.sex })}</span></span>
-      <span class="pantheon-card-body"><span class="pantheon-dream${dreamCompleted ? " is-complete" : ""}"><span aria-hidden="true">${dreamCompleted ? "✓" : "✦"}</span><span class="pantheon-dream-copy"><small>Rêve</small><strong>${escapeHtml(dreamLabel)}</strong><em>${dreamCompleted ? "Accompli" : "Non accompli"}</em></span></span></span>
+      <span class="pantheon-card-identity"><span class="pantheon-character-heading"><span class="pantheon-faction-icon" aria-hidden="true">${getFactionIcon(entry.faction)}</span><span class="pantheon-character-copy"><span class="pantheon-character-name" role="heading" aria-level="3">${escapeHtml(characterName)}</span><span class="pantheon-character-faction">${escapeHtml(entry.runMode === "story" ? `M.H - ${STORIES.find((story) => story.id === entry.storyId)?.character || characterName}` : factionLabel)}</span></span></span><span class="pantheon-card-title">${createTitleCardHtml(finalTitle, { mode: "badge", sex: entry.sex })}</span></span>
+      <span class="pantheon-card-body"><span class="pantheon-dream${dreamCompleted ? " is-complete" : ""}"><span aria-hidden="true">${dreamCompleted ? "✓" : "✦"}</span><span class="pantheon-dream-copy">${storyEnding ? `<small>Conclusion</small><strong>${escapeHtml(conclusionLabel)}</strong>` : `<small>Rêve</small><strong>${escapeHtml(dreamLabel)}</strong><em>${dreamCompleted ? "Accompli" : "Non accompli"}</em>`}</span></span></span>
       <span class="pantheon-popularity" aria-label="Popularité : ${popularityScore} sur 100"><small>Popularité</small><strong>${popularityScore}</strong><span>/ 100</span></span>
       <span class="pantheon-card-action" aria-hidden="true"><span>Voir la carrière</span><b>→</b></span>
     </button>`;
@@ -12333,8 +13965,7 @@
     }
 
     const historicalTop = getPantheonHistoricalTopThree(pantheon);
-    const podiumIds = new Set(historicalTop.map((entry) => entry.id));
-    const recentCareers = pantheon.filter((entry) => !podiumIds.has(entry.id));
+    const recentCareers = getPantheonRecentCareers(pantheon, historicalTop);
     dom.pastLives.innerHTML = `
       <section class="pantheon-podium" aria-labelledby="pantheon-podium-title">
         <header class="pantheon-section-heading"><p class="eyebrow">Records historiques</p><h3 id="pantheon-podium-title">Podium des légendes</h3></header>
@@ -12401,7 +14032,9 @@
 
     if (dom.pastLifeFaction) {
       dom.pastLifeFaction.textContent =
-        entry.faction && FACTION_META[getDataId(entry.faction)]
+        entry.runMode === "story"
+          ? "Mode Histoire"
+          : entry.faction && FACTION_META[getDataId(entry.faction)]
           ? getFactionLabel(getDataId(entry.faction))
           : "Voie non enregistrée";
     }
@@ -12438,10 +14071,7 @@
         ? otherTitles.map((title) =>
             createTitleCardHtml(title, { mode: "badge", sex: entry.sex }),
           ).join("")
-        : renderEmptyState("Aucun autre titre obtenu.", {
-            icon: "🎖️",
-            detail: "Cette carrière s’est achevée avec son titre final.",
-          });
+        : '<span class="past-life-no-titles">Aucun autre Titre obtenu</span>';
     }
 
     if (dom.pastLifeDuration) {
@@ -12451,7 +14081,7 @@
 
     if (dom.pastLifeEnding) {
       dom.pastLifeEnding.textContent =
-        getHistoricalDisplayValue(entry.destiny, "Destin non enregistré");
+        getPastLifeDestinySummary(entry);
     }
 
     if (dom.pastLifeFinalZone) {
@@ -12472,11 +14102,20 @@
     if (dom.pastLifeAssets && dom.pastLifeAssetsSection) {
       const fruit = entry.devilFruit || entry.character?.devilFruit || null;
       const members = Array.isArray(entry.crewMembers) ? entry.crewMembers : [];
-      dom.pastLifeAssetsSection.hidden = !fruit && members.length === 0;
-      dom.pastLifeAssets.innerHTML = [
-        createDevilFruitCardHtml(fruit),
-        createCrewMembersHtml(members),
+      const hakiTitleIds = new Set(["haki-observation", "haki-armement", "haki-des-rois", "maitrise-haki-des-rois-plus"]);
+      const hakiTitles = (entry.runTitles || []).filter((title) => hakiTitleIds.has(getDataId(title)));
+      const abilities = [
+        entry.hasD || entry.character?.hasD ? '<span class="past-life-ability-chip">◉ Volonté du D.</span>' : "",
+        ...hakiTitles.map((title) => createTitleCardHtml(title, { mode: "badge", sex: entry.sex })),
       ].filter(Boolean).join("");
+      dom.pastLifeAssetsSection.hidden = false;
+      dom.pastLifeAssets.innerHTML = `<div class="past-life-power-group"><h4>Fruit du Démon</h4>${
+        createDevilFruitCardHtml(fruit) || '<p class="past-life-assets-empty">Aucun Fruit du Démon</p>'
+      }</div><div class="past-life-power-group"><h4>Hakis et volonté</h4>${
+        abilities || '<p class="past-life-assets-empty">Aucun pouvoir particulier enregistré</p>'
+      }</div><div class="past-life-power-group"><h4>Compagnons</h4>${
+        createCrewMembersHtml(members) || '<p class="past-life-assets-empty">Aucun compagnon</p>'
+      }</div>`;
     }
 
     if (dom.pastLifeLogbook) {
@@ -12490,26 +14129,22 @@
   }
 
   function updateLegendaryCareerSection(entry = {}) {
-    if (!dom.pastLifeLogbook) return;
+    if (!dom.pastLifeLegendaryList) return;
     const arcs = entry.legendaryArcs || {};
     const encountered = Object.entries(arcs).filter(([, arc]) =>
       arc && !["unassessed", "not-selected"].includes(arc.status));
-    let section = document.getElementById("past-life-legendary-exploits");
-    if (!encountered.length) { section?.remove(); return; }
-    if (!section) {
-      section = document.createElement("section");
-      section.id = "past-life-legendary-exploits";
-      section.className = "past-life-panel legendary-exploits-panel";
-      dom.pastLifeLogbook.parentElement?.insertBefore(section, dom.pastLifeLogbook.parentElement.firstChild);
-    }
-    const label = (arcId, arc) => {
-      const title = arc.titleId ? findTitleData(arc.titleId)?.name : null;
-      const result = title || (arc.status === "failed" ? "Échec de la séquence" : "Séquence terminée sans Titre");
-      if (arcId === "emperor") return `Empereur affronté : ${LEGENDARY_EMPEROR_NAMES[arc.emperorId] || "inconnu"} — ${result}`;
-      if (arcId === "talent") return `Talent prodigieux : ${result}`;
-      return `Marineford : ${result}`;
-    };
-    section.innerHTML = `<h3>◆ Exploits légendaires</h3><ul>${encountered.map(([id, arc]) => `<li>${escapeHtml(label(id, arc))}</li>`).join("")}</ul>`;
+    const storyLabels = { talent: "God Valley", marineford: "Edd War", emperor: "Le Choc des Titans" };
+    const arcLabel = (arcId) => entry.runMode === "story"
+      ? storyLabels[arcId] || arcId
+      : CLASSIC_LEGENDARY_ARCS[arcId]?.label || arcId;
+    const opponent = (arcId, arc) => arcId === "emperor" ? LEGENDARY_EMPEROR_NAMES[arc.emperorId]
+      : arcId === "admiral" ? LEGENDARY_ADMIRALS[arc.admiralId]?.name
+      : arcId === "warlord" ? LEGENDARY_WARLORDS[arc.warlordId]?.name : null;
+    dom.pastLifeLegendaryList.innerHTML = encountered.length ? encountered.map(([arcId, arc]) => {
+      const title = arc.titleId ? findTitleData(arc.titleId) : null;
+      const status = arc.status === "failed" ? "Échec" : arc.status === "succeeded" || title ? "Réussite" : "Terminé";
+      return `<article class="past-life-legendary-item"><h4>◆ ${escapeHtml(arcLabel(arcId))}</h4>${opponent(arcId, arc) ? `<p>${escapeHtml(opponent(arcId, arc))}</p>` : ""}<span>${escapeHtml(status)}</span>${title ? createTitleCardHtml(title, { mode: "badge", sex: entry.sex }) : ""}</article>`;
+    }).join("") : '<span class="sr-only">Aucun exploit légendaire enregistré.</span>';
   }
 
   let careerExportInProgress = false;
@@ -13131,6 +14766,7 @@
   }
 
   function bindEvents() {
+    dom.releaseNotesModal?.addEventListener("close", markCurrentReleaseNotesSeen);
     dom.welcomeIdentityForm?.addEventListener("submit", saveWelcomeIdentity);
     dom.welcomeIdentityModal?.addEventListener("cancel", (event) => {
       if (!isPlayerIdentityValid() || state.requiresPublicIdentityResolution) event.preventDefault();
@@ -13178,6 +14814,46 @@
         await ensureCurrentBuildBeforeAdventure(dom.startAdventure, () => startCreation(false));
       },
     );
+
+    dom.storyMode?.addEventListener("click", (event) => {
+      event.preventDefault();
+      openScreen(SCREEN.STORY_SELECTION, { save: false });
+    });
+
+    dom.storyGallery?.addEventListener("click", (event) => {
+      const card = event.target.closest("[data-story-id]");
+      if (!card) return;
+      state.selectedStoryId = card.dataset.storyId;
+      const story = getSelectedStory();
+      state.storyFirstName = story?.defaultFirstName || "";
+      openScreen(SCREEN.STORY_DETAIL, { save: false });
+    });
+
+    dom.storyDetailContent?.addEventListener("click", (event) => {
+      if (!event.target.closest("[data-story-identity]")) return;
+      openScreen(SCREEN.STORY_IDENTITY, { save: false });
+    });
+
+    dom.storyFirstName?.addEventListener("input", (event) => {
+      state.storyFirstName = event.target.value;
+      if (dom.storyNamePreview) dom.storyNamePreview.textContent = buildStoryName(getSelectedStory(), state.storyFirstName);
+      if (dom.storyIdentityError) dom.storyIdentityError.textContent = "";
+    });
+
+    dom.storyRerollFirstName?.addEventListener("click", (event) => {
+      event.preventDefault();
+      randomizeStoryFirstName();
+    });
+
+    dom.storyIdentityForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      validateStoryIdentity();
+    });
+
+    document.addEventListener("click", (event) => {
+      const tab = event.target.closest("[data-leaderboard-mode]");
+      if (tab) setLeaderboardMode(tab.dataset.leaderboardMode);
+    });
 
     dom.resumeAdventure?.addEventListener(
       "click",
@@ -13352,6 +15028,10 @@
         continueAfterRewardReveal();
       },
     );
+    dom.davyCompanionOptions?.addEventListener("click",(event)=>{
+      const button=event.target.closest("[data-davy-companion-id]");
+      if(button) chooseDavyCompanion(button.dataset.davyCompanionId);
+    });
 
     dom.confirmAbandon?.addEventListener(
       "click",
@@ -13361,6 +15041,12 @@
         abandonAdventure();
       },
     );
+
+    dom.abandonModal?.addEventListener("close", () => {
+      if (dom.abandonModal.returnValue !== "confirm") state.pendingStoryStartAfterAbandon = false;
+      if (dom.abandonModalTitle) dom.abandonModalTitle.textContent = "Abandonner l’aventure ?";
+      if (dom.abandonModalText) dom.abandonModalText.textContent = "Ta sauvegarde actuelle sera supprimée et cette vie rejoindra éventuellement le Panthéon.";
+    });
 
     dom.confirmNewGame?.addEventListener(
       "click",
@@ -13863,6 +15549,98 @@
     );
   }
 
+  function normalizeCanonicalCharacterToken(value) {
+    return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  }
+
+  const CANONICAL_CHARACTER_ALIAS_INDEX = (() => {
+    const index = new Map();
+    Object.entries(window.BLUE_LEGACY_CANONICAL_CHARACTER_ALIASES || {}).forEach(([characterId, aliases]) => {
+      [characterId, ...(aliases || [])].forEach((alias) => {
+        index.set(normalizeCanonicalCharacterToken(alias), characterId);
+      });
+    });
+    return index;
+  })();
+
+  function canonicalCharacterIdFromName(value) {
+    const token = normalizeCanonicalCharacterToken(value?.canonicalCharacterId || value?.id || value?.name || value);
+    return CANONICAL_CHARACTER_ALIAS_INDEX.get(token) || token || null;
+  }
+
+  function getPlayerDevilFruitId(game = state.game) {
+    return getDataId(game?.character?.devilFruit) || null;
+  }
+
+  function getCanonicalCharacterIdsForFruit(fruitId) {
+    return [...(window.BLUE_LEGACY_CANONICAL_DEVIL_FRUIT_USERS?.[getDataId(fruitId)] || [])];
+  }
+
+  function getCanonicalCharacterFruitIds(characterId) {
+    const canonicalId = canonicalCharacterIdFromName(characterId);
+    return Object.entries(window.BLUE_LEGACY_CANONICAL_DEVIL_FRUIT_USERS || {})
+      .filter(([, users]) => users.includes(canonicalId))
+      .map(([fruitId]) => fruitId);
+  }
+
+  function hasCrewMember(game = state.game, characterId) {
+    const canonicalId = canonicalCharacterIdFromName(characterId);
+    return Boolean(canonicalId && (game?.crewMembers || []).some(
+      (member) => canonicalCharacterIdFromName(member) === canonicalId,
+    ));
+  }
+
+  function hasDevilFruitConflict(game = state.game, characterId) {
+    if (!game || game.runMode === "story") return false;
+    const fruitId = getPlayerDevilFruitId(game);
+    return Boolean(fruitId && getCanonicalCharacterIdsForFruit(fruitId)
+      .includes(canonicalCharacterIdFromName(characterId)));
+  }
+
+  function isCanonicalCharacterAvailable(game = state.game, characterId, options = {}) {
+    if (!game || game.runMode === "story") return true;
+    if (hasDevilFruitConflict(game, characterId)) return false;
+    return options.allowExistingCrew === true || !hasCrewMember(game, characterId);
+  }
+
+  function areLoreCharactersAvailable(game = state.game, loreCharacters = [], options = {}) {
+    if (!game || game.runMode === "story") return true;
+    return (loreCharacters || []).every((character) =>
+      !hasDevilFruitConflict(game, character) &&
+      (options.allowCrew === true || !hasCrewMember(game, character)));
+  }
+
+  function getLockedExternalCharacterIds(game = state.game) {
+    const ids = new Set((game?.currentEvent?.loreCharacters || []).map(canonicalCharacterIdFromName).filter(Boolean));
+    const warlordId = game?.legendaryArcs?.warlord?.warlordId;
+    if (warlordId && ["selected", "in-progress"].includes(game.legendaryArcs.warlord.status)) {
+      ids.add(canonicalCharacterIdFromName(LEGENDARY_WARLORDS?.[warlordId]?.name || warlordId));
+    }
+    const emperorId = game?.legendaryArcs?.emperor?.emperorId;
+    if (emperorId && ["selected", "in-progress"].includes(game.legendaryArcs.emperor.status)) {
+      ids.add(canonicalCharacterIdFromName(LEGENDARY_EMPEROR_NAMES?.[emperorId] || emperorId));
+    }
+    const admiralId = game?.legendaryArcs?.admiral?.admiralId;
+    if (admiralId && ["selected", "in-progress"].includes(game.legendaryArcs.admiral.status)) {
+      const admiral = LEGENDARY_ADMIRALS[admiralId];
+      ids.add(canonicalCharacterIdFromName(admiral?.canonicalName || admiral?.name || admiralId));
+    }
+    if (game?.emperorRunKiller?.armed && !game.emperorRunKiller.triggered) {
+      ids.add(canonicalCharacterIdFromName(LEGENDARY_EMPEROR_NAMES?.[game.emperorRunKiller.emperorId] || game.emperorRunKiller.emperorId));
+    }
+    return ids;
+  }
+
+  function isFruitCompatibleWithCurrentRun(game = state.game, fruitId) {
+    if (!game || game.runMode === "story") return false;
+    const users = getCanonicalCharacterIdsForFruit(fruitId);
+    if (!users.length) return true;
+    const crew = new Set((game.crewMembers || []).map(canonicalCharacterIdFromName).filter(Boolean));
+    const locked = getLockedExternalCharacterIds(game);
+    return users.every((characterId) => !crew.has(characterId) && !locked.has(characterId));
+  }
+
   function formatMoney(value) {
     const number =
       Number(value) || 0;
@@ -14021,9 +15799,10 @@
       const items = getShopItems();
       results.catalog = {
         count: items.length,
-        uniqueIds: new Set(items.map((item) => item.id)).size === 5,
+        uniqueIds: new Set(items.map((item) => item.id)).size === 7,
         totalPrice: items.reduce((sum, item) => sum + item.price, 0),
-        exactPrices: JSON.stringify(items.map((item) => item.price)) === JSON.stringify([250, 375, 475, 625, 900]),
+        exactPrices: JSON.stringify(items.map((item) => item.price)) === JSON.stringify([350, 550, 700, 900, 1200, 1800, 2500]),
+        gameplayRange: items.every((item) => item.price >= 300 && item.price <= 2500),
       };
 
       const invalid = normalizeProfile({
@@ -14051,7 +15830,7 @@
 
       saveProfile({
         ...createDefaultProfile(),
-        berries: 250,
+        berries: 350,
         rewardedAchievementIds: getAllAchievements().map((achievement) => achievement.id),
       });
       const bought = purchaseShopItem("treasure-map");
@@ -14069,6 +15848,32 @@
         exactBalance: purchaseBalance === 0,
         owned: afterPurchase.ownedShopItems.includes("treasure-map"),
         thirdEquipBlocked: !thirdEquip,
+      };
+      const legacyOwnedIds = ["treasure-map", "vivre-card", "eternal-pose", "reinforced-jolly-roger", "chest"];
+      const legacyOwnedProfile = normalizeProfile({ berries: 1234, ownedShopItems: legacyOwnedIds });
+      results.legacyOwnership = {
+        preserved: legacyOwnedIds.every((id) => legacyOwnedProfile.ownedShopItems.includes(id)),
+        balanceUnchanged: legacyOwnedProfile.berries === 1234,
+      };
+      saveProfile({ ...createDefaultProfile(), berries: 4299, rewardedAchievementIds: getAllAchievements().map((achievement) => achievement.id) });
+      const binksBought = purchaseShopItem("binks-sake");
+      const denInsufficientBlocked = !purchaseShopItem("den-den-mushi");
+      const premiumProfile = getProfile();
+      premiumProfile.berries = 2500;
+      saveProfile(premiumProfile);
+      const denBought = purchaseShopItem("den-den-mushi");
+      const premiumOwnedProfile = getProfile();
+      premiumOwnedProfile.equippedShopItems = [];
+      saveProfile(premiumOwnedProfile);
+      const binksEquipped = equipShopItem("binks-sake");
+      const denEquipped = equipShopItem("den-den-mushi");
+      const premiumReloaded = getProfile();
+      results.premiumPurchase = {
+        binksBought, denInsufficientBlocked, denBought,
+        exactBalance: premiumReloaded.berries === 0,
+        owned: ["binks-sake", "den-den-mushi"].every((id) => premiumReloaded.ownedShopItems.includes(id)),
+        equippedTogether: binksEquipped && denEquipped &&
+          JSON.stringify(premiumReloaded.equippedShopItems) === JSON.stringify(["binks-sake", "den-den-mushi"]),
       };
 
       saveProfile({ ...createDefaultProfile(), berries: 5599 });
@@ -14109,6 +15914,99 @@
         eternalRisk: getEventResolutionScore(scoreGame, riskEvent, {}) - riskBase,
         vivreMultiplier: findShopItem("vivre-card")?.recruitmentWeightMultiplier,
         chestFirstEvent: Boolean(findShopItem("chest")?.firstEventFruit),
+      };
+      const hakiEvents = [1, 2].map((stage) => getBossEvents().find((event) =>
+        getHakiEventStage(event) === stage));
+      const nonHakiEvents = [
+        ordinaryEvent,
+        riskEvent,
+        { eventType: "legendary", resolutionCategory: "action", tags: ["legendary"] },
+        { eventType: "decisive", decisiveStage: 3, resolutionCategory: "action", tags: ["decisive"] },
+      ];
+      const scoreDifference = (event, activeItems = ["binks-sake"]) => {
+        scoreGame.activeShopItems = [];
+        const baseScore = getEventResolutionScore(scoreGame, event, event?.choices?.[0] || {});
+        scoreGame.activeShopItems = activeItems;
+        return getEventResolutionScore(scoreGame, event, event?.choices?.[0] || {}) - baseScore;
+      };
+      const hakiScoreDifferences = hakiEvents.map((event) => scoreDifference(event));
+      const nonHakiScoreDifferences = nonHakiEvents.map((event) => scoreDifference(event));
+      const storyScoreGame = { ...scoreGame, runMode: "story", storyId: "roger", activeShopItems: ["binks-sake"] };
+      const storyHakiDifference = getEventResolutionScore(storyScoreGame, hakiEvents[0], hakiEvents[0]?.choices?.[0] || {}) -
+        getEventResolutionScore({ ...storyScoreGame, activeShopItems: [] }, hakiEvents[0], hakiEvents[0]?.choices?.[0] || {});
+      let hakiSeed = 0xB1A5;
+      const hakiRandom = () => ((hakiSeed = (hakiSeed * 1664525 + 1013904223) >>> 0) / 4294967296);
+      const simulateHaki = (event, activeItems) => {
+        scoreGame.activeShopItems = activeItems;
+        const probabilities = getOutcomeTierProbabilities(scoreGame, event, event?.choices?.[0] || {});
+        const counts = { favorable: 0, mixed: 0, failure: 0 };
+        for (let index = 0; index < 20000; index += 1) {
+          const roll = hakiRandom();
+          const favorable = probabilities.exceptional_success + probabilities.success;
+          const mixed = favorable + probabilities.mixed;
+          if (roll < favorable) counts.favorable += 1;
+          else if (roll < mixed) counts.mixed += 1;
+          else counts.failure += 1;
+        }
+        return { score: probabilities.score, ...Object.fromEntries(Object.entries(counts).map(([key, value]) => [key, value / 20000])) };
+      };
+      results.binksSake = {
+        catalogBonus: findShopItem("binks-sake")?.hakiAwakeningResolutionBonus,
+        scoreDifferences: hakiScoreDifferences,
+        nonHakiScoreDifferences,
+        storyDifference: storyHakiDifference,
+        simulations: hakiEvents.map((event) => ({
+          stage: getHakiEventStage(event), baseline: simulateHaki(event, []), boosted: simulateHaki(event, ["binks-sake"]),
+        })),
+      };
+      const legendaryGame = createDefaultGameState(character);
+      legendaryGame.stats = { ...createDefaultStats(), health: 62, combat: 58, haki: 54, intelligence: 60, charisma: 57, popularity: 68, bounty: 1800000, crew: 2 };
+      legendaryGame.activeShopItems = [];
+      const legendaryChances = Object.keys(CLASSIC_LEGENDARY_ARCS).map((arcId) => {
+        const base = getLegendaryArcChance(arcId, legendaryGame);
+        legendaryGame.activeShopItems = ["den-den-mushi"];
+        const boosted = getLegendaryArcChance(arcId, legendaryGame);
+        legendaryGame.activeShopItems = [];
+        let chanceSeed = arcId.split("").reduce((sum, char) => sum + char.charCodeAt(0), 28082026) >>> 0;
+        let baseHits = 0; let boostedHits = 0;
+        for (let index = 0; index < 100000; index += 1) {
+          chanceSeed = (chanceSeed * 1664525 + 1013904223) >>> 0;
+          const roll = chanceSeed / 4294967296;
+          if (roll < base) baseHits += 1;
+          if (roll < boosted) boostedHits += 1;
+        }
+        return { arcId, base, boosted, ratio: boosted / base, observedBase: baseHits / 100000, observedBoosted: boostedHits / 100000 };
+      });
+      const storyLegendaryGame = { ...legendaryGame, runMode: "story", storyId: "roger", activeShopItems: ["den-den-mushi"] };
+      const storyLegendaryWithItem = getLegendaryArcChance("talent", storyLegendaryGame);
+      storyLegendaryGame.activeShopItems = [];
+      const storyLegendaryWithoutItem = getLegendaryArcChance("talent", storyLegendaryGame);
+      const capGame = createDefaultGameState(character);
+      capGame.activeShopItems = ["den-den-mushi"];
+      ["talent", "marineford", "warlord"].forEach((arcId) => { capGame.legendaryArcs[arcId].status = "succeeded"; });
+      const capBlocked = !evaluateLegendaryArc("emperor", capGame, () => 0);
+      const davyGame = createDefaultGameState(character);
+      davyGame.activeShopItems = ["den-den-mushi"];
+      davyGame.crewMembers = [normalizeCrewMember({ id: "audit-crew", name: "Allié", role: "Marin" })];
+      const davyStillIneligible = !isDavyArcEligible(davyGame);
+      const paradiseExclusiveGame = createDefaultGameState(character);
+      paradiseExclusiveGame.activeShopItems = ["den-den-mushi"];
+      paradiseExclusiveGame.legendaryArcs.davy.status = "succeeded";
+      paradiseExclusiveGame.legendaryWindows.paradise = { consumed: true, selectedArcId: "davy" };
+      const talentStillExcluded = !evaluateLegendaryArc("talent", paradiseExclusiveGame, () => 0);
+      const redLineExclusiveGame = createDefaultGameState(character);
+      redLineExclusiveGame.activeShopItems = ["den-den-mushi"];
+      redLineExclusiveGame.legendaryArcs["impel-down"].status = "succeeded";
+      redLineExclusiveGame.legendaryWindows["red-line-entry"] = { consumed: true, selectedArcId: "impel-down" };
+      const marinefordStillExcluded = !evaluateLegendaryArc("marineford", redLineExclusiveGame, () => 0);
+      results.denDenMushi = {
+        catalogMultiplier: findShopItem("den-den-mushi")?.legendaryChanceMultiplier,
+        chances: legendaryChances,
+        storyUnchanged: storyLegendaryWithItem === storyLegendaryWithoutItem,
+        capBlocked,
+        davyStillIneligible,
+        talentStillExcluded,
+        marinefordStillExcluded,
       };
       const chestGame = createDefaultGameState(character);
       chestGame.activeShopItems = ["chest"];
@@ -14163,6 +16061,13 @@
         fruit: getDataId(reloadedPersistenceGame.character.devilFruit) === getDataId(persistenceGame.character.devilFruit),
         bonusesNotReapplied: JSON.stringify(reloadedPersistenceGame.stats) === JSON.stringify(statsBeforeReload),
       };
+      const premiumRunSnapshot = normalizeGame({
+        ...createDefaultGameState(character), activeShopItems: ["binks-sake", "den-den-mushi"],
+      });
+      results.premiumRunSnapshot = {
+        preserved: JSON.stringify(premiumRunSnapshot.activeShopItems) === JSON.stringify(["binks-sake", "den-den-mushi"]),
+        limitedToTwo: premiumRunSnapshot.activeShopItems.length === 2,
+      };
       const itemIds = items.map((item) => item.id);
       const scenarios = [[], ...itemIds.map((id) => [id])];
       itemIds.forEach((left, index) => itemIds.slice(index + 1).forEach((right) => scenarios.push([left, right])));
@@ -14207,24 +16112,32 @@
       else localStorage.setItem(CONFIG.profileKey, originalProfile);
       updateHomeScreen();
     }
-    results.pass = results.catalog.count === 5 && results.catalog.uniqueIds &&
-      results.catalog.totalPrice === 2625 && results.catalog.exactPrices &&
+    results.pass = results.catalog.count === 7 && results.catalog.uniqueIds &&
+      results.catalog.totalPrice === 8000 && results.catalog.exactPrices && results.catalog.gameplayRange &&
       results.normalization.berries === 0 && results.normalization.owned.length === 1 &&
       results.normalization.equipped.length === 1 && results.achievements.total === 810 &&
       results.achievements.claimed === 6 && results.achievements.idempotent &&
       results.purchase.bought && results.purchase.doubleBuyBlocked && results.purchase.exactBalance &&
       results.purchase.owned && results.purchase.thirdEquipBlocked &&
+      Object.values(results.legacyOwnership).every(Boolean) && Object.values(results.premiumPurchase).every(Boolean) &&
       results.cosmeticD.catalogPrice === 5600 && results.cosmeticD.insufficientBlocked &&
       results.cosmeticD.bought && results.cosmeticD.exactBalance &&
       results.cosmeticD.owned && results.cosmeticD.persisted &&
       results.effects.treasureFortune === 15000 && results.effects.jolly.every((value) => value === 2) &&
       results.effects.eternalOrdinary === 5 && results.effects.eternalRisk === 0 &&
       results.effects.vivreMultiplier === 1.6 && results.effects.chestFirstEvent &&
+      results.binksSake.catalogBonus === 7 && results.binksSake.scoreDifferences.every((value) => value === 7) &&
+      results.binksSake.nonHakiScoreDifferences.every((value) => value === 0) && results.binksSake.storyDifference === 0 &&
+      results.binksSake.simulations.every((row) => row.boosted.favorable > row.baseline.favorable && row.boosted.mixed > 0 && row.boosted.failure > 0) &&
+      results.denDenMushi.catalogMultiplier === 1.35 && results.denDenMushi.chances.every((row) => Math.abs(row.ratio - 1.35) < 1e-9) &&
+      results.denDenMushi.storyUnchanged && results.denDenMushi.capBlocked && results.denDenMushi.davyStillIneligible &&
+      results.denDenMushi.talentStillExcluded && results.denDenMushi.marinefordStillExcluded &&
       results.chest.firstType === "surprise-fruit" && results.chest.triggered && results.chest.consumed &&
       Object.values(results.chestMigration).every(Boolean) &&
       Object.entries(results.gamePanelPersistence)
         .filter(([key]) => key !== "companionCounts").every(([, value]) => Boolean(value)) &&
-      results.simulations.length === 16 && results.simulations.every((row) => row.ordinarySuccessRate < 0.9 && row.recruitmentRate < 0.2) &&
+      Object.values(results.premiumRunSnapshot).every(Boolean) &&
+      results.simulations.length === 29 && results.simulations.every((row) => row.ordinarySuccessRate < 0.9 && row.recruitmentRate < 0.2) &&
       JSON.stringify(results.completion) === JSON.stringify([30, 40, 40, 50, 0]);
     return results;
   }
@@ -14266,7 +16179,7 @@
       return game;
     };
     const recruitGame = makeGame();
-    const recruitMember = catalog.find((member) => member.id === "chopper") || catalog[0];
+    const recruitMember = catalog.find((member) => member.id === "boa-hancock") || catalog[0];
     recruitGame.stats.crew = 1;
     const joined = recruitCrewMember(recruitMember, recruitGame, false);
     const joinQueued = joined && queueCompanionDialogue(recruitMember, "companion-join", recruitGame);
@@ -14290,7 +16203,7 @@
     const finalDreams = dreamIds.map((dreamId) => {
       const game = makeGame();
       game.character.dream = dreamId;
-      game.crewMembers = [normalizeCrewMember(catalog.find((member) => member.id === "nami") || catalog[0])];
+      game.crewMembers = [normalizeCrewMember(catalog.find((member) => member.id === "boa-hancock") || catalog[0])];
       game.stats.crew = 1;
       const event = getBossEvents().find((candidate) =>
         Number(candidate.decisiveStage) === 3 && candidate.dreamIds?.includes(dreamId));
@@ -15394,6 +17307,147 @@
     return report;
   }
 
+  function runStoryPeriodAudit() {
+    const rows = Array.from({ length: 6 }, (_, zoneIndex) => {
+      const game = { runMode: "story", currentZoneIndex: zoneIndex, month: zoneIndex * CONFIG.logbookInterval + 1 };
+      return { zoneIndex, month: game.month, displayedPeriod: getStoryPeriod(game), pass: getStoryPeriod(game) === zoneIndex + 1 };
+    });
+    const clamped = [6, 12, 23].every((zoneIndex) => getStoryPeriod({ runMode: "story", currentZoneIndex: zoneIndex }) === 6);
+    return { rows, noPeriodAboveSix: clamped, pass: rows.every((row) => row.pass) && clamped };
+  }
+
+  function runStorySignatureEncounterAudit(iterations = 90000, seed = 28082026) {
+    let value = Number(seed) >>> 0;
+    const random = () => {
+      value = (Math.imul(value, 1664525) + 1013904223) >>> 0;
+      return value / 4294967296;
+    };
+    const counts = { rayleigh: 0, gaban: 0, both: 0, rayleighOnly: 0, gabanOnly: 0, neither: 0 };
+    for (let index = 0; index < iterations; index += 1) {
+      const game = { runMode: "story", storyId: "roger", currentZoneIndex: 0, flags: {}, seenEvents: [] };
+      const scheduled = initializeStorySignatureEncounters(game, random);
+      if (scheduled.rayleigh) counts.rayleigh += 1;
+      if (scheduled.gaban) counts.gaban += 1;
+      if (scheduled.rayleigh && scheduled.gaban) counts.both += 1;
+      if (scheduled.rayleigh && !scheduled.gaban) counts.rayleighOnly += 1;
+      if (!scheduled.rayleigh && scheduled.gaban) counts.gabanOnly += 1;
+      if (!scheduled.rayleigh && !scheduled.gaban) counts.neither += 1;
+    }
+    const rates = Object.fromEntries(Object.entries(counts).map(([key, count]) => [key, count / iterations]));
+    const persisted = { runMode: "story", storyId: "roger", currentZoneIndex: 0, flags: {}, seenEvents: [] };
+    initializeStorySignatureEncounters(persisted, () => 0);
+    initializeStorySignatureEncounters(persisted, () => 0.999999);
+    const persistedFalse = { runMode: "story", storyId: "roger", currentZoneIndex: 0, flags: {}, seenEvents: [] };
+    initializeStorySignatureEncounters(persistedFalse, () => 0.999999);
+    initializeStorySignatureEncounters(persistedFalse, () => 0);
+    const combinations = [
+      { id: "neither", rolls: [0.75, 0.75], expected: [false, false] },
+      { id: "rayleigh-only", rolls: [0.25, 0.75], expected: [true, false] },
+      { id: "gaban-only", rolls: [0.75, 0.25], expected: [false, true] },
+      { id: "both", rolls: [0.25, 0.25], expected: [true, true] },
+    ].map((test) => {
+      const game = { runMode: "story", storyId: "roger", currentZoneIndex: 0, flags: {}, seenEvents: [] };
+      const rolls = [...test.rolls];
+      const result = initializeStorySignatureEncounters(game, () => rolls.shift());
+      return { id: test.id, ...result, pass: result.rayleigh === test.expected[0] && result.gaban === test.expected[1] };
+    });
+    const legacyPast = { runMode: "story", storyId: "roger", currentZoneIndex: 2, flags: {}, seenEvents: [] };
+    initializeStorySignatureEncounters(legacyPast, () => 0);
+    const tolerances = {
+      rayleigh: Math.abs(rates.rayleigh - 0.5) < 0.01,
+      gaban: Math.abs(rates.gaban - 0.5) < 0.01,
+      both: Math.abs(rates.both - 0.25) < 0.01,
+      rayleighOnly: Math.abs(rates.rayleighOnly - 0.25) < 0.01,
+      gabanOnly: Math.abs(rates.gabanOnly - 0.25) < 0.01,
+      neither: Math.abs(rates.neither - 0.25) < 0.01,
+    };
+    return {
+      iterations, seed, counts, rates, tolerances,
+      noReloadReroll: persisted.flags.storyRayleighEncounterScheduled === true && persisted.flags.storyGabanEncounterScheduled === true,
+      noReloadRerollFalse: persistedFalse.flags.storyRayleighEncounterScheduled === false && persistedFalse.flags.storyGabanEncounterScheduled === false,
+      combinations,
+      noRetroactiveEncounter: legacyPast.flags.storyRayleighEncounterScheduled === false && legacyPast.flags.storyGabanEncounterScheduled === false,
+      pass: Object.values(tolerances).every(Boolean) &&
+        persisted.flags.storyRayleighEncounterScheduled === true && persisted.flags.storyGabanEncounterScheduled === true &&
+        persistedFalse.flags.storyRayleighEncounterScheduled === false && persistedFalse.flags.storyGabanEncounterScheduled === false &&
+        combinations.every((test) => test.pass) &&
+        legacyPast.flags.storyRayleighEncounterScheduled === false && legacyPast.flags.storyGabanEncounterScheduled === false,
+    };
+  }
+
+  function runFinalPopularityFreezeAudit() {
+    const scores = [80, 81, 90, 94, 99, 100];
+    const endings = [
+      { id: "classic-success", runMode: "classic", success: true },
+      { id: "classic-failure", runMode: "classic", success: false },
+      { id: "roger-success", runMode: "story", success: true },
+      { id: "roger-failure", runMode: "story", success: false },
+    ];
+    const rows = endings.flatMap((test) => scores.map((score) => {
+      const character = {
+        name: "Audit final", firstName: "Audit", lastName: "Final", sex: "male",
+        faction: "pirate", dream: "one-piece", origin: "east-blue", traits: [],
+        runMode: test.runMode, storyId: test.runMode === "story" ? "roger" : null,
+      };
+      const game = createDefaultGameState(character);
+      game.storyId = character.storyId;
+      game.finalPopularityScore = score;
+      game.stats.popularity = score === 80 ? 81 : Math.max(1, score - 1);
+      game.popularityScore = game.stats.popularity;
+      game.preparedFinalTitle = normalizeTitleData("legende-inachevee", findTitleData("legende-inachevee"));
+      const reloaded = normalizeGame(cloneData(game));
+      const ending = normalizeEndingData({
+        type: test.success ? "dreamCompleted" : "dreamUnfulfilled",
+        success: test.success, dreamCompleted: test.success, destiny: "Audit",
+      });
+      const entry = createPantheonEntry(ending, game.preparedFinalTitle, game);
+      const detail = clampCareerScore(entry.popularityScore ?? calculatePopularityScore(entry));
+      return {
+        case: test.id, score,
+        conclusion: game.finalPopularityScore,
+        pantheon: entry.popularityScore,
+        detail,
+        leaderboard: entry.popularityScore,
+        reload: reloaded.finalPopularityScore,
+        pass: [game.finalPopularityScore, entry.popularityScore, detail, reloaded.finalPopularityScore]
+          .every((value) => value === score),
+      };
+    }));
+    return { rows, pass: rows.every((row) => row.pass) };
+  }
+
+  function runStoryLegendaryCombinationAudit() {
+    const arcCalendar = Object.freeze({ talent: 11, marineford: 13, emperor: 20 });
+    const combinations = [
+      ["talent"], ["marineford"], ["emperor"],
+      ["talent", "marineford"], ["talent", "emperor"], ["marineford", "emperor"],
+      ["talent", "marineford", "emperor"],
+    ];
+    const rows = combinations.map((selectedArcs) => {
+      const character = {
+        name: "Gol D. Audit", firstName: "Audit", lastName: "Gol D.", sex: "male",
+        faction: "pirate", dream: "one-piece", origin: "east-blue", hasD: true,
+        hasHistoricalD: true, historicalDStatBonus: 3, runMode: "story", storyId: "roger", traits: [],
+      };
+      const game = createDefaultGameState(character);
+      game.storyId = "roger";
+      game.route = generateRoute(character);
+      const outcomes = {};
+      Object.entries(arcCalendar).forEach(([arcId, month]) => {
+        game.month = month;
+        game.currentZoneIndex = getZoneIndexForMonth(month);
+        outcomes[arcId] = evaluateLegendaryArc(arcId, game, () => selectedArcs.includes(arcId) ? 0 : 0.999999);
+        if (outcomes[arcId]) game.legendaryArcs[arcId].status = "succeeded";
+      });
+      const eventStepsExist = Object.keys(arcCalendar).every((arcId) => [1, 2, 3].every((step) =>
+        Boolean((window.BLUE_LEGACY_STORY_DATA?.roger?.legendaryEvents || []).find((event) =>
+          event.tags?.includes(`legendary-${arcId}`) && event.tags?.includes(`legendary-step-${step}`)))));
+      const pass = Object.keys(arcCalendar).every((arcId) => outcomes[arcId] === selectedArcs.includes(arcId)) && eventStepsExist;
+      return { selectedArcs, outcomes, independentStatuses: cloneData(game.legendaryArcs), eventStepsExist, pass };
+    });
+    return { windows: arcCalendar, rows, pass: rows.every((row) => row.pass) };
+  }
+
   function runLegendaryTitleRevealAudit() {
     const factions = ["pirate", "marine", "revolutionary", "bounty-hunter"];
     const emperorIds = Object.keys(LEGENDARY_EMPEROR_TITLES);
@@ -15717,6 +17771,60 @@
     };
   }
 
+  function runStoryConclusionAudit() {
+    const makeGame = (completed, score = 92) => {
+      const character = {
+        name: "Gol D. Riku", firstName: "Riku", lastName: "Gol D.", sex: "male",
+        faction: "pirate", dream: "one-piece", origin: "east-blue", hasD: true,
+        hasHistoricalD: true, historicalDStatBonus: 3, runMode: "story", storyId: "roger", traits: [],
+      };
+      const game = createDefaultGameState(character);
+      game.storyId = "roger";
+      game.storyTitle = STORIES.find((story) => story.id === "roger")?.storyTitle;
+      game.month = CONFIG.maxMonths;
+      game.route = generateRoute(character);
+      game.currentZoneIndex = 5;
+      game.visitedZoneIds = game.route.map((zone) => zone.id);
+      game.stats = normalizeStats({ ...game.stats, health: 80, combat: 80, haki: 80, intelligence: 80, charisma: 80, popularity: score });
+      if (score >= 90) {
+        game.stats = normalizeStats({ ...game.stats, health: 100, combat: 100, haki: 100, intelligence: 100, charisma: 100, bounty: 20000000, fortune: 1000000, crew: 8 });
+        game.crewMembers = Array.from({ length: 5 }, (_, index) => ({ id: `audit-${index}`, name: `Compagnon ${index}`, role: `Rôle ${index}` }));
+      }
+      game.bossProgress.finalOutcome = {
+        bossId: "roger-loguetown-scaffold", bossTitle: "L’échafaud de Loguetown",
+        choiceId: completed ? "great-era" : "protect", choiceText: "Choix d’audit",
+        result: completed ? "Le message traverse la place." : "Le message se perd dans le tumulte.",
+        dreamCompleted: completed, dreamId: "one-piece", factionId: "pirate", survived: true,
+        outcomeTier: completed ? "success" : "failure", conclusionType: "heritage",
+      };
+      return game;
+    };
+    const successful = makeGame(true, 81);
+    const failedHighScore = makeGame(false, 94);
+    const successEnding = createBossFinalEnding(successful);
+    const failureEnding = createBossFinalEnding(failedHighScore);
+    const successEntry = createPantheonEntry(successEnding, null, successful);
+    const failureEntry = createPantheonEntry(failureEnding, null, failedHighScore);
+    const finalEvent = window.BLUE_LEGACY_STORY_DATA?.roger?.decisiveEvents?.find((event) => event.id === "roger-loguetown-scaffold");
+    const everyRouteCanSucceed = Boolean(finalEvent?.choices?.length >= 3 && finalEvent.choices.every((choice) =>
+      choice.outcomes?.some((outcome) => ["success", "exceptional_success"].includes(outcome.outcomeTier))));
+    const classicPresentation = getConclusionPresentation({ runMode: "classic" }, true);
+    const cases = {
+      successLabel: successEnding.conclusionLabel === "Héritage accompli",
+      failureLabel: failureEnding.conclusionLabel === "Héritage inachevé",
+      alternateRoutesCanSucceed: everyRouteCanSucceed,
+      highScoreDoesNotForceSuccess: failureEntry.popularityScore >= 90 && failureEntry.dreamCompleted === false,
+      customNameUsed: successEnding.destiny.includes("Gol D. Riku") && !successEnding.destiny.includes("Gol D. Roger"),
+      pantheonPersistence: successEntry.conclusionType === "heritage" && successEntry.conclusionLabel === "Héritage accompli" &&
+        failureEntry.conclusionLabel === "Héritage inachevé",
+      reloadPersistence: normalizeProfile({ pantheon: [successEntry] }).pantheon[0].conclusionLabel === "Héritage accompli",
+      classicUnchanged: classicPresentation.label === "Rêve accompli" && getConclusionPresentation({ runMode: "classic" }, false).label === "Rêve inachevé",
+      configuredAssets: getStoryEndingConfig(successful)?.successAsset?.path === "assets/histoire/roger/heritageaccompli.png" &&
+        getStoryEndingConfig(successful)?.failureAsset?.path === "assets/histoire/roger/heritageinacheve.png",
+    };
+    return { cases, successEnding, failureEnding, pass: Object.values(cases).every(Boolean) };
+  }
+
   function runCollectionCatalogAudit() {
     const achievements = getAllAchievements();
     const titles = getAllTitles();
@@ -15768,16 +17876,32 @@
         { id: "haki-des-rois" },
         { id: "maitrise-haki-des-rois-plus" },
       ],
-      crewMembers: [{ id: "chopper", rarity: "legendary" }],
+      crewMembers: [{ id: "boa-hancock", name: "Boa Hancock", rarity: "legendary" }],
       legendaryArcs: {
         talent: { status: "succeeded", titleId: "supernova" },
+        davy: { status: "succeeded", titleId: "champion-davy-back-fight", companionIds: ["davy-zoro", "davy-sanji", "davy-nami"], performance: { entries: [1, 2, 3].map((step) => ({ step, tier: "success" })) } },
+        "impel-down": { status: "succeeded", titleId: "evade-impel-down" },
         marineford: { status: "succeeded", titleId: "fleau-de-marineford" },
+        warlord: { status: "succeeded", titleId: "briseur-ombres" },
         emperor: { status: "succeeded", titleId: "tombeur-de-kaido" },
+        admiral: { status: "succeeded", titleId: "fleau-taureau-vert" },
       },
     }));
+    richRuns.push({
+      id: "audit-story-roger", runMode: "story", storyId: "roger", isFinished: true,
+      finishedAt: new Date(2025, 1, 1).toISOString(), endingType: "heritage",
+      dreamCompleted: true, popularityScore: 100, stats: { ...createDefaultStats(), popularity: 100 },
+      crewMembers: ["roger-rayleigh", "roger-gaban", "roger-crocus", "roger-oden"].map((id) => ({ id })),
+      flags: { reachedLaughTale: true, storyRoadstarMajorSuccess: true, storyRogerGreatEraLaunched: true },
+      legendaryArcs: {
+        talent: { status: "succeeded", titleId: "story-roger-god-valley-shadow" },
+        marineford: { status: "succeeded", titleId: "story-roger-golden-lion-rival" },
+        emperor: { status: "succeeded", titleId: "story-roger-sea-titan" },
+      },
+    });
     const richProfile = normalizeProfile({
       pantheon: richRuns,
-      titles: titles.slice(0, 12),
+      titles,
       ownedShopItems: getShopItems().map((item) => item.id),
     });
     const emptyProfile = normalizeProfile({});
@@ -15842,9 +17966,14 @@
       createTitleCardHtml(title, { mode: "full", locked: true }).includes(title.unlockHint),
     ).map((title) => title.id);
     const titleRows = titles.filter((title) => typeof title.condition === "function").map((title) => {
-      const game = createDefaultGameState(null);
+      const game = createDefaultGameState(title.runMode === "story" ? {
+        name: "Gol D. Audit", faction: "pirate", dream: "one-piece", origin: "east-blue",
+        runMode: "story", storyId: "roger", traits: [], hasD: true,
+      } : null);
+      if (title.runMode === "story") Object.assign(game, cloneData(richRuns.find((run) => run.runMode === "story")));
       game.stats = { ...createDefaultStats(), health: 90, combat: 80, haki: 80, intelligence: 80, charisma: 80, crew: 6 };
       game.visitedZoneIds = ["shinsekai"];
+      game.achievementProgress ||= {};
       game.achievementProgress.dangerEventsSurvived = 2;
       return {
         id: title.id,
@@ -15885,14 +18014,31 @@
         career: runCareerFinalTitleAudit(),
       },
     };
-    report.pass = report.achievements.count >= 35 && report.achievements.count <= 60 &&
-      report.achievements.uniqueIds && report.achievements.uniqueNames &&
-      achievementRows.every((row) => row.positive && !row.negative) &&
-      report.titles.count >= 40 && report.titles.count <= 90 &&
-      report.titles.uniqueIds && report.titles.uniqueNames && report.titles.ultimatePreserved &&
-      dreamRows.every((row) => row.pass) && titleRows.every((row) => row.positive) &&
-      titleSourceRows.every((row) => row.eventSource) &&
-      !lockedLeaks.length && report.titles.career.pass;
+    report.checks = {
+      achievementCount: report.achievements.count >= 35,
+      achievementIds: report.achievements.uniqueIds,
+      achievementNames: report.achievements.uniqueNames,
+      achievementPositiveScenarios: achievementRows.every((row) => row.positive),
+      achievementNegativeScenarios: achievementRows.every((row) => !row.negative),
+      titleCount: report.titles.count >= 40,
+      titleIds: report.titles.uniqueIds,
+      ultimateTitles: report.titles.ultimatePreserved,
+      dreamTitles: dreamRows.every((row) => row.pass),
+      conditionalTitles: titleRows.every((row) => row.positive),
+      sourcedTitles: titleSourceRows.every((row) => row.eventSource),
+      lockedHints: !lockedLeaks.length,
+      careerTitles: report.titles.career.pass,
+    };
+    report.failures = {
+      achievementsNotUnlocked: achievementRows.filter((row) => !row.positive).map((row) => row.id),
+      achievementsUnlockedEmpty: achievementRows.filter((row) => row.negative).map((row) => row.id),
+      conditionalTitles: titleRows.filter((row) => !row.positive).map((row) => row.id),
+      unsourcedTitles: titleSourceRows.filter((row) => !row.eventSource).map((row) => row.id),
+      dreamTitles: dreamRows.filter((row) => !row.pass).map((row) => row.dreamId),
+      lockedHintLeaks: lockedLeaks,
+      duplicateTitleNames: titles.filter((title, index) => titles.findIndex((candidate) => candidate.name === title.name) !== index).map((title) => title.name),
+    };
+    report.pass = Object.values(report.checks).every(Boolean);
     return report;
   }
 
@@ -15903,6 +18049,8 @@
   Object.assign(window, {
     openScreen,
     startCreation,
+    startStoryRun,
+    stories: STORIES,
     createCharacter,
     generateName,
     generateFirstName,
@@ -15959,8 +18107,13 @@
     runHealthEndingAudit,
     runHakiDecisiveAudit,
     runArcPerformanceAudit,
+    runStoryPeriodAudit,
+    runStorySignatureEncounterAudit,
+    runFinalPopularityFreezeAudit,
+    runStoryLegendaryCombinationAudit,
     runLegendaryTitleRevealAudit,
     runFinalDreamResolutionAudit,
+    runStoryConclusionAudit,
     runEmperorRunKillerAudit,
     debugTriggerEmperorRunKiller,
     validateRunRewards,
@@ -16015,8 +18168,20 @@
     calculateCompletionBerries,
     runShopSystemAudit,
     runCompanionDialogueAudit,
+    canonicalCharacterIdFromName,
+    getCanonicalCharacterIdsForFruit,
+    getCanonicalCharacterFruitIds,
+    hasCrewMember,
+    hasDevilFruitConflict,
+    isCanonicalCharacterAvailable,
+    isFruitCompatibleWithCurrentRun,
+    getCompatibleLegendaryWarlordIds,
+    replaceFutureIncompatibleSpecialZone,
+    runCanonicalDevilFruitUniquenessAudit,
     runReverseMountainTemperamentAudit,
     runCollectionCatalogAudit,
+    runTitleCollectionAchievementAudit,
+    runFullGameValidationAudit,
     runDivelcaAchievementAudit,
     runDivelcaPersistenceAudit,
   });
@@ -16043,9 +18208,17 @@
     runHealthEndingAudit,
     runHakiDecisiveAudit,
     runArcPerformanceAudit,
+    runStoryPeriodAudit,
+    runStorySignatureEncounterAudit,
+    runFinalPopularityFreezeAudit,
+    runStoryLegendaryCombinationAudit,
     runFinalDreamResolutionAudit,
+    runStoryConclusionAudit,
     runCompanionDialogueAudit,
+    runCanonicalDevilFruitUniquenessAudit,
     runReverseMountainTemperamentAudit,
+    runTitleCollectionAchievementAudit,
+    runFullGameValidationAudit,
     runEmperorRunKillerAudit,
     debugTriggerEmperorRunKiller,
   });
@@ -16070,6 +18243,7 @@
     validateAchievementCatalog();
     validateEventCatalogInDevelopment();
     validateStatisticsInDevelopment();
+    syncProvableStoryTitlesFromPantheon();
     checkAchievements(null, { retroactive: true });
 
     const developmentQuery = new URLSearchParams(window.location.search);
@@ -16081,6 +18255,29 @@
       const seed = Number(developmentQuery.get("balanceSeed")) || 11092026;
       const report = runBalanceSimulation({ runsPerFaction, seed });
       document.documentElement.dataset.balanceAudit = JSON.stringify(report);
+    }
+    if (developmentQuery.has("balanceDetailAudit")) {
+      const runsPerFaction = Math.max(1, Number(developmentQuery.get("runsPerFaction")) || 400);
+      const seed = Number(developmentQuery.get("balanceSeed")) || 28082026;
+      const report = runBalanceSimulation({ runsPerFaction, seed });
+      const percent = (value) => `${(Number(value) * 100).toFixed(1)}%`;
+      const row = (id, value) => `${id}|${value.runs}|${value.popularityMean.toFixed(2)}|${value.median}|${value.p90}|${value.p95}|${value.p99}|${percent(value.survivalRate)}|${percent(value.dreamCompletionRate)}|${percent(value.atLeast95)}|${percent(value.exactly99)}|${percent(value.exactly100)}`;
+      const output = document.createElement("pre");
+      output.style.cssText = "position:absolute;inset:0 auto auto 0;z-index:2147483647;margin:0;padding:14px;background:#fff;color:#111;font:700 15px/1.35 monospace;white-space:pre";
+      output.textContent = [
+        "group|runs|mean|median|p90|p95|p99|survival|dream|95+|99|100",
+        row("OVERALL", report.overall),
+        "-- STRATEGIES --",
+        ...Object.entries(report.byStrategy).map(([id, value]) => row(id, value)),
+        "-- ORIGINS --",
+        ...Object.entries(report.byOrigin).map(([id, value]) => row(id, value)),
+        "-- DREAMS --",
+        ...Object.entries(report.byDream).map(([id, value]) => row(id, value)),
+      ].join("\n");
+      closeDialog(dom.welcomeIdentityModal);
+      dom.welcomeIdentityModal?.remove();
+      document.body.append(output);
+      document.documentElement.dataset.balanceDetailAudit = JSON.stringify(report);
     }
     if (developmentQuery.has("popularityTailAudit")) {
       const runsPerFaction = Math.max(1, Number(developmentQuery.get("runsPerFaction")) || 2000);
@@ -16101,8 +18298,11 @@
         `100 by faction · ${Object.entries(simulation.byFaction).map(([id, row]) => `${id} ${percent(row.exactly100)}`).join(" · ")}`,
         `top-end audit ${topEndAudit.pass ? "PASS" : "FAIL"} · monotonic ${topEndAudit.monotonic ? "PASS" : "FAIL"} · theoretical factions ${Object.values(topEndAudit.factionsAt100).filter(Boolean).length}/4 · dreams ${topEndAudit.dreamsAt100}/16 · historical ${topEndAudit.historical100Preserved ? "PASS" : "FAIL"}`,
       ].join("\n");
-      document.body.append(output);
-      output.showPopover?.();
+      window.setTimeout(() => {
+        if (dom.welcomeIdentityModal?.open) dom.welcomeIdentityModal.close();
+        document.body.append(output);
+        output.showPopover?.();
+      }, 1000);
       closeDialog(dom.welcomeIdentityModal);
       dom.welcomeIdentityModal?.remove();
       document.documentElement.dataset.popularityTailAudit = JSON.stringify(report);
@@ -16130,6 +18330,10 @@
         runBalanceAudit({ runsPerFaction, seed }),
       );
     }
+    if (developmentQuery.has("storyAudit")) {
+      document.documentElement.dataset.storyPeriodAudit = JSON.stringify(runStoryPeriodAudit());
+      document.documentElement.dataset.storyLegendaryAudit = JSON.stringify(runStoryLegendaryCombinationAudit());
+    }
     if (developmentQuery.has("careerTitleAudit")) {
       document.documentElement.dataset.careerTitleAudit = JSON.stringify(runCareerFinalTitleAudit());
     }
@@ -16144,6 +18348,30 @@
     }
     if (developmentQuery.has("collectionAudit")) {
       document.documentElement.dataset.collectionAudit = JSON.stringify(runCollectionCatalogAudit());
+    }
+    if (developmentQuery.has("titleCollectionAudit")) {
+      const titleCollectionAudit = runTitleCollectionAchievementAudit();
+      document.documentElement.dataset.titleCollectionAudit = JSON.stringify(titleCollectionAudit);
+      const output = document.createElement("pre");
+      output.id = "title-collection-audit-output";
+      output.style.cssText = "position:fixed;inset:8px;z-index:2147483647;overflow:auto;padding:16px;background:#fff;color:#111;white-space:pre-wrap";
+      output.textContent = JSON.stringify(titleCollectionAudit, null, 2);
+      document.body.append(output);
+    }
+    if (developmentQuery.has("fullGameValidationAudit")) {
+      const report = runFullGameValidationAudit();
+      const output = document.createElement("pre");
+      output.style.cssText = "position:absolute;inset:0 auto auto 0;z-index:2147483647;margin:0;padding:14px;background:#fff;color:#111;font:700 16px/1.4 monospace;white-space:pre-wrap";
+      output.textContent = JSON.stringify({ pass: report.pass, counts: report.counts, failures: report.failures,
+        systems: Object.fromEntries(Object.entries(report.systems).map(([id, audit]) => [id, {
+          pass: audit?.pass,
+          failedChecks: Object.entries(audit?.checks || {}).filter(([, passed]) => passed === false).map(([check]) => check),
+          failureDetails: audit?.pass === false ? audit?.failures || null : null,
+        }])) }, null, 2);
+      closeDialog(dom.welcomeIdentityModal);
+      dom.welcomeIdentityModal?.remove();
+      document.body.append(output);
+      document.documentElement.dataset.fullGameValidationAudit = JSON.stringify(report);
     }
     if (developmentQuery.has("renownDisplayAudit")) {
       document.documentElement.dataset.renownDisplayAudit = JSON.stringify(runFactionRenownDisplayAudit());
@@ -16180,7 +18408,8 @@
         save: false,
       },
     );
-    void trackCriticalOperation(synchronizeExistingPublicProfile());
+    void trackCriticalOperation(synchronizeExistingPublicProfile())
+      .finally(showReleaseNotesIfNeeded);
     initializeBuildUpdateMonitoring();
     preloadRouteAssets(state.game);
     preloadBackgroundFeatureAssets();
@@ -16342,7 +18571,7 @@
       preview.currentEvent = normalizeEvent(getAllEvents()[0]);
       preview.currentEventId = preview.currentEvent.id;
       const member = normalizeCrewMember(
-        (window.GAME_DATA?.crewRecruitments || []).find((candidate) => candidate.id === "nami"),
+        (window.GAME_DATA?.davyBackFightCompanions || []).find((candidate) => candidate.id === "davy-nami"),
       );
       queueCompanionDialogue(member, "companion-join", preview);
       state.game = preview;
@@ -16364,7 +18593,7 @@
     }
     if (developmentQuery.has("legendaryConclusionPreview")) {
       const requestedArc = developmentQuery.get("legendaryConclusionPreview");
-      const arcId = ["talent", "marineford", "emperor"].includes(requestedArc)
+      const arcId = CLASSIC_LEGENDARY_ARC_IDS.includes(requestedArc)
         ? requestedArc : "marineford";
       const preview = createDefaultGameState({
         name: "Aperçu conclusion", faction: "pirate", dream: "one-piece",
@@ -16378,6 +18607,7 @@
       if (arcId === "emperor") {
         preview.legendaryArcs.emperor.emperorId = developmentQuery.get("emperorId") || "kaido";
       }
+      if (arcId === "warlord") preview.legendaryArcs.warlord.warlordId = developmentQuery.get("warlordId") || "moria";
       queueLegendaryConclusion(arcId, preview);
       state.game = preview;
       openScreen(SCREEN.ZONE_TRANSITION, { save: false });
@@ -16526,8 +18756,11 @@
       "Tashigi", "Fujitora", "Sakazuki", "Koby", "Garp", "Marco",
       "Perona", "Daz Bonez", "Smoker", "Tsuru", "Borsalino", "Basil Hawkins",
       "Karasu", "Trafalgar Law", "Issho", "Dracule Mihawk", "Morley",
-      "Eustass Kid", "Killer",
+      "Eustass Kid", "Killer", "Silvers Rayleigh", "Emporio Ivankov",
+      "Monkey D. Luffy", "Magellan", "Hannyabal", "Gecko Moria",
+      "Donquixote Doflamingo", "Edward Weevil", "Boa Hancock", "Bartholomew Kuma",
       ...(window.GAME_DATA?.crewRecruitments || []).map((member) => member.name),
+      ...(window.GAME_DATA?.davyBackFightCompanions || []).map((member) => member.name),
       ...(window.GAME_DATA?.marineRecruitments || []).map((member) => member.name),
     ]);
     const producedFlags = new Set();
@@ -16585,31 +18818,43 @@
         /peintre.{0,30}avis de recherche/i.test(visibleText) ||
         vagueTitles.test(event.title.trim());
     });
-    if ((window.GAME_DATA?.devilFruits || []).length < 24) {
-      structuralWarnings.push("Le catalogue de Fruits du Démon doit contenir au moins vingt-quatre fruits.");
-    }
-    if ((window.GAME_DATA?.crewRecruitments || []).length < 24) {
-      structuralWarnings.push("Le catalogue de recrutements doit contenir au moins vingt-quatre compagnons.");
-    }
     if ((window.GAME_DATA?.marineRecruitments || []).length < 16) {
       structuralWarnings.push("Le catalogue Marine doit proposer au moins seize officiers ou soutiens.");
     }
-    const validateUniqueCatalog = (items, label) => {
+    const validateUniqueCatalog = (items, label, uniqueNames = false) => {
       const ids = new Set();
+      const names = new Set();
       (items || []).forEach((item) => {
         if (!item?.id || ids.has(item.id)) structuralWarnings.push(`${label} dupliqué ou sans identifiant : ${item?.id || "(vide)"}.`);
         ids.add(item?.id);
+        const normalizedName = String(item?.name || "").trim().toLocaleLowerCase("fr");
+        if (uniqueNames && (!normalizedName || names.has(normalizedName))) structuralWarnings.push(`${label} dupliqué ou sans nom : ${item?.name || "(vide)"}.`);
+        names.add(normalizedName);
       });
     };
-    validateUniqueCatalog(window.GAME_DATA?.devilFruits, "Fruit");
+    validateUniqueCatalog(window.GAME_DATA?.devilFruits, "Fruit", true);
     validateUniqueCatalog(window.GAME_DATA?.crewRecruitments, "Compagnon");
     validateUniqueCatalog(window.GAME_DATA?.marineRecruitments, "Soutien Marine");
+    const validRarities = new Set(["common", "uncommon", "rare", "epic", "legendary"]);
+    const validFruitTypes = new Set(["Paramecia", "Logia", "Zoan", "Zoan antique", "Zoan mythique"]);
+    const validStats = new Set(Object.keys(STATS));
+    (window.GAME_DATA?.devilFruits || []).forEach((fruit) => {
+      if (!validRarities.has(fruit.rarity)) structuralWarnings.push(`Fruit à rareté invalide : ${fruit.id}.`);
+      if (!validFruitTypes.has(fruit.type)) structuralWarnings.push(`Fruit à type invalide : ${fruit.id}.`);
+      if (!validStats.has(fruit.primaryStat)) structuralWarnings.push(`Fruit à statistique principale invalide : ${fruit.id}.`);
+      if (!fruit.description?.trim()) structuralWarnings.push(`Fruit sans description : ${fruit.id}.`);
+      if (!fruit.permanentEffects || Object.values(fruit.permanentEffects).some((value) => !Number.isFinite(value))) structuralWarnings.push(`Fruit aux effets invalides : ${fruit.id}.`);
+    });
     const forbiddenCrew = /^(Monkey D\. Luffy|Roronoa Zoro|Nami|Usopp|Sanji|Tony Tony Chopper|Nico Robin|Franky|Brook|Jinbe)$/i;
     (window.GAME_DATA?.crewRecruitments || []).forEach((member) => {
       if (forbiddenCrew.test(member.name || "")) {
         structuralWarnings.push(`Membre du Chapeau de paille interdit au recrutement : ${member.name}.`);
       }
+      if (!validRarities.has(member.rarity)) structuralWarnings.push(`Compagnon à rareté invalide : ${member.id}.`);
+      if (!member.role?.trim()) structuralWarnings.push(`Compagnon sans rôle : ${member.id}.`);
       if (!member.allowedFactions?.length) structuralWarnings.push(`Compagnon sans factions autorisées : ${member.id}.`);
+      if (member.minStage != null && (!Number.isInteger(member.minStage) || member.minStage < 1)) structuralWarnings.push(`Compagnon au minStage invalide : ${member.id}.`);
+      if (!member.permanentEffects || Object.values(member.permanentEffects).some((value) => !Number.isFinite(value))) structuralWarnings.push(`Compagnon aux effets invalides : ${member.id}.`);
     });
     (window.GAME_DATA?.marineRecruitments || []).forEach((member) => {
       if (!member.rank) structuralWarnings.push(`Soutien Marine sans grade : ${member.id}.`);
@@ -16819,6 +19064,11 @@
       },
       simulations: runBlueLegacySelectionSimulations(),
     };
+    audit.pass = !audit.invalid.length && !audit.structuralWarnings.length &&
+      !audit.activeLegacyFields.length && !audit.surpriseErrors.length && !audit.bootErrors.length &&
+      Object.values(audit.decisiveConclusionContracts).every((contract) => Object.values(contract).every(Boolean)) &&
+      audit.simulations.runs.every((run) => run.saveResume && run.selected.fallback === 0 &&
+        run.surpriseChecks.every((sample) => !sample?.error));
     console.warn("[Blue Legacy] EVENT_CATALOG_AUDIT", JSON.stringify(audit));
     if (new URLSearchParams(window.location.search).has("audit")) {
       document.documentElement.dataset.eventCatalogAudit = JSON.stringify(audit);
@@ -16922,7 +19172,7 @@
   }
 
   const BALANCE_SIMULATION_STRATEGIES = Object.freeze([
-    "random", "coherent", "action", "social", "prudent", "bold",
+    "random", "prudent", "combat", "defense", "intelligence", "charisma", "adaptive", "optimized",
   ]);
 
   function chooseSimulationChoice(event, game, strategy) {
@@ -16931,16 +19181,33 @@
       try { return choice.condition(createEventContext(game, event)); } catch { return false; }
     });
     if (!choices.length || strategy === "random") return Math.floor(Math.random() * Math.max(1, choices.length));
-    const danger = (choice) => /risqu|audace|sans retour|danger/i.test(`${choice.hint} ${choice.choiceTag}`) ? 18 : 0;
-    const potential = (choice) => Math.max(0, ...choice.outcomes.map((outcome) =>
-      Object.values(outcome.effects || {}).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0)));
+    const visibleText = (choice) => `${choice.text || ""} ${choice.hint || ""} ${choice.choiceTag || ""}`;
+    const danger = (choice) => /risqu|audace|sans retour|danger|charge|affront/i.test(visibleText(choice)) ? 18 : 0;
+    const affinity = (choice, strategy) => {
+      const text = visibleText(choice);
+      const patterns = {
+        combat: /combat|frapp|attaqu|charge|duel|force|affront/i,
+        defense: /d[ée]fens|prot[ée]g|tenir|endurance|rempart|pruden|r[ée]sist/i,
+        intelligence: /intelligen|analys|strat[ée]g|plan|ruse|enqu[êe]t|infiltr|observ/i,
+        charisma: /charism|n[ée]goci|convain|persuad|discours|diplom|leadership|ralli/i,
+      };
+      return patterns[strategy]?.test(text) ? 16 : 0;
+    };
     const score = (choice) => {
       const fit = getEventResolutionScore(game, event, choice);
-      if (strategy === "coherent") return fit;
       if (strategy === "prudent") return fit - danger(choice);
-      if (strategy === "bold") return potential(choice) + danger(choice);
-      if (strategy === "action") return event.resolutionCategory === "action" ? fit + 15 : fit - 8;
-      if (strategy === "social") return event.resolutionCategory === "social" ? fit + 15 : fit - 8;
+      if (["combat", "defense", "intelligence", "charisma"].includes(strategy)) {
+        return fit + affinity(choice, strategy);
+      }
+      if (strategy === "adaptive") return fit;
+      if (strategy === "optimized") {
+        const survivalNeed = Number(game.stats?.health) < 45 ? danger(choice) * 1.5 : 0;
+        const bestVisibleAffinity = Math.max(
+          affinity(choice, "combat"), affinity(choice, "defense"),
+          affinity(choice, "intelligence"), affinity(choice, "charisma"),
+        );
+        return fit + bestVisibleAffinity * 0.35 - survivalNeed;
+      }
       return fit;
     };
     return event.choices.indexOf([...choices].sort((a, b) => score(b) - score(a))[0]);
@@ -17064,7 +19331,8 @@
     game.isFinished = true;
     refreshPopularityScore(game);
     return {
-      faction, dream: character.dream, strategy, completed, dreamCompleted: Boolean(game.ending.dreamCompleted),
+      faction, dream: character.dream, origin: character.origin, strategy, completed,
+      survived: Number(game.stats.health) > 0, dreamCompleted: Boolean(game.ending.dreamCompleted),
       popularity: game.stats.popularity,
       preCapPopularity: Number(game.popularityPrestigeScore) || Number(game.popularityBeforeCap) || game.stats.popularity,
       stats: cloneData(game.stats), companions: game.crewMembers.length,
@@ -17081,8 +19349,10 @@
     const statIds = ["health", "combat", "haki", "intelligence", "charisma", "bounty", "fortune", "crew"];
     return {
       runs: runs.length,
+      minimum: sorted[0] || 0,
       maximum: sorted.at(-1) || 0,
       completionRate: mean(runs.map((run) => run.completed ? 1 : 0)),
+      survivalRate: mean(runs.map((run) => run.survived ? 1 : 0)),
       popularityMean: mean(sorted), median: percentile(0.5), p10: percentile(0.1), p25: percentile(0.25),
       p75: percentile(0.75), p90: percentile(0.9), p95: percentile(0.95), p99: percentile(0.99),
       under70: mean(runs.map((run) => run.popularity < 70 ? 1 : 0)),
@@ -17197,10 +19467,152 @@
       byDream: Object.fromEntries(
         uniqueArray(runs.map((run) => run.dream)).map((dreamId) => [dreamId, group("dream", dreamId)]),
       ),
+      byOrigin: Object.fromEntries(
+        uniqueArray(runs.map((run) => run.origin)).map((originId) => [originId, group("origin", originId)]),
+      ),
       byStrategy: Object.fromEntries(BALANCE_SIMULATION_STRATEGIES.map((strategy) => [strategy, group("strategy", strategy)])),
     };
     console.warn("[Blue Legacy] BALANCE_SIMULATION", report);
     return report;
+  }
+
+  function runCanonicalDevilFruitUniquenessAudit() {
+    const registry = window.BLUE_LEGACY_CANONICAL_DEVIL_FRUIT_USERS || {};
+    const fruits = window.GAME_DATA?.devilFruits || [];
+    const fruitIds = new Set(fruits.map((fruit) => fruit.id));
+    const makeGame = (faction = "pirate") => {
+      const game = createDefaultGameState({
+        id: `fruit-lore-audit-${faction}`, name: "Audit", faction,
+        dream: faction === "marine" ? "admiral" : "one-piece",
+        origin: "east-blue", traits: [], hasD: false,
+      });
+      game.route = generateRoute(game.character, { specialZoneId: "wandering-archipelago", specialZoneRouteIndex: 4 });
+      game.currentZoneIndex = 1;
+      synchronizeRouteMetadata(game);
+      return game;
+    };
+    const withFruit = (fruitId, faction = "pirate") => {
+      const game = makeGame(faction);
+      game.character.devilFruit = normalizeDevilFruit(fruits.find((fruit) => fruit.id === fruitId));
+      return game;
+    };
+    const warlordPool = (game) => getCompatibleLegendaryWarlordIds(game);
+    const recruitment = (id, game) => {
+      const member = [...(window.GAME_DATA?.crewRecruitments || []), ...(window.GAME_DATA?.marineRecruitments || [])]
+        .find((candidate) => candidate.id === id);
+      return Boolean(member && isRecruitmentEligible(member, game));
+    };
+    const fruitAllowed = (fruitId, game) => isFruitCompatibleWithCurrentRun(game, fruitId);
+
+    const opeGame = withFruit("ope-ope");
+    const meroGame = withFruit("mero-mero");
+    const nikyuGame = withFruit("nikyu-nikyu");
+    const zushiGame = withFruit("zushi-zushi", "marine");
+    const hancockCrewGame = makeGame();
+    hancockCrewGame.crewMembers = [normalizeCrewMember((window.GAME_DATA?.crewRecruitments || [])
+      .find((member) => member.id === "boa-hancock"))];
+    const hancockNikyuGame = withFruit("nikyu-nikyu");
+    hancockNikyuGame.crewMembers = cloneData(hancockCrewGame.crewMembers);
+    const inverseCases = [
+      ["marco", "tori-tori-phoenix"], ["bartolomeo", "bari-bari"],
+      ["viola", "giro-giro"], ["mansherry", "chiyu-chiyu"],
+    ].map(([memberId, fruitId]) => {
+      const game = makeGame();
+      const member = (window.GAME_DATA?.crewRecruitments || []).find((candidate) => candidate.id === memberId);
+      game.crewMembers = [normalizeCrewMember(member)];
+      const inverseBlocked = !fruitAllowed(fruitId, game);
+      const fruitGame = withFruit(fruitId);
+      return { memberId, fruitId, inverseBlocked, recruitmentBlocked: !recruitment(memberId, fruitGame) };
+    });
+    const sampleWarlords = (game, count = 1000) => Array.from({ length: count }, (_, index) =>
+      selectLegendaryWarlord(game, () => (index + .5) / count));
+    const meroWarlordSamples = sampleWarlords(meroGame);
+    const nikyuWarlordSamples = sampleWarlords(nikyuGame);
+    const combinedWarlordSamples = sampleWarlords(hancockNikyuGame);
+    const offerSamples = [];
+    const originalRandom = Math.random;
+    try {
+      let seed = 28082026;
+      Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+      for (let index = 0; index < 200; index += 1) {
+        const fruitGame = makeGame();
+        fruitGame.crewMembers = [normalizeCrewMember((window.GAME_DATA?.crewRecruitments || [])
+          .find((member) => member.id === "marco"))];
+        const fruitEvent = createFruitSurpriseEvent(fruitGame);
+        const recruitGame = withFruit("mero-mero");
+        recruitGame.month = 20;
+        recruitGame.currentZoneIndex = 4;
+        const recruitmentEvent = createRecruitmentSurpriseEvent(recruitGame);
+        offerSamples.push({
+          fruitIds: (fruitEvent?.choices || []).map((choice) => choice.id.replace("choose-", "")),
+          recruitmentIds: (recruitmentEvent?.choices || []).map((choice) => choice.id.replace("recruit-", "")),
+        });
+      }
+    } finally {
+      Math.random = originalRandom;
+    }
+    const replacementGame = makeGame();
+    const previousIndex = replacementGame.specialZoneRouteIndex;
+    const previousZoneId = replacementGame.specialZoneId;
+    const fruitGranted = grantDevilFruit(fruits.find((fruit) => fruit.id === "ope-ope"), replacementGame, false);
+    const replaced = fruitGranted && replacementGame.specialZoneId !== previousZoneId;
+    const activeLawZoneGame = withFruit("ope-ope");
+    activeLawZoneGame.currentZoneIndex = activeLawZoneGame.specialZoneRouteIndex;
+    const lawEventsStillEligible = getAvailableEvents(activeLawZoneGame).filter((event) =>
+      event.loreCharacters?.some((name) => canonicalCharacterIdFromName(name) === "trafalgar-law"));
+    const legacyGame = withFruit("mero-mero");
+    legacyGame.crewMembers = cloneData(hancockCrewGame.crewMembers);
+    const normalizedLegacy = normalizeGame(cloneData(legacyGame));
+
+    const systemCharacters = {
+      recruitment: uniqueArray([...(window.GAME_DATA?.crewRecruitments || []), ...(window.GAME_DATA?.marineRecruitments || []), ...(window.GAME_DATA?.davyBackFightCompanions || [])].map(canonicalCharacterIdFromName)),
+      events: uniqueArray(getAllEvents().flatMap((event) => event.loreCharacters || []).map(canonicalCharacterIdFromName)),
+      warlords: uniqueArray(Object.values(LEGENDARY_WARLORDS).map((entry) => canonicalCharacterIdFromName(entry.name))),
+      emperors: uniqueArray(Object.values(LEGENDARY_EMPEROR_NAMES).map(canonicalCharacterIdFromName)),
+    };
+    const usedCharacters = new Set(Object.values(systemCharacters).flat());
+    const matrix = Object.entries(registry).map(([fruitId, users]) => ({
+      fruitId,
+      fruitExists: fruitIds.has(fruitId),
+      users: users.map((characterId) => ({
+        characterId,
+        systems: Object.entries(systemCharacters).filter(([, ids]) => ids.includes(characterId)).map(([system]) => system),
+        futureOnly: !usedCharacters.has(characterId),
+      })),
+    }));
+    const mandatoryConflicts = getAllEvents().filter((event) => event.mandatory && event.loreCharacters?.some(
+      (name) => getCanonicalCharacterFruitIds(canonicalCharacterIdFromName(name)).length));
+    const checks = {
+      registryFruitIdsValid: matrix.every((row) => row.fruitExists),
+      allCatalogFruitsMapped: fruits.every((fruit) => registry[fruit.id]?.length),
+      opeBlocksLawEvents: !areLoreCharactersAvailable(opeGame, ["Trafalgar Law"]),
+      opeBlocksLawZone: !isSpecialZoneCompatible(opeGame.route[previousIndex], opeGame),
+      lawZoneReplaced: replaced && replacementGame.specialZoneId !== previousZoneId && replacementGame.specialZoneRouteIndex === previousIndex,
+      actualLawEventsFiltered: !lawEventsStillEligible.length,
+      meroBlocksHancockRecruitment: !recruitment("boa-hancock", meroGame),
+      meroBlocksHancockWarlord: !warlordPool(meroGame).includes("hancock"),
+      nikyuBlocksKumaWarlord: !warlordPool(nikyuGame).includes("kuma"),
+      hancockCrewBlocksWarlord: !warlordPool(hancockCrewGame).includes("hancock"),
+      hancockCrewAndNikyuPool: JSON.stringify(warlordPool(hancockNikyuGame)) === JSON.stringify(["moria", "doflamingo", "weevil"]),
+      warlordSamplingRespectsConflicts: !meroWarlordSamples.includes("hancock") &&
+        !nikyuWarlordSamples.includes("kuma") &&
+        combinedWarlordSamples.every((id) => ["moria", "doflamingo", "weevil"].includes(id)),
+      offerSamplingKeepsTwoCompatibleChoices: offerSamples.every((sample) =>
+        sample.fruitIds.length === 2 && !sample.fruitIds.includes("tori-tori-phoenix") &&
+        sample.recruitmentIds.length === 2 && !sample.recruitmentIds.includes("boa-hancock")),
+      zushiBlocksFujitoraEvents: !areLoreCharactersAvailable(zushiGame, ["Fujitora"]),
+      zushiBlocksMarineSpecialZone: !isSpecialZoneCompatible(zushiGame.route[previousIndex], zushiGame),
+      inverseCompanionFruitRules: inverseCases.every((row) => row.inverseBlocked && row.recruitmentBlocked),
+      legacyCombinationPreserved: getPlayerDevilFruitId(normalizedLegacy) === "mero-mero" && hasCrewMember(normalizedLegacy, "boa-hancock"),
+      davyCatalogPreserved: (window.GAME_DATA?.davyBackFightCompanions || []).length === 4,
+      noMandatoryClassicConflict: !mandatoryConflicts.length,
+    };
+    return {
+      pass: Object.values(checks).every(Boolean), checks, matrix, inverseCases,
+      samples: { warlordsPerCase: 1000, offersPerCase: offerSamples.length },
+      systems: systemCharacters,
+      mandatoryConflicts: mandatoryConflicts.map((event) => event.id),
+    };
   }
 
   function runBalanceAudit(options = {}) {
@@ -17279,12 +19691,24 @@
         obtainable: catalog.achievements.rows.filter((row) => row.positive).length,
         impossible: catalog.achievements.rows.filter((row) => !row.positive),
       },
-      companions: {
-        total: (window.GAME_DATA?.crewRecruitments?.length || 0) + (window.GAME_DATA?.marineRecruitments?.length || 0),
-        regular: window.GAME_DATA?.crewRecruitments?.length || 0,
-        marine: window.GAME_DATA?.marineRecruitments?.length || 0,
-      },
-      devilFruits: { total: window.GAME_DATA?.devilFruits?.length || 0 },
+      companions: (() => {
+        const regular = (window.GAME_DATA?.crewRecruitments || []).filter((member) => member.active !== false);
+        const marine = window.GAME_DATA?.marineRecruitments || [];
+        const countBy = (items, key) => items.reduce((counts, item) => {
+          const value = item[key]; counts[value] = (counts[value] || 0) + 1; return counts;
+        }, {});
+        const byFaction = regular.reduce((counts, member) => {
+          member.allowedFactions.forEach((faction) => { counts[faction] = (counts[faction] || 0) + 1; });
+          return counts;
+        }, {});
+        return { total: regular.length + marine.length, regular: regular.length, inactiveRegular: (window.GAME_DATA?.crewRecruitments?.length || 0) - regular.length, marine: marine.length, rarityCounts: countBy(regular, "rarity"), byFaction };
+      })(),
+      devilFruits: (() => {
+        const fruits = window.GAME_DATA?.devilFruits || [];
+        return { total: fruits.length, rarityCounts: fruits.reduce((counts, fruit) => {
+          counts[fruit.rarity] = (counts[fruit.rarity] || 0) + 1; return counts;
+        }, {}) };
+      })(),
       dreams: { total: Object.values(window.GAME_DATA?.dreams || {}).flat().length },
       flags: {
         written: writtenFlags.size, read: readFlags.size,
@@ -17301,6 +19725,7 @@
         legendaryTitleReveals: runLegendaryTitleRevealAudit(),
         finalDream: runFinalDreamResolutionAudit(),
         companionDialogues: runCompanionDialogueAudit(),
+        canonicalDevilFruitUniqueness: runCanonicalDevilFruitUniquenessAudit(),
         emperorRunKiller: runEmperorRunKillerAudit(),
       },
     };
@@ -17309,6 +19734,60 @@
       report.choicePositions.pass && Object.values(report.systems).every((audit) => audit.pass);
     console.warn("[Blue Legacy] BALANCE_AUDIT", report);
     return report;
+  }
+
+  function runCrewIntegrityAudit() {
+    const events = [...getAllEvents(), ...getBossEvents(), ...(window.BLUE_LEGACY_STORY_DATA?.roger?.events || []),
+      ...(window.BLUE_LEGACY_STORY_DATA?.roger?.decisiveEvents || []), ...(window.BLUE_LEGACY_STORY_DATA?.roger?.legendaryEvents || [])]
+      .filter(Boolean).map(normalizeEvent);
+    const violations = events.flatMap((event) => event.choices.flatMap((choice) => choice.outcomes
+      .filter((outcome) => Number(outcome.effects?.crew) > 0 || outcome.crewMember)
+      .filter((outcome) => Number(outcome.effects?.crew) > 0 || !outcome.crewMember?.id)
+      .map((outcome) => ({ eventId: event.id, choiceId: choice.id, outcomeId: outcome.id,
+        crewEffect: Number(outcome.effects?.crew) || 0, crewMemberId: outcome.crewMember?.id || null }))));
+    return { pass: !violations.length, checkedEvents: events.length, violations };
+  }
+
+  function runFullGameValidationAudit() {
+    const collection = runCollectionCatalogAudit();
+    const systems = {
+      catalogCollections: collection,
+      events: runBlueLegacyEventAudit(), choicePositions: runChoicePositionAudit(),
+      health: runHealthEndingAudit(), haki: runHakiDecisiveAudit(),
+      legendaryArcs: runArcPerformanceAudit(), legendaryTitleReveals: runLegendaryTitleRevealAudit(),
+      legendaryHeaderContexts: runLegendaryHeaderContextAudit(),
+      storyPeriods: runStoryPeriodAudit(), storySignatures: runStorySignatureEncounterAudit(20000),
+      storyLegendaryCombinations: runStoryLegendaryCombinationAudit(), storyConclusion: runStoryConclusionAudit(),
+      finalPopularityFreeze: runFinalPopularityFreezeAudit(), shop: runShopSystemAudit(),
+      companionDialogues: runCompanionDialogueAudit(), fruits: runCanonicalDevilFruitUniquenessAudit(),
+      reverseMountain: runReverseMountainTemperamentAudit(), titleCollections: runTitleCollectionAchievementAudit(),
+      crewIntegrity: runCrewIntegrityAudit(),
+    };
+    const classicCompanions = (window.GAME_DATA?.crewRecruitments || []).filter((item) => item.active !== false);
+    const marineSupports = (window.GAME_DATA?.marineRecruitments || []).filter((item) => item.active !== false);
+    const storyCompanions = (window.BLUE_LEGACY_STORY_DATA?.roger?.companions || []).filter((item) => item.active !== false);
+    const failures = Object.entries(systems).filter(([, audit]) => audit?.pass === false).map(([id]) => id);
+    return {
+      pass: !failures.length,
+      counts: {
+        classicEvents: getAllEvents().filter((event) => event.active !== false).length,
+        storyRogerEvents: [
+          ...(window.BLUE_LEGACY_STORY_DATA?.roger?.events || []),
+          ...(window.BLUE_LEGACY_STORY_DATA?.roger?.decisiveEvents || []),
+          ...(window.BLUE_LEGACY_STORY_DATA?.roger?.legendaryEvents || []),
+        ].filter((event) => event.active !== false).length,
+        fruits: (window.GAME_DATA?.devilFruits || []).filter((item) => item.active !== false).length,
+        classicCompanions: classicCompanions.length,
+        marineSupports: marineSupports.length,
+        storyCompanions: storyCompanions.length,
+        titles: getAllTitles().filter((item) => item.active !== false).length,
+        achievements: getAllAchievements().filter((item) => item.active !== false).length,
+        shopItems: getShopItems().filter((item) => item.type !== "cosmetic" && item.active !== false).length,
+        legendaryArcs: CLASSIC_LEGENDARY_ARC_IDS.length,
+      },
+      collection: { achievements: collection.achievements.count, titles: collection.titles.count },
+      systems, failures,
+    };
   }
 
   function validateStatisticsInDevelopment() {
