@@ -649,9 +649,8 @@
     const rankNode = text("strong", "leaderboard-entry__rank", `#${rank}`);
     const names = document.createElement("div"); names.className = "leaderboard-entry__names";
     const playerIdentity = text("strong", "leaderboard-entry__player", "");
-    if (entry.storyTitle) {
-      playerIdentity.textContent = entry.characterName;
-    } else if (identityRenderer) {
+    const isStoryEntry = Boolean(entry.storyTitle);
+    if (identityRenderer) {
       identityRenderer(playerIdentity, {
         playerIdentity: { firstName: entry.playerFirstName, lastName: entry.playerLastName },
         profileCosmetics: {
@@ -663,10 +662,9 @@
       playerIdentity.textContent = formatLeaderboardIdentity(entry);
     }
     names.append(playerIdentity);
-    if (!entry.storyTitle) names.append(text("span", "leaderboard-entry__character", entry.characterName));
-    if (entry.storyTitle) names.append(text("span", "leaderboard-entry__title", `Roger — ${entry.storyTitle}`));
-    if (entry.characterTitle) names.append(text("span", "leaderboard-entry__title", entry.characterTitle));
-    if (entry.legendaryTitles?.length) {
+    names.append(text("span", "leaderboard-entry__character", entry.characterName));
+    if (!isStoryEntry && entry.characterTitle) names.append(text("span", "leaderboard-entry__title", entry.characterTitle));
+    if (!isStoryEntry && entry.legendaryTitles?.length) {
       const legendaryTitles = document.createElement("div");
       legendaryTitles.className = "leaderboard-entry__legendary-titles";
       entry.legendaryTitles.forEach((titleName) => legendaryTitles.append(text("span", "leaderboard-entry__legendary-title", titleName)));
@@ -674,7 +672,7 @@
     }
     const meta = document.createElement("div"); meta.className = "leaderboard-entry__meta";
     meta.append(text("strong", "leaderboard-entry__score", `${entry.score} Popularité`));
-    if (entry.dreamCompleted) meta.append(text("span", "leaderboard-entry__dream", "Rêve accompli"));
+    if (!isStoryEntry && entry.dreamCompleted) meta.append(text("span", "leaderboard-entry__dream", "Rêve accompli"));
     row.append(rankNode, names, meta);
     return row;
   }
@@ -808,6 +806,54 @@
     });
   }
 
+  function runLeaderboardRowAudit({ mount = false } = {}) {
+    const storyEntry = normalizeEntry({
+      player_first_name: "Lina",
+      player_last_name: "Monkey",
+      player_d_cosmetic: true,
+      character_name: "Gol D. Roger",
+      story_id: "roger",
+      story_title: "Le Roi des Pirates",
+      score: 87,
+    });
+    const classicEntry = normalizeEntry({
+      player_first_name: "Nora",
+      player_last_name: "Vinsmoke",
+      player_d_cosmetic: true,
+      character_name: "Astra",
+      character_title: "Étoile des mers",
+      legendary_titles: ["Légende vivante"],
+      dream_completed: true,
+      score: 93,
+    });
+    const storyRow = createRow(storyEntry, 1);
+    const classicRow = createRow(classicEntry, 2);
+    const storyPlayer = storyRow.querySelector(".leaderboard-entry__player")?.textContent || "";
+    const storyCharacter = storyRow.querySelector(".leaderboard-entry__character")?.textContent || "";
+    const storyScore = storyRow.querySelector(".leaderboard-entry__score")?.textContent || "";
+    const classicPlayer = classicRow.querySelector(".leaderboard-entry__player")?.textContent || "";
+    const checks = Object.freeze({
+      storyIdentity: storyPlayer === formatLeaderboardIdentity(storyEntry) && storyPlayer.includes("D."),
+      storyCharacter: storyCharacter === storyEntry.characterName,
+      storyCampaignHidden: !storyRow.querySelector(".leaderboard-entry__title") && !storyRow.textContent.includes(storyEntry.storyTitle),
+      storyScore: storyScore === "87 Popularité",
+      classicIdentity: classicPlayer === formatLeaderboardIdentity(classicEntry) && classicPlayer.includes("D."),
+      classicCharacter: classicRow.querySelector(".leaderboard-entry__character")?.textContent === classicEntry.characterName,
+      classicDetails: classicRow.querySelector(".leaderboard-entry__title")?.textContent === classicEntry.characterTitle &&
+        classicRow.querySelector(".leaderboard-entry__legendary-title")?.textContent === classicEntry.legendaryTitles[0] &&
+        classicRow.querySelector(".leaderboard-entry__dream")?.textContent === "Rêve accompli",
+      classicScore: classicRow.querySelector(".leaderboard-entry__score")?.textContent === "93 Popularité",
+    });
+    if (mount) {
+      const preview = document.createElement("section");
+      preview.id = "leaderboard-row-audit-preview";
+      preview.style.cssText = "position:fixed;inset:64px 8px auto;z-index:99998;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;width:calc(100vw - 16px);max-width:720px;padding:12px;overflow:hidden;background:#f5ead5;border:3px solid #111";
+      preview.append(text("strong", "", "Story synthétique"), storyRow, text("strong", "", "Classique synthétique"), classicRow);
+      document.body.append(preview);
+    }
+    return Object.freeze({ pass: Object.values(checks).every(Boolean), checks });
+  }
+
   function renderPersonal(element, profile, entry, rank) {
     clear(element);
     if (!hasIdentity(profile)) { element.append(text("p", "leaderboard-personal-message", "Renseignez votre prénom et votre nom dans Carte de légende pour apparaître dans le classement.")); return; }
@@ -915,7 +961,22 @@
       output.textContent = `LEADERBOARD TIE-BREAK AUDIT: ${audit.pass ? "PASS" : "FAIL"}`;
       document.body.append(output);
     }
+    if (new URLSearchParams(window.location.search).has("leaderboardRowAudit")) {
+      let dialogClosePasses = 0;
+      const dialogCloseTimer = window.setInterval(() => {
+        document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
+        dialogClosePasses += 1;
+        if (dialogClosePasses >= 30) window.clearInterval(dialogCloseTimer);
+      }, 100);
+      const audit = runLeaderboardRowAudit({ mount: true });
+      document.documentElement.dataset.leaderboardRowAudit = JSON.stringify(audit);
+      const output = document.createElement("output");
+      output.id = "leaderboard-row-audit-output";
+      output.style.cssText = "position:fixed;inset:8px auto auto 8px;z-index:99999;padding:12px;background:#fff;color:#111;border:3px solid #111;font:700 20px monospace";
+      output.textContent = `LEADERBOARD ROW AUDIT: ${audit.pass ? "PASS" : "FAIL"}`;
+      document.body.append(output);
+    }
   }
 
-  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, refreshStoryHome, refreshStoryFull, refreshOnline, submitCareer, submitStoryCareer, reservePlayerProfile, syncPlayerDCosmetic, normalizePlayerNamePart, normalizePlayerNameForModeration, validatePlayerNamePart, validatePlayerIdentity, runPlayerIdentityModerationAudit, runLeaderboardTieBreakAudit, getMonthlyTop, getStoryMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
+  window.BlueLegacyLeaderboard = Object.freeze({ initialize, refreshHome, refreshFull, refreshStoryHome, refreshStoryFull, refreshOnline, submitCareer, submitStoryCareer, reservePlayerProfile, syncPlayerDCosmetic, normalizePlayerNamePart, normalizePlayerNameForModeration, validatePlayerNamePart, validatePlayerIdentity, runPlayerIdentityModerationAudit, runLeaderboardTieBreakAudit, runLeaderboardRowAudit, getMonthlyTop, getStoryMonthlyTop, getCurrentPlayerMonthlyEntry, getCurrentPlayerRank, getMonthKey: monthKey });
 })();
