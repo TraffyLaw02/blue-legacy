@@ -359,6 +359,7 @@
       characterTitle: String(row?.character_title || row?.characterTitle || "").trim(),
       storyId: String(row?.story_id || row?.storyId || "").trim(),
       storyTitle: String(row?.story_title || row?.storyTitle || "").trim(),
+      conclusionLabel: String(row?.conclusion_label || row?.conclusionLabel || "").trim(),
       legendaryTitles,
       legendaryTitleCount: Math.min(3, Math.max(0, Number(row?.legendary_title_count ?? row?.legendaryTitleCount ?? legendaryTitles.length) || 0)),
       dreamCompleted: row?.dream_completed === true || row?.dreamCompleted === true,
@@ -400,7 +401,7 @@
 
   async function getStoryMonthlyTop(limit = 5) {
     const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 5)));
-    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,story_id,story_title,score,updated_at";
+    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,story_id,story_title,character_title,dream_completed,conclusion_label,legendary_titles,score,updated_at";
     const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, order: "score.desc,updated_at.asc", limit: String(safeLimit) });
     const result = await request(`/rest/v1/${CONFIG.storyTable}?${query}`);
     return (result.data || []).map(normalizeEntry);
@@ -408,7 +409,7 @@
 
   async function getCurrentPlayerStoryEntry() {
     const session = await ensureAnonymousAuth();
-    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,story_id,story_title,score,updated_at";
+    const select = "user_id,player_first_name,player_last_name,player_d_cosmetic,character_name,story_id,story_title,character_title,dream_completed,conclusion_label,legendary_titles,score,updated_at";
     const query = new URLSearchParams({ select, month_key: `eq.${monthKey()}`, user_id: `eq.${session.user.id}`, limit: "1" });
     const result = await request(`/rest/v1/${CONFIG.storyTable}?${query}`, { auth: true });
     return result.data?.[0] ? normalizeEntry(result.data[0]) : null;
@@ -596,7 +597,7 @@
     }
   }
 
-  async function submitStoryCareer({ playerFirstName, playerLastName, playerDCosmetic = false, characterName, storyId, storyTitle, score, finishedAt }) {
+  async function submitStoryCareer({ playerFirstName, playerLastName, playerDCosmetic = false, characterName, characterTitle, legendaryTitles = [], dreamCompleted = false, conclusionLabel, storyId, storyTitle, score, finishedAt }) {
     const identityValidation = validatePlayerIdentity({ firstName: playerFirstName, lastName: playerLastName });
     if (!identityValidation.ok) return { submitted: false, reason: identityValidation.reason, message: identityValidation.message };
     const payload = {
@@ -607,6 +608,11 @@
       p_character_name: String(characterName || "Légende sans nom").trim().slice(0, 100),
       p_story_id: String(storyId || "").trim().slice(0, 50),
       p_story_title: String(storyTitle || "").trim().slice(0, 120),
+      p_character_title: String(characterTitle || "").trim().slice(0, 120) || null,
+      p_dream_completed: dreamCompleted === true,
+      p_conclusion_label: String(conclusionLabel || "").trim().slice(0, 120) || null,
+      p_legendary_titles: (Array.isArray(legendaryTitles) ? legendaryTitles : [])
+        .map((titleName) => String(titleName || "").trim().slice(0, 120)).filter(Boolean).slice(0, 3),
       p_score: Math.min(100, Math.max(1, Math.round(Number(score) || 1))),
     };
     if (!payload.p_story_id || !payload.p_story_title) return { submitted: false, reason: "missing-story" };
@@ -649,7 +655,7 @@
     const rankNode = text("strong", "leaderboard-entry__rank", `#${rank}`);
     const names = document.createElement("div"); names.className = "leaderboard-entry__names";
     const playerIdentity = text("strong", "leaderboard-entry__player", "");
-    const isStoryEntry = Boolean(entry.storyTitle);
+    const isStoryEntry = Boolean(entry.storyId || entry.storyTitle);
     if (identityRenderer) {
       identityRenderer(playerIdentity, {
         playerIdentity: { firstName: entry.playerFirstName, lastName: entry.playerLastName },
@@ -663,8 +669,8 @@
     }
     names.append(playerIdentity);
     names.append(text("span", "leaderboard-entry__character", entry.characterName));
-    if (!isStoryEntry && entry.characterTitle) names.append(text("span", "leaderboard-entry__title", entry.characterTitle));
-    if (!isStoryEntry && entry.legendaryTitles?.length) {
+    if (entry.characterTitle) names.append(text("span", "leaderboard-entry__title", entry.characterTitle));
+    if (entry.legendaryTitles?.length) {
       const legendaryTitles = document.createElement("div");
       legendaryTitles.className = "leaderboard-entry__legendary-titles";
       entry.legendaryTitles.forEach((titleName) => legendaryTitles.append(text("span", "leaderboard-entry__legendary-title", titleName)));
@@ -672,7 +678,12 @@
     }
     const meta = document.createElement("div"); meta.className = "leaderboard-entry__meta";
     meta.append(text("strong", "leaderboard-entry__score", `${entry.score} Popularité`));
-    if (!isStoryEntry && entry.dreamCompleted) meta.append(text("span", "leaderboard-entry__dream", "Rêve accompli"));
+    if (isStoryEntry) {
+      meta.append(text("span", "leaderboard-entry__dream", entry.conclusionLabel ||
+        (entry.dreamCompleted ? "Héritage accompli" : "Héritage inachevé")));
+    } else if (entry.dreamCompleted) {
+      meta.append(text("span", "leaderboard-entry__dream", "Rêve accompli"));
+    }
     row.append(rankNode, names, meta);
     return row;
   }
@@ -814,7 +825,11 @@
       character_name: "Gol D. Roger",
       story_id: "roger",
       story_title: "Le Roi des Pirates",
-      score: 87,
+      character_title: "Celui qui conquit les mers",
+      dream_completed: true,
+      conclusion_label: "Héritage accompli",
+      legendary_titles: ["L’Ombre de God Valley", "Dompteur du Lion d’Or", "Titan des mers"],
+      score: 98,
     });
     const classicEntry = normalizeEntry({
       player_first_name: "Nora",
@@ -832,17 +847,72 @@
     const storyCharacter = storyRow.querySelector(".leaderboard-entry__character")?.textContent || "";
     const storyScore = storyRow.querySelector(".leaderboard-entry__score")?.textContent || "";
     const classicPlayer = classicRow.querySelector(".leaderboard-entry__player")?.textContent || "";
+    const storyLegendaryTitles = [...storyRow.querySelectorAll(".leaderboard-entry__legendary-title")]
+      .map((node) => node.textContent);
+    const oldStoryRow = createRow(normalizeEntry({
+      player_first_name: "Hugo", player_last_name: "Martin", character_name: "Gol D. Roger",
+      story_id: "roger", story_title: "Ancienne campagne", score: 84,
+    }), 7);
+    const legendaryCountRows = [0, 1, 2, 3].map((count) => createRow(normalizeEntry({
+      player_first_name: "Audit", player_last_name: "Titres", character_name: "Gol D. Roger",
+      story_id: "roger", story_title: "Campagne technique", dream_completed: count === 3,
+      legendary_titles: storyEntry.legendaryTitles.slice(0, count), score: 80 + count,
+    }), count + 1));
+    const responsiveHost = document.createElement("div");
+    responsiveHost.style.cssText = "position:fixed;left:-10000px;top:0;visibility:hidden";
+    const responsiveRows = [320, 375, 430, 768, 1100].map((width) => {
+      const container = document.createElement("div");
+      container.style.width = `${width}px`;
+      const row = createRow(normalizeEntry({
+        player_first_name: "Alexandrine", player_last_name: "Montgomery-Silver",
+        player_d_cosmetic: true, character_name: "Gol D. Roger",
+        story_id: "roger", story_title: "Campagne technique",
+        character_title: "Celui qui conquit les mers", dream_completed: true,
+        conclusion_label: "Héritage accompli", legendary_titles: storyEntry.legendaryTitles,
+        score: 100,
+      }), 1);
+      if (width <= 430) {
+        row.querySelectorAll(".leaderboard-entry__character, .leaderboard-entry__legendary-title")
+          .forEach((node) => { node.style.whiteSpace = "normal"; });
+      }
+      container.append(row);
+      responsiveHost.append(container);
+      return { width, row };
+    });
+    responsiveHost.append(storyRow, classicRow);
+    document.body.append(responsiveHost);
+    const responsiveMeasurements = responsiveRows.map(({ width, row }) => ({
+      width,
+      fits: row.scrollWidth <= row.clientWidth &&
+        row.querySelector(".leaderboard-entry__names").scrollWidth <= row.querySelector(".leaderboard-entry__names").clientWidth,
+    }));
+    const storyNamesTextAlign = getComputedStyle(storyRow.querySelector(".leaderboard-entry__names")).textAlign;
+    const storyTitlesJustifyContent = getComputedStyle(storyRow.querySelector(".leaderboard-entry__legendary-titles")).justifyContent;
+    responsiveHost.remove();
     const checks = Object.freeze({
       storyIdentity: storyPlayer === formatLeaderboardIdentity(storyEntry) && storyPlayer.includes("D."),
       storyCharacter: storyCharacter === storyEntry.characterName,
-      storyCampaignHidden: !storyRow.querySelector(".leaderboard-entry__title") && !storyRow.textContent.includes(storyEntry.storyTitle),
-      storyScore: storyScore === "87 Popularité",
+      storyFinalTitle: storyRow.querySelector(".leaderboard-entry__title")?.textContent === storyEntry.characterTitle,
+      storyDestiny: storyRow.querySelector(".leaderboard-entry__dream")?.textContent === "Héritage accompli",
+      storyLegendaryOrder: JSON.stringify(storyLegendaryTitles) === JSON.stringify(storyEntry.legendaryTitles),
+      storyCampaignHidden: !storyRow.textContent.includes(storyEntry.storyTitle) && !storyRow.textContent.includes("Mode Histoire"),
+      storyScore: storyScore === "98 Popularité",
+      oldStoryCompatible: !oldStoryRow.querySelector(".leaderboard-entry__title") &&
+        oldStoryRow.querySelector(".leaderboard-entry__dream")?.textContent === "Héritage inachevé" &&
+        oldStoryRow.querySelector(".leaderboard-entry__character")?.textContent === "Gol D. Roger",
+      legendaryCounts: legendaryCountRows.every((row, count) =>
+        row.querySelectorAll(".leaderboard-entry__legendary-title").length === count),
+      responsiveWidths: responsiveMeasurements.every((measurement) => measurement.fits),
+      leftAlignment: storyNamesTextAlign === "left" && storyTitlesJustifyContent === "flex-start",
       classicIdentity: classicPlayer === formatLeaderboardIdentity(classicEntry) && classicPlayer.includes("D."),
       classicCharacter: classicRow.querySelector(".leaderboard-entry__character")?.textContent === classicEntry.characterName,
       classicDetails: classicRow.querySelector(".leaderboard-entry__title")?.textContent === classicEntry.characterTitle &&
         classicRow.querySelector(".leaderboard-entry__legendary-title")?.textContent === classicEntry.legendaryTitles[0] &&
         classicRow.querySelector(".leaderboard-entry__dream")?.textContent === "Rêve accompli",
       classicScore: classicRow.querySelector(".leaderboard-entry__score")?.textContent === "93 Popularité",
+      domParity: ["leaderboard-entry__player", "leaderboard-entry__character", "leaderboard-entry__title",
+        "leaderboard-entry__legendary-titles", "leaderboard-entry__score", "leaderboard-entry__dream"]
+        .every((className) => storyRow.querySelector(`.${className}`) && classicRow.querySelector(`.${className}`)),
     });
     if (mount) {
       const preview = document.createElement("section");
@@ -851,7 +921,7 @@
       preview.append(text("strong", "", "Story synthétique"), storyRow, text("strong", "", "Classique synthétique"), classicRow);
       document.body.append(preview);
     }
-    return Object.freeze({ pass: Object.values(checks).every(Boolean), checks });
+    return Object.freeze({ pass: Object.values(checks).every(Boolean), checks, responsiveMeasurements });
   }
 
   function renderPersonal(element, profile, entry, rank) {

@@ -1237,14 +1237,14 @@ body.has-game-credit #home-screen {
   border-radius: 10px;
 }
 .leaderboard-entry__rank { color: var(--ocean-deep); font-size: 1.05rem; }
-.leaderboard-entry__names { display: grid; min-width: 0; line-height: 1.25; }
+.leaderboard-entry__names { display: grid; align-items: start; min-width: 0; line-height: 1.25; text-align: left; }
 .leaderboard-entry__player,
 .leaderboard-entry__character,
 .leaderboard-entry__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-entry__player { font-size: .92rem; }
 .leaderboard-entry__character { color: var(--text-secondary); font-size: .8rem; font-style: italic; }
 .leaderboard-entry__title { color: #6c5125; font-size: .72rem; font-weight: 700; }
-.leaderboard-entry__legendary-titles { display: flex; flex-wrap: wrap; gap: 3px 5px; margin-top: 4px; }
+.leaderboard-entry__legendary-titles { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 3px 5px; max-width: 100%; margin-top: 4px; }
 .leaderboard-entry__legendary-title { max-width: 100%; padding: 2px 6px; overflow: hidden; color: #5b3406; font-size: .62rem; font-weight: 850; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; background: linear-gradient(110deg, rgba(255,221,106,.86), rgba(255,245,190,.9)); border: 1px solid rgba(126,83,10,.42); border-radius: 999px; }
 .leaderboard-entry__meta { display: grid; justify-items: end; gap: 3px; min-width: 0; }
 .leaderboard-entry__score { color: var(--ocean-deep); font-size: .88rem; text-align: right; white-space: nowrap; }
@@ -7188,9 +7188,6 @@ h4,
   line-height: 1.5;
   text-wrap: balance;
 }
-.davy-companion-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;width:100%;margin:1rem 0}.davy-companion-options[hidden]{display:none}.davy-companion-option{display:flex;flex-direction:column;gap:.2rem;text-align:left}.davy-companion-option small{opacity:.78}
-@media(max-width:560px){.davy-companion-options{grid-template-columns:1fr}}
-
 .reward-reveal-card .button {
   width: min(100%, 270px);
   margin-top: 22px;

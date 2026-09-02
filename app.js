@@ -748,7 +748,6 @@
     dom.rewardRevealName = byId("reward-reveal-name");
     dom.rewardRevealRarity = byId("reward-reveal-rarity");
     dom.rewardRevealDescription = byId("reward-reveal-description");
-    dom.davyCompanionOptions = byId("davy-companion-options");
     dom.continueRewardReveal = byId("continue-reward-reveal-btn");
 
     dom.achievements = byId("achievements-list");
@@ -8902,7 +8901,6 @@
       game,
     );
     recordLegendaryArcPerformance(event, outcome, choice, resolutionId, game);
-    queueDavyCompanionChoice(event, outcome, resolutionId, game);
     recordHakiDecisivePerformance(event, outcome, choice, resolutionId, game);
     const outcomeNarrative = getOutcomeNarrative(outcome, choice, event);
     const statsBefore = getStatsSnapshot(game.stats);
@@ -9048,6 +9046,7 @@
       game.importantEvents.push(cloneData(eventRecord));
     }
 
+    queueDavyCompanionReward(event, outcome, resolutionId, game);
     updateAchievementTelemetry(event, choice, game, outcome);
     checkAchievements(game);
     if (event.eventType === "decisive" && Number(event.decisiveStage) === 3) {
@@ -12134,40 +12133,141 @@
   }
 
   function getAvailableDavyCompanions(game = state.game) {
-    const recruited = new Set((game?.crewMembers || []).map((member) => member.id));
+    const recruited = new Set([
+      ...(game?.crewMembers || []).map((member) => member.id),
+      ...(game?.legendaryArcs?.davy?.companionIds || []),
+    ]);
     return (window.GAME_DATA?.davyBackFightCompanions || []).filter((member) =>
       !recruited.has(member.id) && isCanonicalCharacterAvailable(game, member));
   }
 
-  function queueDavyCompanionChoice(event, outcome, resolutionId, game = state.game) {
+  const DAVY_COMPANION_RARITY_WEIGHTS = Object.freeze({
+    common: 7, uncommon: 6, rare: 5, epic: 3, legendary: 1, mythic: 1,
+  });
+
+  function getDavyCompanionDrawWeight(member) {
+    const explicitWeight = Number(member?.drawWeight);
+    if (explicitWeight > 0) return explicitWeight;
+    return DAVY_COMPANION_RARITY_WEIGHTS[normalizeRarity(member?.rarity)] || 1;
+  }
+
+  function pickWeightedDavyCompanion(candidates, random = Math.random) {
+    const weighted = (Array.isArray(candidates) ? candidates : [])
+      .map((member) => ({ member, weight: getDavyCompanionDrawWeight(member) }))
+      .filter((entry) => entry.weight > 0);
+    const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0);
+    if (!totalWeight) return null;
+    let roll = Math.max(0, Math.min(0.999999999999, Number(random()) || 0)) * totalWeight;
+    for (const entry of weighted) {
+      roll -= entry.weight;
+      if (roll < 0) return entry.member;
+    }
+    return weighted.at(-1)?.member || null;
+  }
+
+  function createDavyCompanionReveal(member, source = {}) {
+    return {
+      type: "reward", id: member.id, name: member.name,
+      description: `Le tirage désigne ${member.name}. ${member.recruitmentText || member.description || "Le résultat du Davy Back Fight est appliqué."}`,
+      rarity: member.rarity, icon: member.icon,
+      meta: `Nouveau compagnon · ${getRarityLabel(member.rarity)}`,
+      sourceResolutionId: source.sourceResolutionId || null,
+      eventId: source.eventId || null,
+      davyCompanionId: member.id,
+    };
+  }
+
+  function assignDavyCompanionReward(source, game = state.game, random = Math.random, recruit = recruitCrewMember) {
+    if (!game) return null;
+    const catalog = window.GAME_DATA?.davyBackFightCompanions || [];
+    const savedId = source?.davyCompanionId || source?.companionId || source?.memberId || null;
+    const alreadyRecruited = savedId && (game.crewMembers || []).some((member) => member.id === savedId);
+    const member = savedId
+      ? catalog.find((candidate) => candidate.id === savedId)
+      : pickWeightedDavyCompanion(getAvailableDavyCompanions(game), random);
+    if (!member || (!alreadyRecruited && !recruit(member, game, false))) return null;
+    game.legendaryArcs ||= {};
+    game.legendaryArcs.davy ||= {};
+    game.legendaryArcs.davy.companionIds = uniqueArray([
+      ...(game.legendaryArcs.davy.companionIds || []), member.id,
+    ]).slice(0, 3);
+    return createDavyCompanionReveal(member, source);
+  }
+
+  function queueDavyCompanionReward(event, outcome, resolutionId, game = state.game, random = Math.random) {
     const tier = outcome?.resolvedOutcomeTier || outcome?.outcomeTier;
     if (event?.legendaryArc !== "davy" || !["success","exceptional_success"].includes(tier)) return false;
-    const available = getAvailableDavyCompanions(game);
-    if (!available.length) return false;
     game.pendingRewardReveals ||= [];
-    game.pendingRewardReveals.push({
-      type:"davy-companion-choice", id:`davy-choice-${event.legendaryStep}`,
-      name:"Choisis un Mugiwara", description:"La manche est gagnée. Les règles sont les règles : choisis le membre encore disponible qui poursuivra la route avec toi.",
-      rarity:"legendary", icon:"🏁", meta:"Récompense du Davy Back Fight",
-      sourceResolutionId:resolutionId, eventId:event.id, legendaryArcId:"davy",
-    });
+    if (game.pendingRewardReveals.some((reveal) =>
+      reveal.sourceResolutionId === resolutionId && reveal.davyCompanionId)) return false;
+    const reveal = assignDavyCompanionReward({ sourceResolutionId: resolutionId, eventId: event.id }, game, random);
+    if (!reveal) return false;
+    game.pendingRewardReveals.push(reveal);
     return true;
   }
 
-  function chooseDavyCompanion(memberId, game = state.game) {
-    const reveal = game?.pendingRewardReveals?.[0];
-    const member = getAvailableDavyCompanions(game).find((candidate) => candidate.id === memberId);
-    if (reveal?.type !== "davy-companion-choice" || !member) return false;
-    if (!recruitCrewMember(member, game, false)) return false;
-    game.legendaryArcs.davy.companionIds = uniqueArray([...(game.legendaryArcs.davy.companionIds || []), member.id]).slice(0,3);
-    game.pendingRewardReveals[0] = {
-      type:"reward",id:member.id,name:member.name,description:member.recruitmentText,
-      rarity:member.rarity,icon:member.icon,meta:`Nouveau compagnon · ${getRarityLabel(member.rarity)}`,
-      sourceResolutionId:reveal.sourceResolutionId,eventId:reveal.eventId,
-    };
+  function migratePendingDavyCompanionChoice(game = state.game, random = Math.random) {
+    const index = game?.pendingRewardReveals?.findIndex((reveal) => reveal?.type === "davy-companion-choice");
+    if (!Number.isInteger(index) || index < 0) return false;
+    const migrated = assignDavyCompanionReward(game.pendingRewardReveals[index], game, random);
+    if (!migrated) return false;
+    game.pendingRewardReveals[index] = migrated;
     saveGame();
-    updateRewardRevealScreen();
     return true;
+  }
+
+  function runDavyCompanionDrawAudit(options = {}) {
+    const runs = Math.max(10000, Math.floor(Number(options.runs) || 100000));
+    const random = createSeededRandom(Number(options.seed) || 2092026);
+    const pool = window.GAME_DATA?.davyBackFightCompanions || [];
+    const totalWeight = pool.reduce((sum, member) => sum + getDavyCompanionDrawWeight(member), 0);
+    const counts = Object.fromEntries(pool.map((member) => [member.id, 0]));
+    for (let index = 0; index < runs; index += 1) {
+      const member = pickWeightedDavyCompanion(pool, random);
+      if (member) counts[member.id] += 1;
+    }
+    const rows = pool.map((member) => ({
+      id: member.id, name: member.name, rarity: normalizeRarity(member.rarity),
+      weight: getDavyCompanionDrawWeight(member),
+      theoreticalProbability: getDavyCompanionDrawWeight(member) / totalWeight,
+      observedProbability: counts[member.id] / runs,
+    }));
+    const noReplacementRandom = createSeededRandom(3092026);
+    let distinctThree = true;
+    for (let simulation = 0; simulation < 10000; simulation += 1) {
+      let available = [...pool];
+      const selected = [];
+      for (let draw = 0; draw < Math.min(3, pool.length); draw += 1) {
+        const member = pickWeightedDavyCompanion(available, noReplacementRandom);
+        selected.push(member?.id);
+        available = available.filter((candidate) => candidate.id !== member?.id);
+      }
+      if (new Set(selected).size !== selected.length) distinctThree = false;
+    }
+    const observedByRarity = (rarity) => rows.filter((row) => row.rarity === rarity)
+      .reduce((sum, row) => sum + row.observedProbability, 0);
+    const perfectFixture = {
+      performance: { entries: [1, 2, 3].map((step) => ({ step, tier: "success" })) },
+      companionIds: pool.slice(0, 3).map((member) => member.id),
+    };
+    const checks = {
+      exclusivePoolUnchanged: pool.length === 4 && pool.every((member) => member.id.startsWith("davy-")),
+      allCompanionsObserved: rows.every((row) => row.observedProbability > 0),
+      weightedFrequencies: rows.every((row) =>
+        Math.abs(row.observedProbability - row.theoreticalProbability) < 0.012),
+      epicMoreFrequentThanLegendary: observedByRarity("epic") > observedByRarity("legendary"),
+      threeDistinctWithoutReplacement: distinctThree,
+      championTitleRulePreserved: getLegendaryArcTitleId("davy", {
+        legendaryArcs: { davy: {} }, character: { faction: "pirate" },
+      }) === "champion-davy-back-fight",
+      perfectAchievementRulePreserved: perfectFixture.performance.entries
+        .filter((entry) => ["success", "exceptional_success"].includes(entry.tier)).length === 3 &&
+        new Set(perfectFixture.companionIds).size === 3,
+    };
+    return {
+      pass: Object.values(checks).every(Boolean), runs,
+      weights: { ...DAVY_COMPANION_RARITY_WEIGHTS }, rows, checks,
+    };
   }
 
   const REWARD_REVEAL_RARITY_CLASSES = Object.freeze(
@@ -12183,6 +12283,7 @@
   }
 
   function updateRewardRevealScreen() {
+    migratePendingDavyCompanionChoice();
     const reveal = state.game?.pendingRewardReveals?.[0];
     if (!reveal) return;
     const rarity = normalizeRarity(reveal.rarity);
@@ -12218,15 +12319,9 @@
       dom.rewardRevealDescription.textContent =
         reveal.description || "Cette récompense marque une nouvelle étape de ton aventure.";
     }
-    if (dom.davyCompanionOptions) {
-      const choosing = reveal.type === "davy-companion-choice";
-      dom.davyCompanionOptions.hidden = !choosing;
-      dom.davyCompanionOptions.innerHTML = choosing ? getAvailableDavyCompanions().map((member)=>
-        `<button class="button davy-companion-option" type="button" data-davy-companion-id="${escapeHtml(member.id)}"><strong>${escapeHtml(member.name)}</strong><small>${escapeHtml(getRarityLabel(member.rarity))} · ${escapeHtml(member.role)}</small></button>`).join("") : "";
-    }
     if (dom.continueRewardReveal) {
-      dom.continueRewardReveal.hidden = reveal.type === "davy-companion-choice";
-      dom.continueRewardReveal.disabled = reveal.type === "davy-companion-choice";
+      dom.continueRewardReveal.hidden = false;
+      dom.continueRewardReveal.disabled = false;
     }
   }
 
@@ -12375,6 +12470,7 @@
       ), pantheonEntry.sex) || null,
       legendaryTitles: getLegendaryArcTitleNames(pantheonEntry.runTitles, pantheonEntry.sex),
       dreamCompleted: pantheonEntry.dreamCompleted === true,
+      conclusionLabel: pantheonEntry.conclusionLabel,
       score: pantheonEntry.popularityScore,
       finishedAt: pantheonEntry.finishedAt,
       storyId: pantheonEntry.storyId,
@@ -13860,6 +13956,7 @@
   const LEGENDARY_ARC_TITLE_SOURCE_ORDER = Object.freeze([
     "legendary-davy", "legendary-talent", "legendary-impel-down",
     "legendary-marineford", "legendary-warlord", "legendary-emperor", "legendary-admiral",
+    "story-legendary-talent", "story-legendary-marineford", "story-legendary-emperor",
   ]);
 
   function getLegendaryArcTitleNames(runTitles = [], sex = null) {
@@ -15028,11 +15125,6 @@
         continueAfterRewardReveal();
       },
     );
-    dom.davyCompanionOptions?.addEventListener("click",(event)=>{
-      const button=event.target.closest("[data-davy-companion-id]");
-      if(button) chooseDavyCompanion(button.dataset.davyCompanionId);
-    });
-
     dom.confirmAbandon?.addEventListener(
       "click",
       (event) => {
@@ -17418,6 +17510,13 @@
 
   function runStoryLegendaryCombinationAudit() {
     const arcCalendar = Object.freeze({ talent: 11, marineford: 13, emperor: 20 });
+    const expectedStorySources = ["story-legendary-talent", "story-legendary-marineford", "story-legendary-emperor"];
+    const storyLegendaryTitleData = expectedStorySources.map((sourceType) =>
+      getAllTitles().find((title) => title.sourceType === sourceType)).filter(Boolean);
+    const storyLegendaryPayload = getLegendaryArcTitleNames(storyLegendaryTitleData, "male");
+    const storyLegendaryPayloadPass = storyLegendaryTitleData.length === expectedStorySources.length &&
+      JSON.stringify(storyLegendaryPayload) ===
+        JSON.stringify(storyLegendaryTitleData.map((title) => getTitleDisplayName(title, "male")));
     const combinations = [
       ["talent"], ["marineford"], ["emperor"],
       ["talent", "marineford"], ["talent", "emperor"], ["marineford", "emperor"],
@@ -17445,7 +17544,13 @@
       const pass = Object.keys(arcCalendar).every((arcId) => outcomes[arcId] === selectedArcs.includes(arcId)) && eventStepsExist;
       return { selectedArcs, outcomes, independentStatuses: cloneData(game.legendaryArcs), eventStepsExist, pass };
     });
-    return { windows: arcCalendar, rows, pass: rows.every((row) => row.pass) };
+    return {
+      windows: arcCalendar,
+      storyLegendaryPayload,
+      storyLegendaryPayloadPass,
+      rows,
+      pass: rows.every((row) => row.pass) && storyLegendaryPayloadPass,
+    };
   }
 
   function runLegendaryTitleRevealAudit() {
@@ -18309,6 +18414,19 @@
     }
     if (developmentQuery.has("choiceAudit")) {
       document.documentElement.dataset.choiceAudit = JSON.stringify(runChoicePositionAudit());
+    }
+    if (developmentQuery.has("davyCompanionAudit")) {
+      const report = runDavyCompanionDrawAudit({
+        runs: Number(developmentQuery.get("runs")) || 100000,
+        seed: Number(developmentQuery.get("seed")) || 2092026,
+      });
+      document.documentElement.dataset.davyCompanionAudit = JSON.stringify(report);
+      const output = document.createElement("pre");
+      output.style.cssText = "position:fixed;inset:8px;z-index:2147483647;overflow:auto;padding:16px;background:#fff;color:#111;white-space:pre-wrap";
+      output.textContent = JSON.stringify(report, null, 2);
+      closeDialog(dom.welcomeIdentityModal);
+      dom.welcomeIdentityModal?.remove();
+      document.body.append(output);
     }
     if (developmentQuery.has("popularityTopEndAudit")) {
       const report = runPopularityTopEndAudit();
@@ -19756,6 +19874,7 @@
       health: runHealthEndingAudit(), haki: runHakiDecisiveAudit(),
       legendaryArcs: runArcPerformanceAudit(), legendaryTitleReveals: runLegendaryTitleRevealAudit(),
       legendaryHeaderContexts: runLegendaryHeaderContextAudit(),
+      davyCompanionDraw: runDavyCompanionDrawAudit(),
       storyPeriods: runStoryPeriodAudit(), storySignatures: runStorySignatureEncounterAudit(20000),
       storyLegendaryCombinations: runStoryLegendaryCombinationAudit(), storyConclusion: runStoryConclusionAudit(),
       finalPopularityFreeze: runFinalPopularityFreezeAudit(), shop: runShopSystemAudit(),

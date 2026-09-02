@@ -11,6 +11,10 @@ create table if not exists public.monthly_story_leaderboard (
   character_name text not null,
   story_id text not null,
   story_title text not null,
+  character_title text,
+  dream_completed boolean not null default false,
+  conclusion_label text,
+  legendary_titles text[] not null default '{}',
   score integer not null check (score between 1 and 100),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -20,9 +24,17 @@ create table if not exists public.monthly_story_leaderboard (
   ) not valid
 );
 
+alter table public.monthly_story_leaderboard
+  add column if not exists character_title text,
+  add column if not exists dream_completed boolean not null default false,
+  add column if not exists conclusion_label text,
+  add column if not exists legendary_titles text[] not null default '{}';
+
 alter table public.monthly_story_leaderboard enable row level security;
 drop policy if exists "story leaderboard readable" on public.monthly_story_leaderboard;
 create policy "story leaderboard readable" on public.monthly_story_leaderboard for select using (true);
+
+drop function if exists public.submit_monthly_story_score(text,text,text,boolean,text,text,text,integer);
 
 create or replace function public.submit_monthly_story_score(
   p_month_key text,
@@ -32,6 +44,10 @@ create or replace function public.submit_monthly_story_score(
   p_character_name text,
   p_story_id text,
   p_story_title text,
+  p_character_title text,
+  p_dream_completed boolean,
+  p_conclusion_label text,
+  p_legendary_titles text[],
   p_score integer
 )
 returns setof public.monthly_story_leaderboard
@@ -57,10 +73,16 @@ begin
 
   insert into public.monthly_story_leaderboard (
     month_key, user_id, player_first_name, player_last_name, player_d_cosmetic,
-    character_name, story_id, story_title, score
+    character_name, story_id, story_title, character_title, dream_completed,
+    conclusion_label, legendary_titles, score
   ) values (
     p_month_key, v_user_id, v_first_name, v_last_name, coalesce(p_player_d_cosmetic, false),
-    left(btrim(p_character_name), 100), v_story_id, left(btrim(p_story_title), 120), p_score
+    left(btrim(p_character_name), 100), v_story_id, left(btrim(p_story_title), 120),
+    nullif(left(btrim(coalesce(p_character_title, '')), 120), ''), coalesce(p_dream_completed, false),
+    nullif(left(btrim(coalesce(p_conclusion_label, '')), 120), ''),
+    coalesce((select array_agg(left(btrim(title), 120) order by ordinal)
+      from unnest(coalesce(p_legendary_titles, '{}')) with ordinality as supplied(title, ordinal)
+      where btrim(title) <> '' and ordinal <= 3), '{}'), p_score
   )
   on conflict (month_key, user_id, story_id) do update set
     player_first_name = excluded.player_first_name,
@@ -68,6 +90,10 @@ begin
     player_d_cosmetic = excluded.player_d_cosmetic,
     character_name = excluded.character_name,
     story_title = excluded.story_title,
+    character_title = excluded.character_title,
+    dream_completed = excluded.dream_completed,
+    conclusion_label = excluded.conclusion_label,
+    legendary_titles = excluded.legendary_titles,
     score = excluded.score,
     updated_at = now()
   where excluded.score > public.monthly_story_leaderboard.score;
@@ -77,8 +103,8 @@ begin
 end;
 $$;
 
-revoke all on function public.submit_monthly_story_score(text,text,text,boolean,text,text,text,integer) from public, anon;
-grant execute on function public.submit_monthly_story_score(text,text,text,boolean,text,text,text,integer) to authenticated;
+revoke all on function public.submit_monthly_story_score(text,text,text,boolean,text,text,text,text,boolean,text,text[],integer) from public, anon;
+grant execute on function public.submit_monthly_story_score(text,text,text,boolean,text,text,text,text,boolean,text,text[],integer) to authenticated;
 grant select on public.monthly_story_leaderboard to anon, authenticated;
 
 commit;
